@@ -1,0 +1,855 @@
+{
+  "generatedAt": "2026-09-11T16:06:42.430Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "id = @request.auth.id",
+        "view": "id = @request.auth.id",
+        "create": "",
+        "update": "id = @request.auth.id",
+        "delete": "id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "cargo",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "procedures",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "BPF",
+            "Limpeza",
+            "Qualidade",
+            "APPCC",
+            "Higiene",
+            "Manutenção",
+            "Pragas",
+            "Água",
+            "Rastreabilidade"
+          ]
+        },
+        {
+          "name": "descricao",
+          "type": "editor",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequencia",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Contínuo", "Diário", "Semanal", "Mensal", "Por lote"]
+        },
+        {
+          "name": "responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Revisão", "Arquivado"]
+        },
+        {
+          "name": "area_etapa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objetivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "perigos_relacionados",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medidas_preventivas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "referencia_in",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_revisao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "validade",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_procedures_codigo ON procedures (codigo)",
+        "CREATE INDEX idx_procedures_categoria ON procedures (categoria)",
+        "CREATE INDEX idx_procedures_status ON procedures (status)"
+      ]
+    },
+    {
+      "name": "records",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "procedure",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "procedures"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "turno",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Manhã", "Tarde", "Noite"]
+        },
+        {
+          "name": "valor_medido",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Conforme", "Não Conforme"]
+        },
+        {
+          "name": "responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lote",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "anexos",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_records_procedure ON records (procedure)",
+        "CREATE INDEX idx_records_data ON records (data)",
+        "CREATE INDEX idx_records_status ON records (status)"
+      ]
+    },
+    {
+      "name": "audits",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Interna", "Externa"]
+        },
+        {
+          "name": "area_processo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "auditor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Programada", "Em Andamento", "Concluída"]
+        },
+        {
+          "name": "escopo",
+          "type": "editor",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "checklist",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conclusao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Conforme", "Conforme com Ressalvas", "Não Conforme"]
+        },
+        {
+          "name": "relatorio_achados",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinaturas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano_anual",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_audits_codigo ON audits (codigo)",
+        "CREATE INDEX idx_audits_status ON audits (status)",
+        "CREATE INDEX idx_audits_data ON audits (data)"
+      ]
+    },
+    {
+      "name": "audit_evidence",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "audit",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "audits"
+        },
+        {
+          "name": "item_numero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "arquivo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_audit_evidence_audit ON audit_evidence (audit)"]
+    },
+    {
+      "name": "non_conformities",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "classificacao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Crítica", "Maior", "Menor"]
+        },
+        {
+          "name": "origem",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Auditoria", "Registro", "Reclamação", "Recall"]
+        },
+        {
+          "name": "area",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_identificacao",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "prazo",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Aberta", "Em Andamento", "Fechada"]
+        },
+        {
+          "name": "responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano_acao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prazo_acao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel_acao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recursos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medidas_preventivas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "indicador_eficacia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "causa_raiz",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "execucao_evidencias",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_execucao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "verificacao_responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_verificacao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "eficaz",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Eficaz", "Não Eficaz"]
+        },
+        {
+          "name": "resultado_verificacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lote",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "audit",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "audits"
+        },
+        {
+          "name": "procedure",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "procedures"
+        },
+        {
+          "name": "record",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "records"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_nc_codigo ON non_conformities (codigo)",
+        "CREATE INDEX idx_nc_status ON non_conformities (status)",
+        "CREATE INDEX idx_nc_classificacao ON non_conformities (classificacao)",
+        "CREATE INDEX idx_nc_data ON non_conformities (data_identificacao)",
+        "CREATE INDEX idx_nc_lote ON non_conformities (lote)"
+      ]
+    },
+    {
+      "name": "traceability_tests",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "lote",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_teste",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Rastreabilidade", "Recall"]
+        },
+        {
+          "name": "tempo_rastreamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "comunicacao_clientes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "localizacao_produtos",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resultado",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Aprovado", "Falhou", "Em Análise"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_trace_lote ON traceability_tests (lote)"]
+    },
+    {
+      "name": "trainings",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tema",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "instrutor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "participantes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "carga_horaria",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Concluído", "Agendado"]
+        },
+        {
+          "name": "eficacia_verificada",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evidencia",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "documents",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo_arquivo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Plano APPCC",
+            "Manual BPF",
+            "POP",
+            "Registro",
+            "Ação Corretiva",
+            "Verificação"
+          ]
+        },
+        {
+          "name": "referencia_pop",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "POP-001",
+            "POP-002",
+            "POP-003",
+            "POP-004",
+            "POP-005",
+            "POP-006",
+            "POP-007",
+            "POP-008",
+            "POP-009"
+          ]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

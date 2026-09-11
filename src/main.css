@@ -1,0 +1,146 @@
+/* Global styles - Theme, font, utilities, animations and global components */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 94%; /* #F5F1E8 */
+    --foreground: 0 0% 17%; /* #2B2B2B */
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 17%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 17%;
+
+    --primary: 153 40% 30%; /* #2D6A4F Agro Deep Green */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 44 96% 43%; /* #D9A404 Agro Harvest Amber */
+    --secondary-foreground: 153 42% 16%; /* #1B4332 */
+
+    --muted: 38 24% 88%; /* Light tan muted */
+    --muted-foreground: 0 0% 42%; /* #6B6B6B */
+
+    --accent: 44 96% 43%;
+    --accent-foreground: 153 42% 16%;
+
+    --destructive: 0 74% 42%; /* #B91C1C */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 39 25% 85%; /* #E2DCCF */
+    --input: 39 25% 85%;
+    --ring: 153 40% 30%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 153 40% 30%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 44 96% 43%;
+    --sidebar-primary-foreground: 153 42% 16%;
+    --sidebar-accent: 153 42% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 153 40% 25%;
+    --sidebar-ring: 44 96% 43%;
+
+    --chart-1: 153 40% 30%; /* Verde #2D6A4F */
+    --chart-2: 44 96% 43%; /* Âmbar #D9A404 */
+    --chart-3: 28 53% 36%; /* Marrom #8B5A2B */
+    --chart-4: 174 84% 31%; /* Teal #0D9488 */
+    --chart-5: 217 91% 60%; /* Azul #2563EB */
+  }
+
+  body {
+    background-color: #f5f1e8;
+    color: #2b2b2b;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Sora', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  section[aria-label='Notifications alt+T'] {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+@layer utilities {
+  @keyframes pulseBadge {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.15);
+    }
+  }
+
+  .animate-pulse-badge {
+    animation: pulseBadge 1.2s infinite ease-in-out;
+  }
+
+  @keyframes fadeInUpSlow {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUpSlow 0.35s ease-out forwards;
+  }
+
+  /* Agro specific classes */
+  .agro-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2dccf;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+
+  .agro-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  }
+
+  .agro-table-header {
+    background-color: #2d6a4f;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+@media print {
+  aside,
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+    background: white !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
