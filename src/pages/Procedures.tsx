@@ -33,15 +33,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { getProcedures, createProcedure } from '@/services/agroService'
+import { getProcedures, createProcedure, getCompany } from '@/services/agroService'
 import type {
   Procedure,
   ProcedureCategory,
   ProcedureFrequency,
   ProcedureStatus,
+  Company,
 } from '@/types/agro'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
+import { PopDocumentPdfModal } from '@/components/PopDocumentPdfModal'
+import { Printer } from 'lucide-react'
 
 export default function Procedures() {
   const navigate = useNavigate()
@@ -49,6 +52,7 @@ export default function Procedures() {
   const { toast } = useToast()
 
   const [procedures, setProcedures] = useState<Procedure[]>([])
+  const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState(searchParams.get('busca') || '')
   const [selectedCategory, setSelectedCategory] = useState<string>(
@@ -58,6 +62,8 @@ export default function Procedures() {
   // Modals
   const [openNewModal, setOpenNewModal] = useState(searchParams.get('novo') === 'true')
   const [openAppccModal, setOpenAppccModal] = useState(false)
+  const [openPdfModal, setOpenPdfModal] = useState(false)
+  const [selectedPopForPdf, setSelectedPopForPdf] = useState<Procedure | null>(null)
 
   // New procedure form
   const [formLoading, setFormLoading] = useState(false)
@@ -90,8 +96,9 @@ export default function Procedures() {
 
   const loadData = async () => {
     try {
-      const data = await getProcedures()
+      const [data, comp] = await Promise.all([getProcedures(), getCompany().catch(() => null)])
       setProcedures(data)
+      setCompany(comp)
 
       // Auto suggest next code
       let maxNum = 0
@@ -305,11 +312,11 @@ export default function Procedures() {
                 <th className="py-3 px-4">Código</th>
                 <th className="py-3 px-4">Nome do Procedimento</th>
                 <th className="py-3 px-4">Categoria</th>
-                <th className="py-3 px-4">Frequência</th>
+                <th className="py-3 px-4">Assinatura RT / RE</th>
                 <th className="py-3 px-4">Responsável</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Última Revisão</th>
-                <th className="py-3 px-4 text-right">Ações</th>
+                <th className="py-3 px-4 text-right">Ações / PDF</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2DCCF]">
@@ -344,8 +351,24 @@ export default function Procedures() {
                         {p.categoria}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-stone-600 whitespace-nowrap">
-                      {p.frequencia || 'Diário'}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {p.assinaturas_pop?.rt && p.assinaturas_pop?.re ? (
+                        <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Assinado RT & RE
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="secondary"
+                          className="bg-amber-100 text-amber-800 text-[10px] gap-1"
+                        >
+                          <Clock className="h-3 w-3" />
+                          {p.assinaturas_pop?.rt
+                            ? 'Falta RE'
+                            : p.assinaturas_pop?.re
+                              ? 'Falta RT'
+                              : 'Pendente RT/RE'}
+                        </Badge>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-stone-700 max-w-[160px] truncate">
                       {p.responsavel || 'Hélio - RT'}
@@ -369,13 +392,27 @@ export default function Procedures() {
                         : 'Recente'}
                     </td>
                     <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-[#2D6A4F] hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold"
-                      >
-                        Ver Detalhe <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedPopForPdf(p)
+                            setOpenPdfModal(true)
+                          }}
+                          className="text-[#2D6A4F] border-[#2D6A4F]/40 hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold gap-1"
+                        >
+                          <Printer className="h-3.5 w-3.5" /> PDF / Assinar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-[#2D6A4F] hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold"
+                        >
+                          Detalhe <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -384,6 +421,17 @@ export default function Procedures() {
           </table>
         </div>
       </div>
+
+      {/* POP DOCUMENT PDF & ASSINATURA MODAL */}
+      {selectedPopForPdf && (
+        <PopDocumentPdfModal
+          open={openPdfModal}
+          onOpenChange={setOpenPdfModal}
+          procedure={selectedPopForPdf}
+          company={company}
+          onSignatureSaved={loadData}
+        />
+      )}
 
       {/* MODAL: NOVO PROCEDIMENTO */}
       <Dialog open={openNewModal} onOpenChange={setOpenNewModal}>

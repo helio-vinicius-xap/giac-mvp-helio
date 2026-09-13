@@ -8,6 +8,8 @@ import type {
   TraceabilityTest,
   Training,
   DocumentItem,
+  Company,
+  DigitalSignatureRecord,
 } from '@/types/agro'
 
 // Procedures
@@ -165,5 +167,52 @@ export const getDashboardSummary = async () => {
 export const getNotificationsSummary = async () => {
   return await pb.send('/backend/v1/notificacoes/resumo', {
     method: 'GET',
+  })
+}
+
+// Company (SIPEAGRO / MAPA)
+export const getCompany = async () => {
+  const records = await pb.collection('company').getFullList<Company>({
+    sort: '-created',
+    limit: 1,
+  })
+  return records.length > 0 ? records[0] : null
+}
+
+export const createCompany = async (data: Partial<Company> | FormData) => {
+  return await pb.collection('company').create<Company>(data)
+}
+
+export const updateCompany = async (id: string, data: Partial<Company> | FormData) => {
+  return await pb.collection('company').update<Company>(id, data)
+}
+
+// Custom endpoints: POP & Record PDF Data
+export const getProcedurePdfData = async (id: string) => {
+  return await pb.send(`/backend/v1/procedimentos/${id}/documento-pdf`, {
+    method: 'GET',
+  })
+}
+
+export const getRecordPdfData = async (id: string) => {
+  return await pb.send(`/backend/v1/registros/${id}/documento-pdf`, {
+    method: 'GET',
+  })
+}
+
+// Custom endpoint: Digital Signatures (PFX or Gov.br)
+export const registerDigitalSignature = async (payload: {
+  tipo_alvo: 'procedure' | 'record'
+  id_alvo: string
+  papel: 'RT' | 'RQ' | 'RE'
+  metodo: 'pfx' | 'gov_br'
+  responsavel_nome: string
+  responsavel_identificacao?: string
+  hash_documento?: string
+  observacao?: string
+}) => {
+  return await pb.send('/backend/v1/assinaturas/registrar', {
+    method: 'POST',
+    body: payload,
   })
 }

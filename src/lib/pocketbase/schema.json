@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T16:06:42.430Z",
+  "generatedAt": "2026-09-13T18:28:41.157Z",
   "collections": [
     {
       "name": "users",
@@ -40,6 +40,31 @@
         },
         {
           "name": "cargo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["RT", "RQ", "RE", "admin", "operador", "auditor"]
+        },
+        {
+          "name": "conselho_classe",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
           "type": "text",
           "required": false,
           "system": false
@@ -171,6 +196,36 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "versao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campos_execucao",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "formularios_item07",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinaturas_pop",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "arquivo_pdf_assinado",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -260,6 +315,42 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "formulario_codigo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dados_formulario",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinaturas_registro",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_assinatura",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Pendente Assinatura",
+            "Assinado Parcial (RQ)",
+            "Assinado Parcial (RE)",
+            "Comprovado (Assinado RQ/RE)"
+          ]
+        },
+        {
+          "name": "arquivo_pdf_assinado",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -850,6 +941,187 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "company",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "razao_social",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome_fantasia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "numero_registro_mapa",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo_estabelecimento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "atividades_autorizadas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "produtos_fabricados",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logradouro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "complemento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "bairro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "municipio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "uf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rt_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rt_registro_conselho",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rt_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rq_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rq_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "re_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "re_cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "re_cargo_mapa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "logo",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_company_cnpj ON company (cnpj)",
+        "CREATE INDEX idx_company_mapa ON company (numero_registro_mapa)"
+      ]
     }
   ]
 }

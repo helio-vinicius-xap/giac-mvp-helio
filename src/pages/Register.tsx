@@ -1,10 +1,17 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { Wheat, User, Mail, Lock, Shield, ArrowRight } from 'lucide-react'
+import { Wheat, User, Mail, Lock, Shield, ArrowRight, Award, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +30,9 @@ export default function Register() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [cargo, setCargo] = useState('Responsável Técnico')
+  const [role, setRole] = useState<'RT' | 'RQ' | 'RE' | 'admin' | 'operador' | 'auditor'>('RT')
+  const [conselhoClasse, setConselhoClasse] = useState('')
+  const [cpf, setCpf] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -47,10 +57,10 @@ export default function Register() {
 
     setLoading(true)
     try {
-      await register(name, email, password, cargo)
+      await register(name, email, password, cargo, role, conselhoClasse, cpf)
       toast({
         title: 'Conta criada com sucesso',
-        description: 'Bem-vindo ao sistema de Gestão Agro APPCC.',
+        description: `Bem-vindo! Perfil cadastrado como ${role}.`,
       })
       setShowFirstRunModal(true)
     } catch (err: any) {
@@ -103,17 +113,81 @@ export default function Register() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold text-stone-700">Cargo / Função</Label>
-              <div className="relative">
-                <Shield className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
-                <Input
-                  value={cargo}
-                  onChange={(e) => setCargo(e.target.value)}
-                  placeholder="Ex: Responsável Técnico, Auditor, Gestor"
-                  required
-                  className="pl-9 h-9 text-xs"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Perfil Formal (Norma MAPA)
+                </Label>
+                <Select
+                  value={role}
+                  onValueChange={(val: any) => {
+                    setRole(val)
+                    if (val === 'RT') setCargo('Responsável Técnico')
+                    else if (val === 'RQ') setCargo('Responsável pela Qualidade')
+                    else if (val === 'RE') setCargo('RE - Responsável pelo Estabelecimento (MAPA)')
+                    else if (val === 'auditor') setCargo('Auditor Líder')
+                    else if (val === 'operador') setCargo('Operador de Produção')
+                    else setCargo('Administrador')
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="RT">RT - Responsável Técnico</SelectItem>
+                    <SelectItem value="RQ">RQ - Responsável pela Qualidade</SelectItem>
+                    <SelectItem value="RE">RE - Responsável pelo Estabelecimento</SelectItem>
+                    <SelectItem value="admin">Administrador Geral</SelectItem>
+                    <SelectItem value="operador">Operador de Produção</SelectItem>
+                    <SelectItem value="auditor">Auditor Interno</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">Cargo / Descrição</Label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                  <Input
+                    value={cargo}
+                    onChange={(e) => setCargo(e.target.value)}
+                    placeholder="Ex: Responsável Técnico"
+                    required
+                    className="pl-9 h-9 text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  CRMV / Conselho (se RT)
+                </Label>
+                <div className="relative">
+                  <Award className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                  <Input
+                    value={conselhoClasse}
+                    onChange={(e) => setConselhoClasse(e.target.value)}
+                    placeholder="Ex: CRMV-SP 18.420"
+                    className="pl-9 h-9 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  CPF (para Assinatura)
+                </Label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                  <Input
+                    value={cpf}
+                    onChange={(e) => setCpf(e.target.value)}
+                    placeholder="000.000.000-00"
+                    className="pl-9 h-9 text-xs"
+                  />
+                </div>
               </div>
             </div>
 

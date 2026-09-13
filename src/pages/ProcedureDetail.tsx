@@ -38,34 +38,62 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { getProcedureById, updateProcedure, getRecords, createRecord } from '@/services/agroService'
-import type { Procedure, MonitoringRecord, RecordShift, RecordStatus } from '@/types/agro'
+import {
+  getProcedureById,
+  updateProcedure,
+  getRecords,
+  createRecord,
+  getCompany,
+} from '@/services/agroService'
+import type { Procedure, MonitoringRecord, RecordShift, RecordStatus, Company } from '@/types/agro'
+import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
+import { PopDocumentPdfModal } from '@/components/PopDocumentPdfModal'
+import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
+import {
+  POP_ITEM07_CATALOG,
+  type POPFormDefinition,
+  type POPExecutionCustomFields,
+} from '@/types/popFormsCatalog'
+import { FileCheck, ShieldAlert, KeyRound, Award, Sliders } from 'lucide-react'
 
 export default function ProcedureDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { toast } = useToast()
 
   const [procedure, setProcedure] = useState<Procedure | null>(null)
   const [records, setRecords] = useState<MonitoringRecord[]>([])
+  const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Modals for PDF and signatures
+  const [openPopPdfModal, setOpenPopPdfModal] = useState(false)
+  const [selectedRecordForPdf, setSelectedRecordForPdf] = useState<MonitoringRecord | null>(null)
+  const [openRecordPdfModal, setOpenRecordPdfModal] = useState(false)
 
   // Edit mode on Overview
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState<Partial<Procedure>>({})
   const [saveLoading, setSaveLoading] = useState(false)
 
-  // Modal: Novo Registro
+  // Campos editáveis de Execução (Como deve ser executado)
+  const [camposExec, setCamposExec] = useState<POPExecutionCustomFields>({})
+  const [savingExec, setSavingExec] = useState(false)
+
+  // Modal: Novo Registro com suporte ao formulário do Item 07
   const [openNewRecordModal, setOpenNewRecordModal] = useState(false)
+  const [selectedFormDef, setSelectedFormDef] = useState<POPFormDefinition | null>(null)
+  const [dynamicFormValues, setDynamicFormValues] = useState<Record<string, any>>({})
   const [recordLoading, setRecordLoading] = useState(false)
   const [recordForm, setRecordForm] = useState({
     data: new Date().toISOString().split('T')[0],
     turno: 'Manhã' as RecordShift,
     valor_medido: '',
     status: 'Conforme' as RecordStatus,
-    responsavel: 'Hélio - Resp. Técnico',
+    responsavel: user?.name || 'Hélio - Resp. Técnico',
     observacoes: '',
     lote: '',
   })
@@ -73,9 +101,21 @@ export default function ProcedureDetail() {
   const loadAll = async () => {
     if (!id) return
     try {
-      const p = await getProcedureById(id)
+      const [p, comp] = await Promise.all([getProcedureById(id), getCompany().catch(() => null)])
       setProcedure(p)
       setEditForm(p)
+      setCompany(comp)
+
+      // Fallback catalog item 07
+      const cat = POP_ITEM07_CATALOG[p.codigo]
+      if (cat) {
+        setCamposExec({
+          ...cat.default_execucao,
+          ...(p.campos_execucao || {}),
+        })
+      } else {
+        setCamposExec(p.campos_execucao || {})
+      }
 
       const recs = await getRecords(`procedure = '${id}'`, '-data')
       setRecords(recs)
@@ -125,6 +165,29 @@ export default function ProcedureDetail() {
     }
   }
 
+  const handleSaveExecucao = async () => {
+    if (!id) return
+    setSavingExec(true)
+    try {
+      const updated = await updateProcedure(id, {
+        campos_execucao: camposExec,
+      })
+      setProcedure(updated)
+      toast({
+        title: 'Instruções de Execução Salvas',
+        description: 'Os parâmetros foram atualizados e serão exibidos no PDF do POP.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao salvar execução',
+        description: err.message || 'Verifique os dados.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingExec(false)
+    }
+  }
+
   const handleArchive = async () => {
     if (!id || !procedure) return
     try {
@@ -148,6 +211,8 @@ export default function ProcedureDetail() {
     try {
       const created = await createRecord({
         procedure: id,
+        formulario_codigo: selectedFormDef?.codigo || `F-01-${procedure?.codigo || 'POP'}`,
+        dados_formulario: dynamicFormValues,
         data: `${recordForm.data} 08:00:00.000Z`,
         turno: recordForm.turno,
         valor_medido: recordForm.valor_medido,
@@ -155,6 +220,7 @@ export default function ProcedureDetail() {
         responsavel: recordForm.responsavel,
         observacoes: recordForm.observacoes,
         lote: recordForm.lote,
+        status_assinatura: 'Pendente Assinatura',
       })
 
       toast({
@@ -280,11 +346,11 @@ export default function ProcedureDetail() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handlePrint}
-              className="border-stone-300 text-stone-700 hover:bg-stone-50 text-xs gap-1.5"
+              onClick={() => setOpenPopPdfModal(true)}
+              className="border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#2D6A4F]/10 text-xs gap-1.5 font-semibold"
             >
-              <Printer className="h-4 w-4" />
-              Exportar PDF
+              <FileCheck className="h-4 w-4 text-[#D9A404]" />
+              PDF Oficial & Assinaturas
             </Button>
 
             <Button
@@ -302,7 +368,7 @@ export default function ProcedureDetail() {
 
       {/* 2. Tabs */}
       <Tabs defaultValue="visao_geral" className="w-full">
-        <TabsList className="bg-[#FAF7EF] p-1 border border-[#E2DCCF] rounded-xl no-print">
+        <TabsList className="bg-[#FAF7EF] p-1 border border-[#E2DCCF] rounded-xl no-print flex-wrap">
           <TabsTrigger
             value="visao_geral"
             className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
@@ -310,10 +376,22 @@ export default function ProcedureDetail() {
             Visão Geral & Requisitos
           </TabsTrigger>
           <TabsTrigger
+            value="definicao_execucao"
+            className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
+          >
+            Definição: Como Executar (Campos Editáveis)
+          </TabsTrigger>
+          <TabsTrigger
+            value="formularios_item07"
+            className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
+          >
+            Formulários do Item 07 (IN 04/2007)
+          </TabsTrigger>
+          <TabsTrigger
             value="registros"
             className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
           >
-            Registros Vinculados ({records.length})
+            Registros & Comprovação RQ/RE ({records.length})
           </TabsTrigger>
           <TabsTrigger
             value="anexos"
@@ -468,27 +546,286 @@ export default function ProcedureDetail() {
           </div>
         </TabsContent>
 
-        {/* TAB 2: REGISTROS */}
-        <TabsContent value="registros" className="space-y-4 mt-4">
-          <div className="agro-card p-6">
-            <div className="flex items-center justify-between pb-4 border-b border-[#E2DCCF]">
+        {/* TAB: DEFINIÇÃO / COMO DEVE SER EXECUTADO (CAMPOS EDITÁVEIS PELO CLIENTE) */}
+        <TabsContent value="definicao_execucao" className="space-y-6 mt-4">
+          <div className="agro-card p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
               <div>
-                <h2 className="text-base font-bold font-['Sora'] text-[#2D6A4F]">
-                  Registros de Monitoramento de Campo
+                <h2 className="text-base font-bold font-['Sora'] text-[#2D6A4F] flex items-center gap-2">
+                  <Sliders className="h-4 w-4 text-[#D9A404]" />
+                  Definição do Procedimento: Como Deve Ser Executado
                 </h2>
                 <p className="text-xs text-[#6B6B6B]">
-                  Histórico de apontamentos com valores medidos, turno e conformidade
+                  Campos editáveis pelo cliente para adaptar o procedimento oficial às
+                  particularidades operacionais da fábrica.
                 </p>
               </div>
 
               <Button
-                size="sm"
-                onClick={() => setOpenNewRecordModal(true)}
-                className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs gap-1.5 shadow-sm"
+                onClick={handleSaveExecucao}
+                disabled={savingExec}
+                className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs gap-1.5 h-9"
               >
-                <PlusCircle className="h-4 w-4" />
-                Novo Registro
+                <Save className="h-4 w-4" />
+                {savingExec ? 'Gravando...' : 'Salvar Como Executar'}
               </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Produtos Químicos / Sanitizantes Utilizados
+                </Label>
+                <Textarea
+                  rows={2}
+                  value={camposExec.produtos_quimicos_utilizados || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, produtos_quimicos_utilizados: e.target.value })
+                  }
+                  placeholder="Ex: Detergente alcalino clorado 2,0%, Ácido peracético 0,2%..."
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Concentrações, Dosagens e Diluições
+                </Label>
+                <Textarea
+                  rows={2}
+                  value={camposExec.concentracoes_dosagens || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, concentracoes_dosagens: e.target.value })
+                  }
+                  placeholder="Ex: 200 mL para 10 Litros de água potável..."
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Tempos de Ação / Temperaturas de Processo
+                </Label>
+                <Textarea
+                  rows={2}
+                  value={camposExec.tempos_temperaturas || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, tempos_temperaturas: e.target.value })
+                  }
+                  placeholder="Ex: Tempo de contato 15 minutos em temperatura ambiente..."
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Frequências Detalhadas da Rotina
+                </Label>
+                <Textarea
+                  rows={2}
+                  value={camposExec.frequencias_detalhadas || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, frequencias_detalhadas: e.target.value })
+                  }
+                  placeholder="Ex: Diário ao final do expediente; Penteadeira a cada troca de batelada..."
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Responsável Designado por Etapa
+                </Label>
+                <Input
+                  value={camposExec.responsavel_etapa || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, responsavel_etapa: e.target.value })
+                  }
+                  placeholder="Ex: Equipe de Higienização sob supervisão do RQ"
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Limites Críticos de Aceitação
+                </Label>
+                <Input
+                  value={camposExec.limites_criticos_aceitacao || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, limites_criticos_aceitacao: e.target.value })
+                  }
+                  placeholder="Ex: ATP < 30 RLU; Umidade <= 13,0%; Aflatoxina <= 20 ppb"
+                  className="h-9 text-xs font-semibold text-emerald-800"
+                />
+              </div>
+
+              <div className="md:col-span-2 space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Instruções Específicas do Estabelecimento Fabricante (SIPEAGRO)
+                </Label>
+                <Textarea
+                  rows={3}
+                  value={camposExec.instrucoes_especificas_estabelecimento || ''}
+                  onChange={(e) =>
+                    setCamposExec({
+                      ...camposExec,
+                      instrucoes_especificas_estabelecimento: e.target.value,
+                    })
+                  }
+                  placeholder="Descreva o passo a passo exato operacional da fábrica: ligar bomba, acionar raspador pneumático, quarentenar..."
+                  className="text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">EPIs Obrigatórios</Label>
+                <Input
+                  value={camposExec.epi_obrigatorios || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, epi_obrigatorios: e.target.value })
+                  }
+                  placeholder="Ex: Botas de PVC, luvas de nitrila, óculos de ampla visão"
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Ações Corretivas Imediatas em Desvio
+                </Label>
+                <Input
+                  value={camposExec.acoes_corretivas_imediatas || ''}
+                  onChange={(e) =>
+                    setCamposExec({ ...camposExec, acoes_corretivas_imediatas: e.target.value })
+                  }
+                  placeholder="Ex: Rejeitar a batelada, segregar produto, repetir higienização"
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB: FORMULÁRIOS DO ITEM 07 (IN 04/2007) */}
+        <TabsContent value="formularios_item07" className="space-y-4 mt-4">
+          <div className="agro-card p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+              <div>
+                <h2 className="text-base font-bold font-['Sora'] text-[#2D6A4F] flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-[#D9A404]" />
+                  Formulários Normativos de Registro (Item 07 da IN 04/2007)
+                </h2>
+                <p className="text-xs text-[#6B6B6B]">
+                  Modelos exigidos pelo MAPA para comprovação da execução deste POP no autocontrole.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(
+                POP_ITEM07_CATALOG[procedure.codigo]?.formularios || [
+                  {
+                    codigo: `F-01-${procedure.codigo}`,
+                    titulo: `Registro de Monitoramento de ${procedure.nome}`,
+                    frequencia: procedure.frequencia || 'Diário',
+                    item_in04: procedure.referencia_in || 'IN 04/2007 Item 07',
+                    campos_fixos: [],
+                  },
+                ]
+              ).map((formDef) => (
+                <div
+                  key={formDef.codigo}
+                  className="p-4 rounded-xl border border-[#E2DCCF] bg-white hover:border-[#2D6A4F] transition space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-[#2D6A4F]">
+                        {formDef.codigo}
+                      </span>
+                      <h3 className="text-xs font-bold text-stone-900 mt-1.5 leading-snug">
+                        {formDef.titulo}
+                      </h3>
+                      <p className="text-[10px] text-stone-500 mt-0.5">
+                        Norma: {formDef.item_in04} • Freq: {formDef.frequencia}
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedFormDef(formDef)
+                        setDynamicFormValues({})
+                        setOpenNewRecordModal(true)
+                      }}
+                      className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-[11px] h-8 shrink-0 gap-1"
+                    >
+                      <PlusCircle className="h-3.5 w-3.5" />
+                      Preencher
+                    </Button>
+                  </div>
+
+                  {formDef.campos_fixos && formDef.campos_fixos.length > 0 && (
+                    <div className="pt-2 border-t border-stone-100">
+                      <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider block mb-1">
+                        Campos Normativos de Inspeção:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {formDef.campos_fixos.map((c) => (
+                          <span
+                            key={c.id}
+                            className="text-[10px] bg-stone-100 text-stone-700 px-2 py-0.5 rounded"
+                          >
+                            {c.label} {c.unidade ? `(${c.unidade})` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* TAB 2: REGISTROS & COMPROVAÇÃO RQ/RE */}
+        <TabsContent value="registros" className="space-y-4 mt-4">
+          <div className="agro-card p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold font-['Sora'] text-[#2D6A4F]">
+                    Registros de Monitoramento & Comprovação RQ/RE
+                  </h2>
+                  <Badge
+                    variant="outline"
+                    className="border-amber-300 bg-amber-50 text-amber-900 text-[10px]"
+                  >
+                    Validação Item 07 IN 04
+                  </Badge>
+                </div>
+                <p className="text-xs text-[#6B6B6B] mt-0.5">
+                  Conforme a norma, o POP só é considerado comprovado quando os registros são
+                  assinados pelo RQ e pelo RE.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const cat = POP_ITEM07_CATALOG[procedure.codigo]
+                    if (cat && cat.formularios.length > 0) {
+                      setSelectedFormDef(cat.formularios[0])
+                    }
+                    setOpenNewRecordModal(true)
+                  }}
+                  className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs gap-1.5 shadow-sm h-9"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Novo Registro
+                </Button>
+              </div>
             </div>
 
             <div className="mt-4 overflow-x-auto">
@@ -496,12 +833,12 @@ export default function ProcedureDetail() {
                 <thead>
                   <tr className="agro-table-header">
                     <th className="py-2.5 px-3">Data</th>
-                    <th className="py-2.5 px-3">Turno</th>
+                    <th className="py-2.5 px-3">Formulário</th>
                     <th className="py-2.5 px-3">Lote</th>
-                    <th className="py-2.5 px-3">Valor / Parâmetro Medido</th>
+                    <th className="py-2.5 px-3">Valor Medido</th>
                     <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3">Responsável</th>
-                    <th className="py-2.5 px-3">Observações</th>
+                    <th className="py-2.5 px-3">Comprovação RQ/RE</th>
+                    <th className="py-2.5 px-3 text-right">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2DCCF]">
@@ -512,39 +849,71 @@ export default function ProcedureDetail() {
                       </td>
                     </tr>
                   ) : (
-                    records.map((r) => (
-                      <tr key={r.id} className="hover:bg-[#FAF7EF] transition">
-                        <td className="py-2.5 px-3 whitespace-nowrap font-medium text-stone-800">
-                          {new Date(r.data).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="py-2.5 px-3 whitespace-nowrap text-stone-600">
-                          {r.turno || 'Geral'}
-                        </td>
-                        <td className="py-2.5 px-3 whitespace-nowrap font-semibold text-[#2D6A4F]">
-                          {r.lote || '—'}
-                        </td>
-                        <td className="py-2.5 px-3 font-semibold text-stone-900">
-                          {r.valor_medido || 'Conforme especificação'}
-                        </td>
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          <Badge
-                            className={
-                              r.status === 'Conforme'
-                                ? 'bg-[#2E8B57] text-white'
-                                : 'bg-[#B91C1C] text-white'
-                            }
-                          >
-                            {r.status}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 px-3 text-stone-600 truncate max-w-[140px]">
-                          {r.responsavel || 'Operador'}
-                        </td>
-                        <td className="py-2.5 px-3 text-stone-600 max-w-[220px] truncate">
-                          {r.observacoes || 'Sem ressalvas'}
-                        </td>
-                      </tr>
-                    ))
+                    records.map((r) => {
+                      const hasRQ = Boolean(r.assinaturas_registro?.rq)
+                      const hasRE = Boolean(r.assinaturas_registro?.re)
+                      const isComprovado = hasRQ && hasRE
+
+                      return (
+                        <tr key={r.id} className="hover:bg-[#FAF7EF] transition">
+                          <td className="py-2.5 px-3 whitespace-nowrap font-medium text-stone-800">
+                            {new Date(r.data).toLocaleDateString('pt-BR')}
+                            <span className="block text-[10px] text-stone-400">
+                              {r.turno || 'Manhã'}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap font-mono text-[11px] font-bold text-[#2D6A4F]">
+                            {r.formulario_codigo || `F-01-${procedure.codigo}`}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap font-semibold text-stone-700">
+                            {r.lote || '—'}
+                          </td>
+                          <td className="py-2.5 px-3 font-semibold text-stone-900">
+                            {r.valor_medido || 'Conforme padrão'}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <Badge
+                              className={
+                                r.status === 'Conforme'
+                                  ? 'bg-[#2E8B57] text-white'
+                                  : 'bg-[#B91C1C] text-white'
+                              }
+                            >
+                              {r.status}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {isComprovado ? (
+                              <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Comprovado RQ/RE
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="secondary"
+                                className="bg-amber-100 text-amber-800 text-[10px] gap-1"
+                              >
+                                <Clock className="h-3 w-3" />
+                                {hasRQ ? 'Falta RE' : hasRE ? 'Falta RQ' : 'Pendente RQ/RE'}
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedRecordForPdf(r)
+                                setOpenRecordPdfModal(true)
+                              }}
+                              className="h-7 text-[11px] border-stone-300 text-stone-700 hover:bg-stone-50 gap-1"
+                            >
+                              <FileCheck className="h-3 w-3 text-[#2D6A4F]" />
+                              PDF / Assinar
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
@@ -618,20 +987,52 @@ export default function ProcedureDetail() {
         </TabsContent>
       </Tabs>
 
-      {/* MODAL: NOVO REGISTRO */}
+      {/* MODAL: NOVO REGISTRO COM APOIO AO FORMULÁRIO DO ITEM 07 */}
       <Dialog open={openNewRecordModal} onOpenChange={setOpenNewRecordModal}>
-        <DialogContent className="sm:max-w-[540px] bg-white border-[#E2DCCF]">
+        <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto bg-white border-[#E2DCCF]">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-[#2D6A4F] font-['Sora'] flex items-center gap-2">
               <PlusCircle className="h-5 w-5 text-[#D9A404]" />
-              Novo Registro de Monitoramento ({procedure.codigo})
+              {selectedFormDef
+                ? selectedFormDef.titulo
+                : `Novo Registro de Monitoramento (${procedure.codigo})`}
             </DialogTitle>
             <DialogDescription className="text-xs text-stone-600">
-              Apontamento direto de parâmetros de processo com verificação de limites críticos.
+              Formulário normativo em atendimento ao Item 07 da IN 04/2007 (MAPA).
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateRecord} className="space-y-3.5 pt-2">
+            {/* Seletor de Formulário se o POP tiver mais de um */}
+            {POP_ITEM07_CATALOG[procedure.codigo]?.formularios &&
+              POP_ITEM07_CATALOG[procedure.codigo].formularios.length > 1 && (
+                <div className="space-y-1 pb-2 border-b border-stone-200">
+                  <Label className="text-xs font-semibold text-stone-700">
+                    Formulário Normativo do Item 07
+                  </Label>
+                  <Select
+                    value={selectedFormDef?.codigo || ''}
+                    onValueChange={(val) => {
+                      const def = POP_ITEM07_CATALOG[procedure.codigo].formularios.find(
+                        (f) => f.codigo === val,
+                      )
+                      if (def) setSelectedFormDef(def)
+                    }}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POP_ITEM07_CATALOG[procedure.codigo].formularios.map((f) => (
+                        <SelectItem key={f.codigo} value={f.codigo}>
+                          [{f.codigo}] {f.titulo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold text-stone-700">Data da Coleta</Label>
@@ -690,14 +1091,79 @@ export default function ProcedureDetail() {
               </div>
             </div>
 
+            {/* CAMPOS ESPECÍFICOS DO FORMULÁRIO DO ITEM 07 */}
+            {selectedFormDef &&
+              selectedFormDef.campos_fixos &&
+              selectedFormDef.campos_fixos.length > 0 && (
+                <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
+                  <h4 className="text-[11px] font-bold text-[#2D6A4F] uppercase tracking-wider">
+                    Campos Específicos: {selectedFormDef.codigo}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {selectedFormDef.campos_fixos.map((campo) => (
+                      <div key={campo.id} className="space-y-1">
+                        <Label className="text-[11px] font-medium text-stone-700">
+                          {campo.label} {campo.unidade ? `(${campo.unidade})` : ''}
+                        </Label>
+                        {campo.tipo === 'select' && campo.opcoes ? (
+                          <Select
+                            value={dynamicFormValues[campo.id] || ''}
+                            onValueChange={(val) =>
+                              setDynamicFormValues({ ...dynamicFormValues, [campo.id]: val })
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs bg-white">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {campo.opcoes.map((op) => (
+                                <SelectItem key={op} value={op}>
+                                  {op}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : campo.tipo === 'number' ? (
+                          <Input
+                            type="number"
+                            step="any"
+                            value={dynamicFormValues[campo.id] || ''}
+                            onChange={(e) =>
+                              setDynamicFormValues({
+                                ...dynamicFormValues,
+                                [campo.id]: e.target.value,
+                              })
+                            }
+                            placeholder={campo.unidade ? `Valor em ${campo.unidade}` : 'Número'}
+                            className="h-8 text-xs bg-white"
+                          />
+                        ) : (
+                          <Input
+                            value={dynamicFormValues[campo.id] || ''}
+                            onChange={(e) =>
+                              setDynamicFormValues({
+                                ...dynamicFormValues,
+                                [campo.id]: e.target.value,
+                              })
+                            }
+                            placeholder={`Preencha ${campo.label}`}
+                            className="h-8 text-xs bg-white"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             <div className="space-y-1">
               <Label className="text-xs font-semibold text-stone-700">
-                Valor Medido / Parâmetro Encontrado
+                Valor Resumo / Medição Principal
               </Label>
               <Input
                 value={recordForm.valor_medido}
                 onChange={(e) => setRecordForm({ ...recordForm, valor_medido: e.target.value })}
-                placeholder="Ex: Temp. 81,4°C / pH 6,8 / Sem presença de pragas"
+                placeholder="Ex: Conforme especificação / Temp 82°C / Sem desvios"
                 required
                 className="h-9 text-xs"
               />
@@ -705,7 +1171,7 @@ export default function ProcedureDetail() {
 
             <div className="space-y-1">
               <Label className="text-xs font-semibold text-stone-700">
-                Responsável pelo Registro
+                Responsável pelo Registro (Operador)
               </Label>
               <Input
                 value={recordForm.responsavel}
@@ -716,7 +1182,9 @@ export default function ProcedureDetail() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-stone-700">Observações / Detalhes</Label>
+              <Label className="text-xs font-semibold text-stone-700">
+                Observações Operacionais
+              </Label>
               <Textarea
                 rows={2}
                 value={recordForm.observacoes}
@@ -758,6 +1226,28 @@ export default function ProcedureDetail() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* POP DOCUMENT PDF & ASSINATURA MODAL */}
+      {procedure && (
+        <PopDocumentPdfModal
+          open={openPopPdfModal}
+          onOpenChange={setOpenPopPdfModal}
+          procedure={procedure}
+          company={company}
+          recordsCount={records.length}
+          onSignatureSaved={loadAll}
+        />
+      )}
+
+      {/* RECORD DOCUMENT PDF & ASSINATURA MODAL */}
+      <RecordDocumentPdfModal
+        open={openRecordPdfModal}
+        onOpenChange={setOpenRecordPdfModal}
+        record={selectedRecordForPdf}
+        procedure={procedure}
+        company={company}
+        onSignatureSaved={loadAll}
+      />
     </div>
   )
 }

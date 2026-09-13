@@ -36,10 +36,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { getRecords, getProcedures } from '@/services/agroService'
-import type { MonitoringRecord, Procedure } from '@/types/agro'
+import { getRecords, getProcedures, getCompany } from '@/services/agroService'
+import type { MonitoringRecord, Procedure, Company } from '@/types/agro'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
+import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
+import { Clock, KeyRound } from 'lucide-react'
 
 export default function Records() {
   const navigate = useNavigate()
@@ -47,18 +49,22 @@ export default function Records() {
 
   const [records, setRecords] = useState<MonitoringRecord[]>([])
   const [procedures, setProcedures] = useState<Procedure[]>([])
+  const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedProcedure, setSelectedProcedure] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedSignatureStatus, setSelectedSignatureStatus] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
-  // Detail Modal
+  // Modals
   const [selectedRecord, setSelectedRecord] = useState<MonitoringRecord | null>(null)
+  const [openPdfModal, setOpenPdfModal] = useState(false)
+  const [recordForPdf, setRecordForPdf] = useState<MonitoringRecord | null>(null)
 
   const categories = [
     'Todos',
@@ -75,9 +81,14 @@ export default function Records() {
 
   const loadAll = async () => {
     try {
-      const [recs, procs] = await Promise.all([getRecords(), getProcedures()])
+      const [recs, procs, comp] = await Promise.all([
+        getRecords('', '-data'),
+        getProcedures(),
+        getCompany().catch(() => null),
+      ])
       setRecords(recs)
       setProcedures(procs)
+      setCompany(comp)
     } catch (err) {
       console.error(err)
     } finally {
@@ -111,6 +122,17 @@ export default function Records() {
     // Status Select
     const statusMatch = selectedStatus === 'all' || r.status === selectedStatus
 
+    // Signature Status Match
+    const hasRQ = Boolean(r.assinaturas_registro?.rq)
+    const hasRE = Boolean(r.assinaturas_registro?.re)
+    const isComprovado = hasRQ && hasRE
+    let signatureMatch = true
+    if (selectedSignatureStatus === 'comprovado') {
+      signatureMatch = isComprovado
+    } else if (selectedSignatureStatus === 'pendente') {
+      signatureMatch = !isComprovado
+    }
+
     // Category Pill
     const catMatch = selectedCategory === 'Todos' || (proc && proc.categoria === selectedCategory)
 
@@ -123,7 +145,7 @@ export default function Records() {
       dateMatch = dateMatch && new Date(r.data) <= new Date(`${endDate}T23:59:59`)
     }
 
-    return searchMatch && procMatch && statusMatch && catMatch && dateMatch
+    return searchMatch && procMatch && statusMatch && signatureMatch && catMatch && dateMatch
   })
 
   const handleExportCSV = () => {
@@ -256,6 +278,19 @@ export default function Records() {
             </Select>
           </div>
 
+          <div>
+            <Select value={selectedSignatureStatus} onValueChange={setSelectedSignatureStatus}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="Assinatura RQ/RE" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Assinaturas</SelectItem>
+                <SelectItem value="comprovado">Comprovado (RQ + RE)</SelectItem>
+                <SelectItem value="pendente">Pendente Assinatura</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center gap-1">
             <Input
               type="date"
@@ -308,8 +343,9 @@ export default function Records() {
                 <th className="py-3 px-3">Lote</th>
                 <th className="py-3 px-3">Parâmetro / Valor Medido</th>
                 <th className="py-3 px-3">Status</th>
+                <th className="py-3 px-3">Comprovação RQ/RE</th>
                 <th className="py-3 px-3">Responsável</th>
-                <th className="py-3 px-3 text-right">Ações</th>
+                <th className="py-3 px-3 text-right">Ação / PDF</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E2DCCF]">
@@ -380,21 +416,54 @@ export default function Records() {
                           {r.status}
                         </Badge>
                       </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {r.assinaturas_registro?.rq && r.assinaturas_registro?.re ? (
+                          <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Comprovado RQ/RE
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="bg-amber-100 text-amber-800 text-[10px] gap-1"
+                          >
+                            <Clock className="h-3 w-3" />
+                            {r.assinaturas_registro?.rq
+                              ? 'Falta RE'
+                              : r.assinaturas_registro?.re
+                                ? 'Falta RQ'
+                                : 'Pendente RQ/RE'}
+                          </Badge>
+                        )}
+                      </td>
                       <td className="py-3 px-3 text-stone-600 truncate max-w-[120px]">
                         {r.responsavel || 'Operador'}
                       </td>
                       <td className="py-3 px-3 text-right whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedRecord(r)
-                          }}
-                          className="text-[#2D6A4F] hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold gap-1"
-                        >
-                          <Eye className="h-3.5 w-3.5" /> Detalhes
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedRecord(r)
+                            }}
+                            className="text-stone-600 hover:bg-stone-100 h-8 px-2 text-xs font-semibold gap-1"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Detalhes
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setRecordForPdf(r)
+                              setOpenPdfModal(true)
+                            }}
+                            className="text-[#2D6A4F] border-[#2D6A4F]/40 hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold gap-1"
+                          >
+                            <FileText className="h-3.5 w-3.5" /> PDF / Assinar
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -507,18 +576,41 @@ export default function Records() {
             </div>
           )}
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-2 flex justify-between sm:justify-between">
+            <Button
+              size="sm"
+              onClick={() => {
+                if (selectedRecord) {
+                  setRecordForPdf(selectedRecord)
+                  setOpenPdfModal(true)
+                  setSelectedRecord(null)
+                }
+              }}
+              className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1"
+            >
+              <FileText className="h-3.5 w-3.5" /> Ver PDF / Assinaturas
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setSelectedRecord(null)}
-              className="border-stone-300 text-stone-700"
+              className="border-stone-300 text-stone-700 text-xs"
             >
               Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* MODAL PDF & ASSINATURA */}
+      <RecordDocumentPdfModal
+        open={openPdfModal}
+        onOpenChange={setOpenPdfModal}
+        record={recordForPdf}
+        procedure={recordForPdf?.expand?.procedure}
+        company={company}
+        onSignatureSaved={loadAll}
+      />
     </div>
   )
 }

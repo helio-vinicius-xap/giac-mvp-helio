@@ -18,6 +18,7 @@ import NonConformities from '@/pages/NonConformities'
 import NonConformityDetail from '@/pages/NonConformityDetail'
 import Trainings from '@/pages/Trainings'
 import Documents from '@/pages/Documents'
+import CompanySettings from '@/pages/CompanySettings'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -49,6 +50,7 @@ export default function App() {
             <Route path="/nao-conformidades/:id" element={<NonConformityDetail />} />
             <Route path="/treinamentos" element={<Trainings />} />
             <Route path="/documentos" element={<Documents />} />
+            <Route path="/empresa" element={<CompanySettings />} />
           </Route>
 
           {/* 404 */}

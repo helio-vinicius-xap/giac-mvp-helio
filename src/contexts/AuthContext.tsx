@@ -6,7 +6,15 @@ interface AuthContextType {
   user: UserProfile | null
   isLoading: boolean
   login: (email: string, pass: string) => Promise<void>
-  register: (name: string, email: string, pass: string, cargo?: string) => Promise<void>
+  register: (
+    name: string,
+    email: string,
+    pass: string,
+    cargo?: string,
+    role?: string,
+    conselho?: string,
+    cpf?: string,
+  ) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -22,6 +30,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: rec.email || '',
         name: rec.get ? rec.get('name') : rec['name'],
         cargo: rec.get ? rec.get('cargo') : rec['cargo'],
+        role: (rec.get ? rec.get('role') : rec['role']) || 'RT',
+        conselho_classe: rec.get ? rec.get('conselho_classe') : rec['conselho_classe'],
+        cpf: rec.get ? rec.get('cpf') : rec['cpf'],
+        telefone: rec.get ? rec.get('telefone') : rec['telefone'],
         avatar: rec.get ? rec.get('avatar') : rec['avatar'],
       }
     }
@@ -37,6 +49,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: rec.email || '',
         name: rec.get ? rec.get('name') : rec['name'] || 'Usuário Agro',
         cargo: rec.get ? rec.get('cargo') : rec['cargo'] || 'Responsável Técnico',
+        role: (rec.get ? rec.get('role') : rec['role']) || 'RT',
+        conselho_classe: rec.get ? rec.get('conselho_classe') : rec['conselho_classe'],
+        cpf: rec.get ? rec.get('cpf') : rec['cpf'],
+        telefone: rec.get ? rec.get('telefone') : rec['telefone'],
         avatar: rec.get ? rec.get('avatar') : rec['avatar'],
       })
     } else {
@@ -60,22 +76,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateUserState()
   }
 
-  const register = async (name: string, email: string, pass: string, cargo?: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    pass: string,
+    cargo?: string,
+    role?: string,
+    conselho?: string,
+    cpf?: string,
+  ) => {
     const created = await pb.collection('users').create({
       email,
       password: pass,
       passwordConfirm: pass,
       name,
       cargo: cargo || 'Responsável Técnico',
+      role: role || 'RT',
+      conselho_classe: conselho || '',
+      cpf: cpf || '',
     })
 
     await pb.collection('users').authWithPassword(email, pass)
-    if (name || cargo) {
-      await pb.collection('users').update(created.id, {
-        name,
-        cargo: cargo || 'Responsável Técnico',
-      })
-    }
+    await pb.collection('users').update(created.id, {
+      name,
+      cargo: cargo || 'Responsável Técnico',
+      role: role || 'RT',
+      conselho_classe: conselho || '',
+      cpf: cpf || '',
+    })
     updateUserState()
   }
 
@@ -93,6 +121,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: refreshed.email || '',
           name: refreshed.name || 'Usuário Agro',
           cargo: refreshed.cargo || 'Responsável Técnico',
+          role: (refreshed.role as any) || 'RT',
+          conselho_classe: refreshed.conselho_classe,
+          cpf: refreshed.cpf,
+          telefone: refreshed.telefone,
           avatar: refreshed.avatar,
         })
       } catch {

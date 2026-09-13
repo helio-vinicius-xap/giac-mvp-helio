@@ -16,13 +16,21 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { getDashboardSummary, getNonConformities, getAudits } from '@/services/agroService'
+import {
+  getDashboardSummary,
+  getNonConformities,
+  getAudits,
+  getCompany,
+} from '@/services/agroService'
 import { useRealtime } from '@/hooks/use-realtime'
+import type { Company } from '@/types/agro'
+import { Building2, FileCheck } from 'lucide-react'
 
 export default function Index() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
+  const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>({
     indicators: {
@@ -47,8 +55,12 @@ export default function Index() {
 
   const loadData = async () => {
     try {
-      const summary: any = await getDashboardSummary().catch(() => null)
-      if (summary && summary.indicators) {
+      const [summary, comp] = await Promise.all([
+        getDashboardSummary().catch(() => null),
+        getCompany().catch(() => null),
+      ])
+      if (comp) setCompany(comp)
+      if (summary && (summary as any).indicators) {
         setData(summary)
       } else {
         // Fallback directly from client collections
@@ -144,34 +156,67 @@ export default function Index() {
       {/* 1. Header Greeting */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E2DCCF] shadow-xs">
         <div>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-xs font-bold bg-[#D9A404] text-[#1B4332] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              SIPEAGRO / MAPA
+            </span>
+            {company?.numero_registro_mapa && (
+              <Badge
+                variant="outline"
+                className="text-xs font-mono font-bold text-[#2D6A4F] border-[#2D6A4F]"
+              >
+                MAPA: {company.numero_registro_mapa}
+              </Badge>
+            )}
+            <Badge
+              variant="secondary"
+              className="bg-emerald-50 text-[#2D6A4F] border-emerald-200 text-xs"
+            >
+              Perfil: {user?.role || 'RT'} - {user?.name}
+            </Badge>
+          </div>
           <h1 className="text-2xl sm:text-3xl font-bold font-['Sora'] text-[#2D6A4F]">
-            Bem-vindo(a), {user?.name || 'Hélio'}
+            {company?.razao_social || 'NutriAgro Nutrição Animal Ltda.'}
           </h1>
-          <p className="text-xs sm:text-sm text-[#6B6B6B] mt-1 capitalize">
-            {todayStr} • Visão geral do seu sistema de autocontrole (IN 04/2007)
+          <p className="text-xs sm:text-sm text-[#6B6B6B] mt-1">
+            {todayStr} • RT: <strong>{company?.rt_nome || 'Dr. Hélio Silva'}</strong> (
+            {company?.rt_registro_conselho || 'CRMV-SP 18.420'}) • RE:{' '}
+            <strong>{company?.re_nome || 'Carlos Eduardo Prado'}</strong>
           </p>
         </div>
 
         {/* Quick Traceability Widget */}
-        <form
-          onSubmit={handleQuickLote}
-          className="flex items-center gap-2 bg-[#FAF7EF] p-2 rounded-xl border border-[#E2DCCF] w-full md:w-auto"
-        >
-          <Search className="h-4 w-4 text-stone-400 ml-2 shrink-0" />
-          <Input
-            value={quickLote}
-            onChange={(e) => setQuickLote(e.target.value)}
-            placeholder="Digite nº do lote..."
-            className="h-8 text-xs bg-transparent border-0 focus-visible:ring-0 shadow-none w-full sm:w-44"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            className="h-8 bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs px-3"
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <form
+            onSubmit={handleQuickLote}
+            className="flex items-center gap-2 bg-[#FAF7EF] p-2 rounded-xl border border-[#E2DCCF] w-full sm:w-auto"
           >
-            Rastrear
+            <Search className="h-4 w-4 text-stone-400 ml-2 shrink-0" />
+            <Input
+              value={quickLote}
+              onChange={(e) => setQuickLote(e.target.value)}
+              placeholder="Digite nº do lote..."
+              className="h-8 text-xs bg-transparent border-0 focus-visible:ring-0 shadow-none w-full sm:w-36"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              className="h-8 bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs px-3"
+            >
+              Rastrear
+            </Button>
+          </form>
+
+          <Button
+            size="sm"
+            onClick={() => navigate('/empresa')}
+            variant="outline"
+            className="h-10 text-xs border-stone-300 text-stone-700 hover:bg-stone-50 gap-1.5 shrink-0"
+          >
+            <Building2 className="h-4 w-4 text-[#2D6A4F]" />
+            SIPEAGRO
           </Button>
-        </form>
+        </div>
       </div>
 
       {/* 2. Four Indicator Cards */}

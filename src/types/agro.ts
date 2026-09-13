@@ -13,6 +13,50 @@ export type ProcedureFrequency = 'Contínuo' | 'Diário' | 'Semanal' | 'Mensal' 
 
 export type ProcedureStatus = 'Ativo' | 'Revisão' | 'Arquivado'
 
+export type UserRole = 'RT' | 'RQ' | 'RE' | 'admin' | 'operador' | 'auditor'
+
+export interface DigitalSignatureRecord {
+  papel: 'RT' | 'RQ' | 'RE' | string
+  metodo: 'pfx' | 'gov_br' | string
+  responsavel_nome: string
+  responsavel_identificacao?: string
+  data_assinatura: string
+  hash_documento?: string
+  observacao?: string
+  autenticidade_mapa?: string
+}
+
+export interface Company {
+  id: string
+  razao_social: string
+  nome_fantasia?: string
+  cnpj: string
+  numero_registro_mapa: string // SIPEAGRO / MAPA
+  tipo_estabelecimento?: string
+  atividades_autorizadas?: string
+  produtos_fabricados?: string
+  logradouro?: string
+  numero?: string
+  complemento?: string
+  bairro?: string
+  municipio?: string
+  uf?: string
+  cep?: string
+  telefone?: string
+  email?: string
+  rt_nome?: string
+  rt_registro_conselho?: string // CRMV / CRQ
+  rt_cpf?: string
+  rq_nome?: string
+  rq_cpf?: string
+  re_nome?: string // RE = Responsável pelo Estabelecimento no MAPA
+  re_cpf?: string
+  re_cargo_mapa?: string
+  logo?: string
+  created: string
+  updated: string
+}
+
 export interface Procedure {
   id: string
   codigo: string
@@ -29,12 +73,25 @@ export interface Procedure {
   referencia_in?: string
   data_revisao?: string
   validade?: string
+  versao?: string
+  campos_execucao?: Record<string, any>
+  formularios_item07?: any[]
+  assinaturas_pop?: {
+    rt?: DigitalSignatureRecord
+    re?: DigitalSignatureRecord
+  }
+  arquivo_pdf_assinado?: string
   created: string
   updated: string
 }
 
 export type RecordShift = 'Manhã' | 'Tarde' | 'Noite'
 export type RecordStatus = 'Conforme' | 'Não Conforme'
+export type RecordSignatureStatus =
+  | 'Pendente Assinatura'
+  | 'Assinado Parcial (RQ)'
+  | 'Assinado Parcial (RE)'
+  | 'Comprovado (Assinado RQ/RE)'
 
 export interface MonitoringRecord {
   id: string
@@ -50,6 +107,14 @@ export interface MonitoringRecord {
   observacoes?: string
   lote?: string
   anexos?: string[]
+  formulario_codigo?: string
+  dados_formulario?: Record<string, any>
+  assinaturas_registro?: {
+    rq?: DigitalSignatureRecord
+    re?: DigitalSignatureRecord
+  }
+  status_assinatura?: RecordSignatureStatus
+  arquivo_pdf_assinado?: string
   created: string
   updated: string
 }
@@ -181,5 +246,9 @@ export interface UserProfile {
   email: string
   name?: string
   cargo?: string
+  role?: UserRole
+  conselho_classe?: string
+  cpf?: string
+  telefone?: string
   avatar?: string
 }

@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   GraduationCap,
   FolderTree,
+  Building2,
   LogOut,
   Bell,
   PlusCircle,
@@ -153,7 +154,27 @@ export default function Layout() {
     },
     { label: 'Treinamentos', path: '/treinamentos', icon: GraduationCap },
     { label: 'Documentos', path: '/documentos', icon: FolderTree },
+    { label: 'Empresa (SIPEAGRO)', path: '/empresa', icon: Building2 },
   ]
+
+  const [hasCompanyRegistered, setHasCompanyRegistered] = useState(true)
+
+  useEffect(() => {
+    async function checkCompany() {
+      try {
+        const { getCompany } = await import('@/services/agroService')
+        const comp = await getCompany()
+        if (comp && comp.numero_registro_mapa && comp.cnpj) {
+          setHasCompanyRegistered(true)
+        } else {
+          setHasCompanyRegistered(false)
+        }
+      } catch {
+        setHasCompanyRegistered(true)
+      }
+    }
+    checkCompany()
+  }, [location.pathname])
 
   const getPageTitle = () => {
     const p = location.pathname
@@ -165,6 +186,7 @@ export default function Layout() {
     if (p.startsWith('/nao-conformidades')) return 'Gestão de Não Conformidades'
     if (p.startsWith('/treinamentos')) return 'Capacitação e Treinamentos'
     if (p.startsWith('/documentos')) return 'Repositório de Documentos'
+    if (p.startsWith('/empresa')) return 'Cadastro da Empresa Fabricante (SIPEAGRO/MAPA)'
     return 'Gestão Agro APPCC'
   }
 
@@ -238,9 +260,22 @@ export default function Layout() {
                 {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-white truncate">{user?.name || 'Hélio'}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-semibold text-white truncate">
+                    {user?.name || 'Hélio'}
+                  </p>
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#D9A404] text-[#1B4332]">
+                    {user?.role || 'RT'}
+                  </span>
+                </div>
                 <p className="text-[11px] text-emerald-200/80 truncate">
-                  {user?.cargo || 'Responsável Técnico'}
+                  {user?.role === 'RT' && user?.conselho_classe
+                    ? user.conselho_classe
+                    : user?.role === 'RE'
+                      ? 'RE - Resp. Estabelecimento'
+                      : user?.role === 'RQ'
+                        ? 'RQ - Resp. Qualidade'
+                        : user?.cargo || 'Responsável Técnico'}
                 </p>
               </div>
             </div>
@@ -430,6 +465,31 @@ export default function Layout() {
         {/* CONTENT AREA */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F5F1E8]">
           <div className="max-w-7xl mx-auto space-y-6">
+            {!hasCompanyRegistered && location.pathname !== '/empresa' && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-[#D9A404] text-[#1B4332] flex items-center justify-center shrink-0 font-bold">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-amber-900">
+                      Cadastro da Empresa Fabricante Pendente (SIPEAGRO / MAPA)
+                    </h4>
+                    <p className="text-[11px] text-amber-700">
+                      Complete o registro oficial do estabelecimento e a indicação dos responsáveis
+                      RT, RQ e RE para emissões documentais e assinaturas válidas.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/empresa')}
+                  className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs shrink-0"
+                >
+                  Completar SIPEAGRO
+                </Button>
+              </div>
+            )}
             <Outlet />
           </div>
 
