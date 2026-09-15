@@ -204,10 +204,11 @@ export const getRecordPdfData = async (id: string) => {
 export const registerDigitalSignature = async (payload: {
   tipo_alvo: 'procedure' | 'record'
   id_alvo: string
-  papel: 'RT' | 'RQ' | 'RE'
-  metodo: 'pfx' | 'gov_br'
+  papel: 'RT' | 'RQ' | 'RE' | 'Direcao' | 'CQ' | string
+  metodo: 'pfx' | 'gov_br' | 'imagem' | string
   responsavel_nome: string
   responsavel_identificacao?: string
+  imagem_url?: string
   hash_documento?: string
   observacao?: string
 }) => {
@@ -215,4 +216,16 @@ export const registerDigitalSignature = async (payload: {
     method: 'POST',
     body: payload,
   })
+}
+
+// User Profile Signature Image upload/update
+export const uploadRtSignatureImage = async (userId: string, file: File) => {
+  const formData = new FormData()
+  formData.append('assinatura_imagem', file)
+  return await pb.collection('users').update(userId, formData)
+}
+
+export const getFileUrl = (record: any, fileName: string) => {
+  if (!record || !fileName) return ''
+  return pb.files.getURL(record, fileName)
 }

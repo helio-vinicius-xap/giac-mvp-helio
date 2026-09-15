@@ -97,6 +97,11 @@ export default function Procedures() {
   const loadData = async () => {
     try {
       const [data, comp] = await Promise.all([getProcedures(), getCompany().catch(() => null)])
+      data.sort((a, b) => {
+        if (a.codigo === 'POP-01' || a.codigo === 'POP-001') return -1
+        if (b.codigo === 'POP-01' || b.codigo === 'POP-001') return 1
+        return a.codigo.localeCompare(b.codigo)
+      })
       setProcedures(data)
       setCompany(comp)
 

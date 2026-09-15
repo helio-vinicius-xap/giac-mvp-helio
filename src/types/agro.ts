@@ -57,6 +57,28 @@ export interface Company {
   updated: string
 }
 
+export interface PopSaaSMetadata {
+  document_code: string
+  title: string
+  revision: string
+  effective_date: string
+  creation_date: string
+  company: string
+  cnpj: string
+  mapa_registration: string
+  address: string
+  responsible_technician: string
+  professional_registration: string
+  prepared_by: string
+  approved_by_direction: string
+  approved_by_qc: string
+  status: string
+  risk_classification: string
+  legal_basis: string[]
+  annexes: string[]
+  fields: string[]
+}
+
 export interface Procedure {
   id: string
   codigo: string
@@ -76,9 +98,13 @@ export interface Procedure {
   versao?: string
   campos_execucao?: Record<string, any>
   formularios_item07?: any[]
+  metadados_saas?: PopSaaSMetadata | Record<string, any>
+  secoes_normativas?: Record<string, any>
   assinaturas_pop?: {
-    rt?: DigitalSignatureRecord
-    re?: DigitalSignatureRecord
+    rt?: DigitalSignatureRecord & { imagem_url?: string }
+    re?: DigitalSignatureRecord & { imagem_url?: string }
+    direcao?: DigitalSignatureRecord & { imagem_nome?: string }
+    cq?: DigitalSignatureRecord & { imagem_nome?: string }
   }
   arquivo_pdf_assinado?: string
   created: string
@@ -251,4 +277,5 @@ export interface UserProfile {
   cpf?: string
   telefone?: string
   avatar?: string
+  assinatura_imagem?: string // Arquivo de imagem da assinatura digitalizada do RT (JPG/PNG)
 }

@@ -575,7 +575,15 @@ export function PopDocumentPdfModal({
                     <div className="text-stone-400 text-[10px] uppercase font-bold tracking-wider">
                       Espaço de Assinatura RT
                     </div>
-                    {rtAssinatura ? (
+                    {rtAssinatura?.imagem_url ? (
+                      <div className="my-1 p-1 bg-white rounded border border-stone-200 flex items-center justify-center">
+                        <img
+                          src={rtAssinatura.imagem_url}
+                          alt="Assinatura digitalizada RT"
+                          className="max-h-16 max-w-full object-contain"
+                        />
+                      </div>
+                    ) : rtAssinatura ? (
                       <div className="my-2 p-2 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
                         <CheckCircle2 className="h-4 w-4 text-emerald-700 mx-auto mb-0.5" />
                         <strong>Assinado Eletronicamente por:</strong>

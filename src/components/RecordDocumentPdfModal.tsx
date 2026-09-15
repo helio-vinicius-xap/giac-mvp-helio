@@ -231,7 +231,17 @@ export function RecordDocumentPdfModal({
                   />
                 </div>
 
-                <div className="pt-3 border-t border-stone-200 flex flex-col sm:flex-row gap-2 justify-end">
+                <div className="pt-3 border-t border-stone-200 flex flex-col sm:flex-row gap-2 justify-end flex-wrap">
+                  <Button
+                    type="button"
+                    disabled={savingSig}
+                    onClick={() => handleRegisterSignature('RT')}
+                    className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5 font-semibold"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-[#D9A404]" />
+                    {savingSig ? 'Salvando...' : 'Assinar como RT (Responsável Técnico)'}
+                  </Button>
+
                   {(userRole === 'RQ' || userRole === 'admin') && (
                     <Button
                       type="button"
@@ -360,23 +370,48 @@ export function RecordDocumentPdfModal({
                 </div>
               </div>
 
-              {/* Bloco de Assinaturas de Comprovação (RQ e RE) */}
+              {/* Bloco de Assinaturas de Comprovação (RQ, RE e RT com suporte a imagem digitalizada) */}
               <div className="pt-4 border-t-2 border-stone-800 space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 text-center">
-                  Comprovação de Execução do Autocontrole (RQ & RE)
+                  Comprovação de Execução do Autocontrole (RT, RQ & RE)
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  {/* Assinatura RT (com foto/imagem digitalizada se enviada) */}
+                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-stone-50">
+                    <span className="text-[10px] font-bold text-[#2D6A4F] uppercase">
+                      Assinatura RT (Técnico)
+                    </span>
+                    {dadosForm?.rt_assinatura_imagem ? (
+                      <div className="my-1 p-1 bg-white rounded border border-stone-200 flex items-center justify-center">
+                        <img
+                          src={dadosForm.rt_assinatura_imagem}
+                          alt="Assinatura RT"
+                          className="max-h-12 max-w-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="border-b border-dashed border-stone-400 w-3/4 mx-auto my-3" />
+                    )}
+                    <div>
+                      <p className="font-bold text-[11px] text-stone-900">
+                        {company?.rt_nome || 'Dr. Hélio Silva'}
+                      </p>
+                      <p className="text-[9px] text-stone-500">
+                        {company?.rt_registro_conselho || 'CRMV-SP 18.420'}
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Assinatura RQ */}
-                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[110px] bg-stone-50">
+                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-stone-50">
                     <span className="text-[10px] font-bold text-stone-400 uppercase">
                       Assinatura RQ (Qualidade)
                     </span>
                     {rqAssinatura ? (
                       <div className="p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto" />
-                        <strong>Assinado Eletronicamente por:</strong>{' '}
-                        {rqAssinatura.responsavel_nome}
+                        <strong>Assinado:</strong> {rqAssinatura.responsavel_nome}
                         <br />
                         <span className="text-[8px] text-stone-500">
                           {rqAssinatura.autenticidade_mapa}
@@ -394,15 +429,14 @@ export function RecordDocumentPdfModal({
                   </div>
 
                   {/* Assinatura RE */}
-                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[110px] bg-stone-50">
+                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-stone-50">
                     <span className="text-[10px] font-bold text-stone-400 uppercase">
                       Assinatura RE (MAPA)
                     </span>
                     {reAssinatura ? (
                       <div className="p-1.5 bg-amber-50 rounded border border-amber-300 text-[10px] text-amber-900">
                         <CheckCircle2 className="h-3.5 w-3.5 text-amber-700 mx-auto" />
-                        <strong>Assinado Eletronicamente por:</strong>{' '}
-                        {reAssinatura.responsavel_nome}
+                        <strong>Assinado:</strong> {reAssinatura.responsavel_nome}
                         <br />
                         <span className="text-[8px] text-stone-500">
                           {reAssinatura.autenticidade_mapa}
@@ -415,7 +449,7 @@ export function RecordDocumentPdfModal({
                       <p className="font-bold text-[11px] text-stone-900">
                         {company?.re_nome || 'Carlos Eduardo Prado de Oliveira'}
                       </p>
-                      <p className="text-[9px] text-stone-500">RE - Resp. Estabelecimento (MAPA)</p>
+                      <p className="text-[9px] text-stone-500">RE - Resp. Estabelecimento</p>
                     </div>
                   </div>
                 </div>

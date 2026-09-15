@@ -51,6 +51,11 @@ import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { PopDocumentPdfModal } from '@/components/PopDocumentPdfModal'
 import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
+import { Pop01NormativeViewer } from '@/components/Pop01NormativeViewer'
+import { Pop01FormsManager } from '@/components/Pop01FormsManager'
+import { Pop01KpiDashboard } from '@/components/Pop01KpiDashboard'
+import { RtSignatureUpload } from '@/components/RtSignatureUpload'
+import type { POP01PainelResumo } from '@/types/pop01Forms'
 import {
   POP_ITEM07_CATALOG,
   type POPFormDefinition,
@@ -142,6 +147,186 @@ export default function ProcedureDetail() {
         .catch(() => {})
     }
   })
+
+  const isPop01 = procedure?.codigo === 'POP-01' || procedure?.codigo === 'POP-001'
+
+  // Cálculo Dinâmico de Indicadores para o Painel do POP 01 (Seção 14 e PAINEL_Indicadores)
+  const calculatePop01Summary = (): POP01PainelResumo => {
+    const fr08Records = records.filter(
+      (r) =>
+        r.formulario_codigo === 'FR 08' || (!r.formulario_codigo && r.procedure === procedure?.id),
+    )
+    const fr14Records = records.filter((r) => r.formulario_codigo === 'FR 14')
+    const fr15Records = records.filter((r) => r.formulario_codigo === 'FR 15')
+    const fr18Records = records.filter((r) => r.formulario_codigo === 'FR 18')
+    const fr01Records = records.filter((r) => r.formulario_codigo === 'FR 01')
+
+    const totalRecebimentos = fr08Records.length
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const recebimentos30Dias = fr08Records.filter((r) => new Date(r.data) >= thirtyDaysAgo).length
+
+    // Recebimento não conforme / reprovado
+    const ncRecebimento = fr08Records.filter(
+      (r) =>
+        r.status === 'Não Conforme' ||
+        (r.dados_formulario?.parecer_final &&
+          r.dados_formulario.parecer_final !== 'Liberado para Descarga'),
+    ).length
+
+    // RNCs
+    const totalRncs = fr01Records.length
+    const rncsCriticas = fr01Records.filter((r) => r.dados_formulario?.grau === 'Crítico').length
+
+    // Descartes
+    const totalDescartes = fr18Records.length
+    const descartesKg = fr18Records.reduce((acc, r) => {
+      const q = Number(r.dados_formulario?.qtd_kg || 0)
+      return acc + (isNaN(q) ? 0 : q)
+    }, 0)
+
+    // Fornecedores FR 14
+    const totalFornecedores = fr14Records.length
+    const fornecedoresAtivos = fr14Records.filter(
+      (r) =>
+        !r.dados_formulario?.status_cadastral || r.dados_formulario?.status_cadastral === 'Ativo',
+    ).length
+    const today = new Date().toISOString().split('T')[0]
+    const fornecedoresVencidos = fr14Records.filter(
+      (r) =>
+        r.dados_formulario?.validade_qualificacao &&
+        r.dados_formulario.validade_qualificacao < today,
+    ).length
+    const fornecedoresSuspensos = fr14Records.filter(
+      (r) => r.dados_formulario?.status_cadastral === 'Suspenso',
+    ).length
+
+    // Temperatura e Umidade FR 15
+    const totalTemp = fr15Records.length
+    const tempConformes = fr15Records.filter((r) => r.status === 'Conforme').length
+
+    // Métricas calculadas
+    const idmp = totalRecebimentos > 0 ? (totalDescartes / (totalRecebimentos * 1000)) * 100 : 0
+    const incr = totalRecebimentos > 0 ? (ncRecebimento / totalRecebimentos) * 100 : 0
+    const cdf = totalFornecedores > 0 ? (fornecedoresAtivos / totalFornecedores) * 100 : 100
+    const ilfe =
+      totalRecebimentos > 0
+        ? (fr08Records.filter((r) => r.dados_formulario?.sensorial?.cor === 'Alterada').length /
+            totalRecebimentos) *
+          100
+        : 0
+    const conformidadeTermica = totalTemp > 0 ? (tempConformes / totalTemp) * 100 : 100
+    const conformidadeRecebimento =
+      totalRecebimentos > 0 ? ((totalRecebimentos - ncRecebimento) / totalRecebimentos) * 100 : 100
+
+    return {
+      kpis: [
+        {
+          id: 'kpi-1',
+          codigo: 'IDMP',
+          nome: 'Índice de Devolução de Matérias-Primas',
+          formula: '(Qtd descartada em FR18 / Qtd recebida em FR08) × 100%',
+          periodicidade: 'Mensal',
+          meta: '≤ 0,5%',
+          valor_calculado: idmp,
+          valor_formatado: `${idmp.toFixed(2)}%`,
+          status_meta: idmp <= 0.5 ? 'dentro' : 'fora',
+        },
+        {
+          id: 'kpi-2',
+          codigo: 'INCR',
+          nome: 'Índice de Não Conformidades no Recebimento',
+          formula: '(Lotes FR08 c/ parecer ≠ Liberado / Total) × 100%',
+          periodicidade: 'Mensal',
+          meta: '≤ 1,5%',
+          valor_calculado: incr,
+          valor_formatado: `${incr.toFixed(2)}%`,
+          status_meta: incr <= 1.5 ? 'dentro' : 'fora',
+        },
+        {
+          id: 'kpi-3',
+          codigo: 'RNC',
+          nome: 'Não Conformidades Registradas (FR 01)',
+          formula: 'Contagem total de registros FR 01 emitidos',
+          periodicidade: 'Mensal',
+          meta: '< 2 / mês',
+          valor_calculado: totalRncs,
+          valor_formatado: `${totalRncs} RNCs`,
+          status_meta: totalRncs < 2 ? 'dentro' : 'alerta',
+        },
+        {
+          id: 'kpi-4',
+          codigo: 'RNC-CRIT',
+          nome: 'RNCs de Grau Crítico',
+          formula: 'Nº de RNCs com Grau = Crítico no FR 01',
+          periodicidade: 'Contínuo',
+          meta: '0 (Zero)',
+          valor_calculado: rncsCriticas,
+          valor_formatado: `${rncsCriticas}`,
+          status_meta: rncsCriticas === 0 ? 'dentro' : 'fora',
+        },
+        {
+          id: 'kpi-5',
+          codigo: 'CDF',
+          nome: 'Conformidade Documental de Fornecedores',
+          formula: '(Fornecedores Ativos / Total Cadastrados FR 14) × 100%',
+          periodicidade: 'Trimestral',
+          meta: '100%',
+          valor_calculado: cdf,
+          valor_formatado: `${cdf.toFixed(1)}%`,
+          status_meta: cdf >= 100 ? 'dentro' : 'alerta',
+        },
+        {
+          id: 'kpi-6',
+          codigo: 'DOC-VENC',
+          nome: 'Fornecedores c/ Documentação Vencida',
+          formula: 'Nº de linhas FR 14 com Validade < Hoje',
+          periodicidade: 'Contínuo',
+          meta: '0 (Zero)',
+          valor_calculado: fornecedoresVencidos,
+          valor_formatado: `${fornecedoresVencidos}`,
+          status_meta: fornecedoresVencidos === 0 ? 'dentro' : 'fora',
+        },
+        {
+          id: 'kpi-7',
+          codigo: 'ILFE',
+          nome: 'Índice de Lotes Fora de Especificação',
+          formula: '(Lotes reprovados sensorial/análise / Total FR 08) × 100%',
+          periodicidade: 'Mensal',
+          meta: '≤ 0,8%',
+          valor_calculado: ilfe,
+          valor_formatado: `${ilfe.toFixed(2)}%`,
+          status_meta: ilfe <= 0.8 ? 'dentro' : 'fora',
+        },
+        {
+          id: 'kpi-8',
+          codigo: 'CONF-TERM',
+          nome: 'Registros de Temperatura / UR Conformes',
+          formula: '(Linhas Conformes FR 15 / Total Medições) × 100%',
+          periodicidade: 'Diário / Mensal',
+          meta: '100%',
+          valor_calculado: conformidadeTermica,
+          valor_formatado: `${conformidadeTermica.toFixed(1)}%`,
+          status_meta: conformidadeTermica >= 100 ? 'dentro' : 'alerta',
+        },
+      ],
+      visao_geral: {
+        total_recebimentos_fr08: totalRecebimentos,
+        recebimentos_30_dias: recebimentos30Dias,
+        total_rncs_fr01: totalRncs,
+        rncs_criticas: rncsCriticas,
+        total_descartes_fr18: totalDescartes,
+        descartes_kg: descartesKg,
+        fornecedores_cadastrados_fr14: totalFornecedores,
+        fornecedores_ativos: fornecedoresAtivos,
+        fornecedores_vencidos: fornecedoresVencidos,
+        fornecedores_suspensos: fornecedoresSuspensos,
+        monitoramentos_temp_fr15: totalTemp,
+        conformidade_termica_percent: conformidadeTermica,
+        conformidade_recebimento_percent: conformidadeRecebimento,
+      },
+      atualizado_em: new Date().toISOString(),
+    }
+  }
 
   const handleSaveOverview = async () => {
     if (!id) return
@@ -367,8 +552,32 @@ export default function ProcedureDetail() {
       </div>
 
       {/* 2. Tabs */}
-      <Tabs defaultValue="visao_geral" className="w-full">
+      <Tabs defaultValue={isPop01 ? 'pop01_normativo' : 'visao_geral'} className="w-full">
         <TabsList className="bg-[#FAF7EF] p-1 border border-[#E2DCCF] rounded-xl no-print flex-wrap">
+          {isPop01 && (
+            <TabsTrigger
+              value="pop01_normativo"
+              className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
+            >
+              Documento Normativo (15 Seções)
+            </TabsTrigger>
+          )}
+          {isPop01 && (
+            <TabsTrigger
+              value="pop01_formularios"
+              className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
+            >
+              Modelos de Registro Digital (Anexos A1–A11)
+            </TabsTrigger>
+          )}
+          {isPop01 && (
+            <TabsTrigger
+              value="pop01_painel"
+              className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
+            >
+              Painel de Indicadores (Seção 14)
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="visao_geral"
             className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
@@ -381,12 +590,14 @@ export default function ProcedureDetail() {
           >
             Definição: Como Executar (Campos Editáveis)
           </TabsTrigger>
-          <TabsTrigger
-            value="formularios_item07"
-            className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
-          >
-            Formulários do Item 07 (IN 04/2007)
-          </TabsTrigger>
+          {!isPop01 && (
+            <TabsTrigger
+              value="formularios_item07"
+              className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
+            >
+              Formulários do Item 07 (IN 04/2007)
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="registros"
             className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
@@ -400,6 +611,49 @@ export default function ProcedureDetail() {
             Anexos e Evidências
           </TabsTrigger>
         </TabsList>
+
+        {/* ABA EXCLUSIVA POP 01: DOCUMENTO NORMATIVO COMPLETO (15 SEÇÕES) */}
+        {isPop01 && (
+          <TabsContent value="pop01_normativo" className="space-y-6 mt-4">
+            <RtSignatureUpload
+              currentSignatureUrl={user?.assinatura_imagem}
+              rtName={company?.rt_nome}
+              rtCrmv={company?.rt_registro_conselho}
+              userId={user?.id}
+            />
+            <Pop01NormativeViewer procedure={procedure} company={company} />
+          </TabsContent>
+        )}
+
+        {/* ABA EXCLUSIVA POP 01: MODELOS DE REGISTRO DIGITAL (11 ANEXOS) */}
+        {isPop01 && (
+          <TabsContent value="pop01_formularios" className="space-y-6 mt-4">
+            <RtSignatureUpload
+              currentSignatureUrl={user?.assinatura_imagem}
+              rtName={company?.rt_nome}
+              rtCrmv={company?.rt_registro_conselho}
+              userId={user?.id}
+            />
+            <Pop01FormsManager
+              procedure={procedure}
+              company={company}
+              user={user}
+              records={records}
+              onRecordCreated={loadAll}
+              onOpenRecordPdf={(r) => {
+                setSelectedRecordForPdf(r)
+                setOpenRecordPdfModal(true)
+              }}
+            />
+          </TabsContent>
+        )}
+
+        {/* ABA EXCLUSIVA POP 01: PAINEL DE INDICADORES (SEÇÃO 14 / PAINEL_INDICADORES) */}
+        {isPop01 && (
+          <TabsContent value="pop01_painel" className="space-y-6 mt-4">
+            <Pop01KpiDashboard summary={calculatePop01Summary()} />
+          </TabsContent>
+        )}
 
         {/* TAB 1: VISÃO GERAL */}
         <TabsContent value="visao_geral" className="space-y-6 mt-4">

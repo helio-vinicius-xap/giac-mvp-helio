@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-13T18:28:41.157Z",
+  "generatedAt": "2026-09-15T12:43:41.228Z",
   "collections": [
     {
       "name": "users",
@@ -66,6 +66,12 @@
         {
           "name": "telefone",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinatura_imagem",
+          "type": "file",
           "required": false,
           "system": false
         }
@@ -224,6 +230,18 @@
         {
           "name": "arquivo_pdf_assinado",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadados_saas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secoes_normativas",
+          "type": "json",
           "required": false,
           "system": false
         }

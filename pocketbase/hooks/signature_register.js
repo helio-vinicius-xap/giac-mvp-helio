@@ -20,11 +20,13 @@ routerAdd(
       }
 
       const carimboData = new Date().toISOString()
+      const imagemUrl = body.imagem_url || ''
       const registroAssinatura = {
         papel: papel,
         metodo: metodo,
         responsavel_nome: responsavelNome,
         responsavel_identificacao: responsavelIdentificacao,
+        imagem_url: imagemUrl,
         data_assinatura: carimboData,
         hash_documento: hashDoc,
         observacao: observacao,
@@ -37,6 +39,8 @@ routerAdd(
         if (typeof assinaturas !== 'object') assinaturas = {}
         if (papel === 'RT') assinaturas.rt = registroAssinatura
         if (papel === 'RE') assinaturas.re = registroAssinatura
+        if (papel === 'Direcao') assinaturas.direcao = registroAssinatura
+        if (papel === 'CQ') assinaturas.cq = registroAssinatura
         proc.set('assinaturas_pop', assinaturas)
         $app.save(proc)
 
