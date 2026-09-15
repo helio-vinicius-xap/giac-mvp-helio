@@ -224,7 +224,7 @@ export default function Index() {
         {/* Card 1 */}
         <div
           onClick={() => navigate('/procedimentos')}
-          className="agro-card p-5 cursor-pointer flex items-center justify-between"
+          className="agro-card p-5 cursor-pointer flex items-center justify-between hover:border-[#2D6A4F] transition"
         >
           <div>
             <span className="text-xs font-semibold text-[#6B6B6B] uppercase tracking-wider">
@@ -243,7 +243,7 @@ export default function Index() {
         {/* Card 2 */}
         <div
           onClick={() => navigate('/registros')}
-          className="agro-card p-5 cursor-pointer flex items-center justify-between"
+          className="agro-card p-5 cursor-pointer flex items-center justify-between hover:border-[#2563EB] transition"
         >
           <div>
             <span className="text-xs font-semibold text-[#6B6B6B] uppercase tracking-wider">
@@ -262,7 +262,7 @@ export default function Index() {
         {/* Card 3 */}
         <div
           onClick={() => navigate('/nao-conformidades')}
-          className="agro-card p-5 cursor-pointer flex items-center justify-between"
+          className="agro-card p-5 cursor-pointer flex items-center justify-between hover:border-[#B91C1C] transition"
         >
           <div>
             <div className="flex items-center gap-2">
@@ -288,7 +288,7 @@ export default function Index() {
         {/* Card 4 */}
         <div
           onClick={() => navigate('/auditorias')}
-          className="agro-card p-5 cursor-pointer flex items-center justify-between"
+          className="agro-card p-5 cursor-pointer flex items-center justify-between hover:border-[#D9A404] transition"
         >
           <div>
             <span className="text-xs font-semibold text-[#6B6B6B] uppercase tracking-wider">
@@ -301,6 +301,89 @@ export default function Index() {
           </div>
           <div className="h-12 w-12 rounded-xl bg-amber-100/70 text-[#D9A404] flex items-center justify-center">
             <ShieldCheck className="h-6 w-6 stroke-[2.2]" />
+          </div>
+        </div>
+      </div>
+
+      {/* 2.1 Banner Consolidado de Indicadores do POP 01 (Qualificação & Recebimento) */}
+      <div className="p-4 rounded-2xl bg-white border border-[#E2DCCF] shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-[#2D6A4F] border border-emerald-200">
+              POP 01 • Autocontrole
+            </span>
+            <h3 className="text-xs sm:text-sm font-bold text-stone-900">
+              Indicadores Oficiais do POP 01 — Qualificação e Recebimento (Seção 14 / Decreto
+              12.031/2024)
+            </h3>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/procedimentos')}
+            className="text-xs text-[#2D6A4F] hover:text-[#1B4332] p-1 h-auto"
+          >
+            Acessar POP 01 <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
+          <div className="p-2.5 rounded-xl bg-[#FAF7EF] border border-[#E2DCCF]">
+            <span className="text-[10px] uppercase font-bold text-stone-500 block">
+              IDMP (Devoluções)
+            </span>
+            <strong className="text-sm text-stone-900 block mt-0.5">Meta ≤ 0,5%</strong>
+            <span className="text-[10px] text-emerald-700 font-semibold">
+              Monitorado via FR18/FR08
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-[#FAF7EF] border border-[#E2DCCF]">
+            <span className="text-[10px] uppercase font-bold text-stone-500 block">
+              INCR (NC Recebimento)
+            </span>
+            <strong className="text-sm text-stone-900 block mt-0.5">Meta ≤ 1,5%</strong>
+            <span className="text-[10px] text-emerald-700 font-semibold">
+              Inspeção veicular e carga
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-[#FAF7EF] border border-[#E2DCCF]">
+            <span className="text-[10px] uppercase font-bold text-stone-500 block">
+              CDF (Dossiê Fornecedores)
+            </span>
+            <strong className="text-sm text-stone-900 block mt-0.5">Meta 100%</strong>
+            <span className="text-[10px] text-emerald-700 font-semibold">Cadastro ativo FR 14</span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-[#FAF7EF] border border-[#E2DCCF]">
+            <span className="text-[10px] uppercase font-bold text-stone-500 block">
+              ILFE (Reprovações)
+            </span>
+            <strong className="text-sm text-stone-900 block mt-0.5">Meta ≤ 0,8%</strong>
+            <span className="text-[10px] text-emerald-700 font-semibold">
+              Sensorial / Bromatológico
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-[#FAF7EF] border border-[#E2DCCF]">
+            <span className="text-[10px] uppercase font-bold text-stone-500 block">
+              IDF (Fraude/Crítica)
+            </span>
+            <strong className="text-sm text-stone-900 block mt-0.5">Meta 0 (Zero)</strong>
+            <span className="text-[10px] text-emerald-700 font-semibold">
+              Veto comercial compulsório
+            </span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-[#FAF7EF] border border-[#E2DCCF]">
+            <span className="text-[10px] uppercase font-bold text-stone-500 block">
+              Conf. Térmica (FR 15)
+            </span>
+            <strong className="text-sm text-stone-900 block mt-0.5">Meta 100%</strong>
+            <span className="text-[10px] text-emerald-700 font-semibold">
+              15–25ºC med / &lt;35ºC arm
+            </span>
           </div>
         </div>
       </div>

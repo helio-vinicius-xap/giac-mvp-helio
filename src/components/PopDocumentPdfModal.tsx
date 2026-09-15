@@ -563,69 +563,33 @@ export function PopDocumentPdfModal({
                 </div>
               </div>
 
-              {/* SEÇÃO 5: BLOCO DE ASSINATURAS DO RT E DO RE */}
-              <div className="pt-6 border-t-2 border-stone-800 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 text-center">
-                  Homologação Oficial do Procedimento Operacional Padrão
-                </h4>
+              {/* SEÇÃO 5: BLOCO DE APROVAÇÃO FORMAL DO DOCUMENTO (DIREÇÃO, CQ, RT) */}
+              <div className="pt-6 border-t-2 border-stone-800 space-y-4">
+                <div className="text-center space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-stone-900">
+                    Aprovação Formal do Documento (Item 7.2 da IN MAPA nº 04/2007 e Decreto nº
+                    12.031/2024)
+                  </h4>
+                  <p className="text-[10px] text-stone-600 max-w-2xl mx-auto">
+                    O presente Procedimento Operacional Padrão ({procedure.codigo}) foi revisado,
+                    aprovado tecnicamente e homologado para aplicação compulsória em todas as
+                    unidades fabris do estabelecimento{' '}
+                    {company?.razao_social || 'NutriAgro Nutrição Animal e Premixes Ltda.'}.
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
-                  {/* Assinatura RT */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
+                  {/* Direção Executiva */}
                   <div className="p-3 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-stone-50/50">
                     <div className="text-stone-400 text-[10px] uppercase font-bold tracking-wider">
-                      Espaço de Assinatura RT
+                      Aprovado por (Direção)
                     </div>
-                    {rtAssinatura?.imagem_url ? (
-                      <div className="my-1 p-1 bg-white rounded border border-stone-200 flex items-center justify-center">
-                        <img
-                          src={rtAssinatura.imagem_url}
-                          alt="Assinatura digitalizada RT"
-                          className="max-h-16 max-w-full object-contain"
-                        />
-                      </div>
-                    ) : rtAssinatura ? (
-                      <div className="my-2 p-2 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-700 mx-auto mb-0.5" />
+                    {procedure.assinaturas_pop?.direcao ? (
+                      <div className="my-2 p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
                         <strong>Assinado Eletronicamente por:</strong>
                         <br />
-                        {rtAssinatura.responsavel_nome}
-                        <br />
-                        <span className="text-[9px] text-stone-600">
-                          {rtAssinatura.autenticidade_mapa || 'Autenticado via ICP-Brasil / Gov.br'}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="my-4 border-b border-dashed border-stone-400 w-3/4 mx-auto" />
-                    )}
-                    <div>
-                      <p className="font-bold text-xs text-stone-900">
-                        {company?.rt_nome || 'Dr. Hélio Silva'}
-                      </p>
-                      <p className="text-[10px] text-stone-600">
-                        Responsável Técnico (RT) — CRMV:{' '}
-                        {company?.rt_registro_conselho || 'CRMV-SP 18.420'}
-                      </p>
-                      <p className="text-[9px] text-stone-400">
-                        CPF: {company?.rt_cpf || '123.456.789-00'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Assinatura RE */}
-                  <div className="p-3 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-stone-50/50">
-                    <div className="text-stone-400 text-[10px] uppercase font-bold tracking-wider">
-                      Espaço de Assinatura RE (MAPA)
-                    </div>
-                    {reAssinatura ? (
-                      <div className="my-2 p-2 bg-amber-50 rounded border border-amber-300 text-[10px] text-amber-900 leading-tight">
-                        <CheckCircle2 className="h-4 w-4 text-amber-700 mx-auto mb-0.5" />
-                        <strong>Assinado Eletronicamente por:</strong>
-                        <br />
-                        {reAssinatura.responsavel_nome}
-                        <br />
-                        <span className="text-[9px] text-stone-600">
-                          {reAssinatura.autenticidade_mapa || 'Autenticado via ICP-Brasil / Gov.br'}
-                        </span>
+                        {procedure.assinaturas_pop.direcao.responsavel_nome}
                       </div>
                     ) : (
                       <div className="my-4 border-b border-dashed border-stone-400 w-3/4 mx-auto" />
@@ -634,20 +598,74 @@ export function PopDocumentPdfModal({
                       <p className="font-bold text-xs text-stone-900">
                         {company?.re_nome || 'Carlos Eduardo Prado de Oliveira'}
                       </p>
-                      <p className="text-[10px] text-stone-600">
-                        {company?.re_cargo_mapa || 'Responsável pelo Estabelecimento (RE - MAPA)'}
+                      <p className="text-[10px] text-stone-600">Direção Executiva da Empresa</p>
+                    </div>
+                  </div>
+
+                  {/* Coordenador CQ */}
+                  <div className="p-3 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-stone-50/50">
+                    <div className="text-stone-400 text-[10px] uppercase font-bold tracking-wider">
+                      Aprovado por (Controle CQ)
+                    </div>
+                    {procedure.assinaturas_pop?.cq ? (
+                      <div className="my-2 p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
+                        <strong>Assinado Eletronicamente por:</strong>
+                        <br />
+                        {procedure.assinaturas_pop.cq.responsavel_nome}
+                      </div>
+                    ) : (
+                      <div className="my-4 border-b border-dashed border-stone-400 w-3/4 mx-auto" />
+                    )}
+                    <div>
+                      <p className="font-bold text-xs text-stone-900">
+                        {company?.rq_nome || 'Dra. Mariana Siqueira'}
                       </p>
-                      <p className="text-[9px] text-stone-400">
-                        CPF: {company?.re_cpf || '345.678.901-22'}
+                      <p className="text-[10px] text-stone-600">
+                        Coordenador do Controle da Qualidade
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Responsável Técnico RT */}
+                  <div className="p-3 border border-emerald-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-emerald-50/40">
+                    <div className="text-emerald-800 text-[10px] uppercase font-bold tracking-wider">
+                      Homologado por (RT)
+                    </div>
+                    {rtAssinatura?.imagem_url ? (
+                      <div className="my-1 p-1 bg-white rounded border border-emerald-200 flex items-center justify-center">
+                        <img
+                          src={rtAssinatura.imagem_url}
+                          alt="Assinatura RT"
+                          className="max-h-14 max-w-full object-contain"
+                        />
+                      </div>
+                    ) : rtAssinatura ? (
+                      <div className="my-2 p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
+                        <strong>Assinado Eletronicamente por:</strong>
+                        <br />
+                        {rtAssinatura.responsavel_nome}
+                      </div>
+                    ) : (
+                      <div className="my-4 border-b border-dashed border-emerald-400 w-3/4 mx-auto" />
+                    )}
+                    <div>
+                      <p className="font-bold text-xs text-stone-900">
+                        {company?.rt_nome || 'Dr. Hélio Silva'}
+                      </p>
+                      <p className="text-[10px] text-stone-600">
+                        Responsável Técnico — {company?.rt_registro_conselho || 'CRMV-SP 18.420'}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="text-[9px] text-stone-500 text-center pt-3 border-t border-stone-200">
-                  Documento emitido pelo Sistema de Autocontroles Agro APPCC em conformidade com a
-                  Instrução Normativa nº 04/2007 do MAPA e Decreto Federal nº 12.031/2024.
-                  Autenticidade documental verificável.
+                  Documento elaborado e integrado ao Manual de Boas Práticas de Fabricação (BPF) em
+                  15 de setembro de 2026. A retenção deste documento obedece ao prazo regulatório de
+                  2 anos para alimentação geral e de 3 anos para produtos com medicamentos
+                  veterinários.
                 </div>
               </div>
             </div>

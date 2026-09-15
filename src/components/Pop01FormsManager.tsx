@@ -1370,32 +1370,597 @@ export function Pop01FormsManager({
               </div>
             )}
 
-            {/* Outros modelos simplificados (FR 16, FR 19, A8, A10, IT 14, A9) */}
-            {['FR 16', 'FR 19', 'A8', 'A10', 'IT 14', 'A9'].includes(selectedFormCode) && (
+            {/* FR 16: Formulário Completo de Qualificação de Fornecedores */}
+            {selectedFormCode === 'FR 16' && (
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Razão Social do Proponente</Label>
+                    <Input
+                      value={fr16Form.razao_social}
+                      onChange={(e) => setFr16Form({ ...fr16Form, razao_social: e.target.value })}
+                      required
+                      placeholder="Empresa proponente"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nome Fantasia</Label>
+                    <Input
+                      value={fr16Form.nome_fantasia}
+                      onChange={(e) => setFr16Form({ ...fr16Form, nome_fantasia: e.target.value })}
+                      placeholder="Nome comercial"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">CNPJ</Label>
+                    <Input
+                      value={fr16Form.cnpj}
+                      onChange={(e) => setFr16Form({ ...fr16Form, cnpj: e.target.value })}
+                      placeholder="00.000.000/0000-00"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Reg. Estabelecimento MAPA</Label>
+                    <Input
+                      value={fr16Form.registro_mapa}
+                      onChange={(e) => setFr16Form({ ...fr16Form, registro_mapa: e.target.value })}
+                      required
+                      placeholder="Ex: SP-001234-5"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">UF</Label>
+                    <Input
+                      value={fr16Form.uf}
+                      onChange={(e) => setFr16Form({ ...fr16Form, uf: e.target.value })}
+                      placeholder="UF"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Denominação do Produto / Insumo</Label>
+                    <Input
+                      value={fr16Form.produto_denominacao}
+                      onChange={(e) =>
+                        setFr16Form({ ...fr16Form, produto_denominacao: e.target.value })
+                      }
+                      required
+                      placeholder="Ex: Farinha de Carne 45%"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Nº Registro/Cadastro Produto MAPA</Label>
+                    <Input
+                      value={fr16Form.produto_registro_mapa}
+                      onChange={(e) =>
+                        setFr16Form({ ...fr16Form, produto_registro_mapa: e.target.value })
+                      }
+                      placeholder="Isento ou código MAPA"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Categoria</Label>
+                    <Select
+                      value={fr16Form.categoria}
+                      onValueChange={(val: any) => setFr16Form({ ...fr16Form, categoria: val })}
+                    >
+                      <SelectTrigger className="h-8 text-xs mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MP Vegetal">MP Vegetal</SelectItem>
+                        <SelectItem value="MP Animal">MP Animal</SelectItem>
+                        <SelectItem value="Aditivo">Aditivo</SelectItem>
+                        <SelectItem value="Mineral">Mineral</SelectItem>
+                        <SelectItem value="Embalagem">Embalagem</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Classificação de Risco APPCC</Label>
+                    <Select
+                      value={fr16Form.risco_appcc}
+                      onValueChange={(val: any) => setFr16Form({ ...fr16Form, risco_appcc: val })}
+                    >
+                      <SelectTrigger className="h-8 text-xs mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Alto">Alto</SelectItem>
+                        <SelectItem value="Médio">Médio</SelectItem>
+                        <SelectItem value="Baixo">Baixo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Checklist Documental Mandatório */}
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
+                    Checklist Documental Mandatório (Critérios Limitantes)
+                  </span>
+                  <div className="space-y-1.5 text-[11px]">
+                    {[
+                      {
+                        key: 'item_1_registro_estabelecimento_mapa',
+                        label: '1. Cópia do Registro de Estabelecimento MAPA em vigor',
+                      },
+                      {
+                        key: 'item_2_registro_produto_isencao',
+                        label: '2. Certificado de Registro/Cadastro do Produto / Isenção legal',
+                      },
+                      {
+                        key: 'item_3_ficha_tecnica',
+                        label: '3. Ficha Técnica com níveis de garantia e restrições',
+                      },
+                      {
+                        key: 'item_4_declaracao_conformidade_a10',
+                        label: '4. Declaração de Conformidade A10 assinada pelo RT',
+                      },
+                      {
+                        key: 'item_5_controle_ractopamina',
+                        label: '5. Aptidão para fornecimento livre de ractopamina',
+                      },
+                      {
+                        key: 'item_6_certificados_3_ultimos_lotes',
+                        label: '6. Certificados de análise dos 3 últimos lotes',
+                      },
+                    ].map((item) => (
+                      <label key={item.key} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean((fr16Form.checklist_documental as any)[item.key])}
+                          onChange={(e) =>
+                            setFr16Form({
+                              ...fr16Form,
+                              checklist_documental: {
+                                ...fr16Form.checklist_documental,
+                                [item.key]: e.target.checked,
+                              },
+                            })
+                          }
+                          className="h-3.5 w-3.5 rounded text-[#2D6A4F]"
+                        />
+                        <span className="text-stone-700">{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Avaliação Analítica Piloto */}
+                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200 space-y-2">
+                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
+                    Resultado da Amostra Piloto
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-[10px]">Laudo nº</Label>
+                      <Input
+                        value={fr16Form.amostra_piloto.laudo_numero}
+                        onChange={(e) =>
+                          setFr16Form({
+                            ...fr16Form,
+                            amostra_piloto: {
+                              ...fr16Form.amostra_piloto,
+                              laudo_numero: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Ex: LAUD-098"
+                        className="h-7 text-xs mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Umidade (%)</Label>
+                      <Input
+                        value={fr16Form.amostra_piloto.umidade_percent}
+                        onChange={(e) =>
+                          setFr16Form({
+                            ...fr16Form,
+                            amostra_piloto: {
+                              ...fr16Form.amostra_piloto,
+                              umidade_percent: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Ex: 11.2%"
+                        className="h-7 text-xs mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">Proteína Bruta (%)</Label>
+                      <Input
+                        value={fr16Form.amostra_piloto.proteina_bruta_percent}
+                        onChange={(e) =>
+                          setFr16Form({
+                            ...fr16Form,
+                            amostra_piloto: {
+                              ...fr16Form.amostra_piloto,
+                              proteina_bruta_percent: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Ex: 46.5%"
+                        className="h-7 text-xs mt-0.5"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Parecer Conclusivo */}
+                <div>
+                  <Label className="text-xs font-bold text-stone-800">
+                    Parecer Conclusivo da Comissão
+                  </Label>
+                  <Select
+                    value={fr16Form.parecer_conclusivo}
+                    onValueChange={(val) => setFr16Form({ ...fr16Form, parecer_conclusivo: val })}
+                  >
+                    <SelectTrigger className="h-8 text-xs mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Qualificado sem Restrições">
+                        Qualificado sem Restrições (Inclusão na Lista FR 14)
+                      </SelectItem>
+                      <SelectItem value="Qualificado com Restrições">
+                        Qualificado com Restrições (Análises lote a lote 90 dias)
+                      </SelectItem>
+                      <SelectItem value="Reprovado / Não Qualificado">
+                        Reprovado / Não Qualificado
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* FR 19: Verificação Anual e Requalificação */}
+            {selectedFormCode === 'FR 19' && (
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Razão Social do Fornecedor</Label>
+                    <Input
+                      value={fr19Form.fornecedor_razao_social}
+                      onChange={(e) =>
+                        setFr19Form({ ...fr19Form, fornecedor_razao_social: e.target.value })
+                      }
+                      required
+                      placeholder="Fornecedor sob auditoria anual"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Código FR 14</Label>
+                    <Input
+                      value={fr19Form.codigo_fr14}
+                      onChange={(e) => setFr19Form({ ...fr19Form, codigo_fr14: e.target.value })}
+                      placeholder="Ex: MP-001"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Insumos Fornecidos</Label>
+                  <Input
+                    value={fr19Form.insumos_fornecidos}
+                    onChange={(e) =>
+                      setFr19Form({ ...fr19Form, insumos_fornecidos: e.target.value })
+                    }
+                    placeholder="Ex: Farelo de Soja 46%, Farinha de Carne"
+                    className="h-8 text-xs mt-1"
+                  />
+                </div>
+
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
+                    Quesitos de Verificação Periódica (5 Itens Compulsórios)
+                  </span>
+                  <div className="space-y-1.5 text-[11px]">
+                    {[
+                      {
+                        key: 'item_1_registro_mapa_vigente',
+                        label:
+                          '1. Registro do estabelecimento no MAPA permanece vigente sem suspensão?',
+                      },
+                      {
+                        key: 'item_2_produtos_regulares',
+                        label:
+                          '2. Registros/cadastros dos produtos fornecidos regulares no SIPEAGRO?',
+                      },
+                      {
+                        key: 'item_3_indice_nc_menor_meta',
+                        label: '3. Índice de NC de recebimento no ano foi inferior a 1,5%?',
+                      },
+                      {
+                        key: 'item_4_rotulagem_decreto',
+                        label:
+                          '4. Rotulagem dos produtos permaneceu 100% conforme Decreto nº 12.031/2024?',
+                      },
+                      {
+                        key: 'item_5_prazos_validade_especificacoes',
+                        label: '5. Insumos mantiveram-se estritamente dentro da validade e laudos?',
+                      },
+                    ].map((q) => (
+                      <label key={q.key} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean((fr19Form.verificacao_itens as any)[q.key])}
+                          onChange={(e) =>
+                            setFr19Form({
+                              ...fr19Form,
+                              verificacao_itens: {
+                                ...fr19Form.verificacao_itens,
+                                [q.key]: e.target.checked,
+                              },
+                            })
+                          }
+                          className="h-3.5 w-3.5 rounded text-[#2D6A4F]"
+                        />
+                        <span className="text-stone-700">{q.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-bold text-stone-800">
+                    Decisão da Comissão de Requalificação
+                  </Label>
+                  <Select
+                    value={fr19Form.decisao_comissao}
+                    onValueChange={(val) => setFr19Form({ ...fr19Form, decisao_comissao: val })}
+                  >
+                    <SelectTrigger className="h-8 text-xs mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Manter Qualificação Ativa (12 meses)">
+                        Manter Qualificação Ativa por mais 12 meses na Lista FR 14
+                      </SelectItem>
+                      <SelectItem value="Requalificar sob Condicionantes">
+                        Requalificar sob Condicionantes (Nova auditoria em 60 dias)
+                      </SelectItem>
+                      <SelectItem value="Desqualificar e Bloquear">
+                        Desqualificar e Bloquear Imediatamente no sistema
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* A8: Checklist de Auditoria / Visita Técnica a Fornecedores */}
+            {selectedFormCode === 'A8' && (
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Razão Social do Fornecedor Auditado</Label>
+                    <Input
+                      value={a8Form.fornecedor}
+                      onChange={(e) => setA8Form({ ...a8Form, fornecedor: e.target.value })}
+                      required
+                      placeholder="Empresa fornecedora"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Registro MAPA nº</Label>
+                    <Input
+                      value={a8Form.registro_mapa}
+                      onChange={(e) => setA8Form({ ...a8Form, registro_mapa: e.target.value })}
+                      placeholder="Ex: MG-009876-1"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Itens Conformes (C)</Label>
+                    <Input
+                      type="number"
+                      value={a8Form.c_count}
+                      onChange={(e) => setA8Form({ ...a8Form, c_count: Number(e.target.value) })}
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Itens Não Conformes (NC)</Label>
+                    <Input
+                      type="number"
+                      value={a8Form.nc_count}
+                      onChange={(e) => setA8Form({ ...a8Form, nc_count: Number(e.target.value) })}
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Classificação Final</Label>
+                    <Select
+                      value={a8Form.classificacao}
+                      onValueChange={(val) => setA8Form({ ...a8Form, classificacao: val })}
+                    >
+                      <SelectTrigger className="h-8 text-xs mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Aprovado (>85%)">Aprovado (&gt;85%)</SelectItem>
+                        <SelectItem value="Aprovado com Ressalvas (70–84%)">
+                          Aprovado com Ressalvas (70–84%)
+                        </SelectItem>
+                        <SelectItem value="Reprovado (<70%)">Reprovado (&lt;70%)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Plano de Ação (CAPA do Fornecedor se aplicável)</Label>
+                  <Textarea
+                    rows={2}
+                    value={a8Form.plano_acao}
+                    onChange={(e) => setA8Form({ ...a8Form, plano_acao: e.target.value })}
+                    placeholder="Prazos e ações para adequação de itens..."
+                    className="text-xs mt-1"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* A10: Declaração de Conformidade do Fornecedor */}
+            {selectedFormCode === 'A10' && (
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Razão Social da Fornecedora</Label>
+                    <Input
+                      value={a10Form.fornecedor_razao_social}
+                      onChange={(e) =>
+                        setA10Form({ ...a10Form, fornecedor_razao_social: e.target.value })
+                      }
+                      required
+                      placeholder="Empresa fornecedora"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">CNPJ</Label>
+                    <Input
+                      value={a10Form.fornecedor_cnpj}
+                      onChange={(e) => setA10Form({ ...a10Form, fornecedor_cnpj: e.target.value })}
+                      placeholder="00.000.000/0000-00"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Endereço Fabril</Label>
+                    <Input
+                      value={a10Form.fornecedor_estabelecimento_endereco}
+                      onChange={(e) =>
+                        setA10Form({
+                          ...a10Form,
+                          fornecedor_estabelecimento_endereco: e.target.value,
+                        })
+                      }
+                      placeholder="Logradouro, Município/UF"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Registro MAPA nº</Label>
+                    <Input
+                      value={a10Form.fornecedor_registro_mapa}
+                      onChange={(e) =>
+                        setA10Form({ ...a10Form, fornecedor_registro_mapa: e.target.value })
+                      }
+                      placeholder="UF-000000-0"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
+                    Termo de Controle de Ractopamina (Assinalar uma opção)
+                  </span>
+                  <div className="space-y-1.5 text-[11px]">
+                    {[
+                      {
+                        key: 'consta_lista_mapa',
+                        label:
+                          'Consta na lista de estabelecimentos aptos a fornecer produtos sem ractopamina do MAPA',
+                      },
+                      {
+                        key: 'nao_manipula',
+                        label: 'Não manipula, não estoca e não processa cloridrato de ractopamina',
+                      },
+                      {
+                        key: 'linha_dedicada',
+                        label:
+                          'Possui linha fabril dedicada e validada como isenta de contaminação cruzada',
+                      },
+                    ].map((opt) => (
+                      <label key={opt.key} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="opcao_ractopamina"
+                          checked={a10Form.opcao_ractopamina === opt.key}
+                          onChange={() =>
+                            setA10Form({ ...a10Form, opcao_ractopamina: opt.key as any })
+                          }
+                          className="h-3.5 w-3.5 text-[#2D6A4F]"
+                        />
+                        <span className="text-stone-700">{opt.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Nome do RT do Fornecedor</Label>
+                    <Input
+                      value={a10Form.rt_fornecedor_nome}
+                      onChange={(e) =>
+                        setA10Form({ ...a10Form, rt_fornecedor_nome: e.target.value })
+                      }
+                      placeholder="Nome do RT declarante"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Registro de Classe / CRMV / CRMV-Z</Label>
+                    <Input
+                      value={a10Form.rt_fornecedor_registro_classe}
+                      onChange={(e) =>
+                        setA10Form({ ...a10Form, rt_fornecedor_registro_classe: e.target.value })
+                      }
+                      placeholder="Ex: CRMV-SP 12.345"
+                      className="h-8 text-xs mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* IT 14 e A9: Formulários Técnicos de Instrução e Matriz de Risco */}
+            {['IT 14', 'A9'].includes(selectedFormCode) && (
               <div className="space-y-3 text-xs">
                 <div>
-                  <Label className="text-xs">Razão Social / Identificação Principal</Label>
+                  <Label className="text-xs">Identificação do Insumo / Categoria Técnica</Label>
                   <Input
-                    placeholder="Nome do fornecedor ou categoria"
+                    placeholder="Ex: Grãos a Granel, Farinhas de Origem Animal, Minerais..."
                     required
                     className="h-8 text-xs mt-1"
-                    onChange={(e) => {
-                      if (selectedFormCode === 'FR 16')
-                        setFr16Form({ ...fr16Form, razao_social: e.target.value })
-                      if (selectedFormCode === 'FR 19')
-                        setFr19Form({ ...fr19Form, fornecedor_razao_social: e.target.value })
-                      if (selectedFormCode === 'A8')
-                        setA8Form({ ...a8Form, fornecedor: e.target.value })
-                      if (selectedFormCode === 'A10')
-                        setA10Form({ ...a10Form, fornecedor_razao_social: e.target.value })
-                    }}
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Observações / Parecer Técnico</Label>
+                  <Label className="text-xs">
+                    Parâmetros Analíticos / Perigos Críticos Monitorados
+                  </Label>
                   <Textarea
                     rows={3}
-                    placeholder={`Insira os apontamentos referentes a ${selectedFormCode}...`}
+                    placeholder="Descreva os ensaios executados ou perigos avaliados..."
                     className="text-xs mt-1"
                   />
                 </div>

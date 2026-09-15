@@ -239,6 +239,19 @@ export function RecordDocumentPdfModal({
                     {savingSig ? 'Salvando...' : 'Assinar como RT (Responsável Técnico)'}
                   </Button>
 
+                  {user?.assinatura_imagem && (
+                    <div className="p-2 bg-emerald-50 rounded-md border border-emerald-200 text-[11px] text-[#2D6A4F] flex items-center justify-between">
+                      <span className="font-semibold">
+                        Sua rubrica gráfica (JPG/PNG) vinculada ao perfil:
+                      </span>
+                      <img
+                        src={user.assinatura_imagem}
+                        alt="Assinatura RT"
+                        className="h-6 object-contain"
+                      />
+                    </div>
+                  )}
+
                   {(userRole === 'RQ' || userRole === 'admin') && (
                     <Button
                       type="button"

@@ -204,13 +204,54 @@ export default function ProcedureDetail() {
     const totalTemp = fr15Records.length
     const tempConformes = fr15Records.filter((r) => r.status === 'Conforme').length
 
+    // Desqualificação por fraude / falha crítica (IDF)
+    const idfCount = fr14Records.filter(
+      (r) => r.dados_formulario?.status_cadastral === 'Suspenso',
+    ).length
+
+    // Descarte por Validade Vencida
+    const descarteValidadeKg = fr18Records
+      .filter((r) => r.dados_formulario?.motivo === 'Validade Vencida')
+      .reduce((sum, r) => {
+        const itens = r.dados_formulario?.itens || []
+        const somaItens = itens.reduce((s: number, it: any) => {
+          const val = parseFloat(String(it.quantidade_kg || '0').replace(/[^0-9.]/g, '')) || 0
+          return s + val
+        }, 0)
+        return sum + somaItens
+      }, 0)
+
     // Métricas calculadas
-    const idmp = totalRecebimentos > 0 ? (totalDescartes / (totalRecebimentos * 1000)) * 100 : 0
+    const pesoRecebidoKg = fr08Records.reduce((sum, r) => {
+      const peso =
+        parseFloat(
+          String(
+            r.dados_formulario?.peso_balanca_kg || r.dados_formulario?.peso_nf_kg || '0',
+          ).replace(/[^0-9.]/g, ''),
+        ) || 0
+      return sum + peso
+    }, 0)
+    const idmp =
+      pesoRecebidoKg > 0
+        ? (descartesKg / pesoRecebidoKg) * 100
+        : totalRecebimentos > 0
+          ? (descartesKg / (totalRecebimentos * 1000)) * 100
+          : 0
     const incr = totalRecebimentos > 0 ? (ncRecebimento / totalRecebimentos) * 100 : 0
     const cdf = totalFornecedores > 0 ? (fornecedoresAtivos / totalFornecedores) * 100 : 100
     const ilfe =
       totalRecebimentos > 0
-        ? (fr08Records.filter((r) => r.dados_formulario?.sensorial?.cor === 'Alterada').length /
+        ? (fr08Records.filter((r) => {
+            const sens = r.dados_formulario?.sensorial
+            return (
+              sens?.cor === 'Alterada' ||
+              sens?.odor === 'Alterado' ||
+              sens?.aspecto === 'Alterado' ||
+              sens?.umidade_visivel === 'Sim' ||
+              sens?.pragas_sujidades === 'Sim' ||
+              r.status === 'Não Conforme'
+            )
+          }).length /
             totalRecebimentos) *
           100
         : 0
@@ -299,6 +340,17 @@ export default function ProcedureDetail() {
         },
         {
           id: 'kpi-8',
+          codigo: 'IDF',
+          nome: 'Índice de Desqualificação de Fornecedores',
+          formula: 'Contagem de fornecedores desqualificados por fraude ou falha crítica',
+          periodicidade: 'Anual',
+          meta: '0 por fraude',
+          valor_calculado: idfCount,
+          valor_formatado: `${idfCount}`,
+          status_meta: idfCount === 0 ? 'dentro' : 'fora',
+        },
+        {
+          id: 'kpi-9',
           codigo: 'CONF-TERM',
           nome: 'Registros de Temperatura / UR Conformes',
           formula: '(Linhas Conformes FR 15 / Total Medições) × 100%',
@@ -307,6 +359,17 @@ export default function ProcedureDetail() {
           valor_calculado: conformidadeTermica,
           valor_formatado: `${conformidadeTermica.toFixed(1)}%`,
           status_meta: conformidadeTermica >= 100 ? 'dentro' : 'alerta',
+        },
+        {
+          id: 'kpi-10',
+          codigo: 'DESC-VAL',
+          nome: 'Descarte por Validade Vencida',
+          formula: 'Soma de descartes (kg) com motivo = Validade Vencida no FR 18',
+          periodicidade: 'Mensal',
+          meta: '0 kg',
+          valor_calculado: descarteValidadeKg,
+          valor_formatado: `${descarteValidadeKg.toLocaleString('pt-BR')} kg`,
+          status_meta: descarteValidadeKg === 0 ? 'dentro' : 'fora',
         },
       ],
       visao_geral: {
