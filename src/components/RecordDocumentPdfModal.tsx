@@ -1,16 +1,13 @@
 import React, { useState } from 'react'
 import {
-  FileText,
   Printer,
+  FileText,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle,
   Clock,
   KeyRound,
-  Download,
+  PenTool,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -19,19 +16,21 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { registerDigitalSignature } from '@/services/agroService'
-import type { MonitoringRecord, Company, Procedure } from '@/types/agro'
-import { useAuth } from '@/contexts/AuthContext'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
+import { registerDigitalSignature } from '@/services/agroService'
+import type { MonitoringRecord, Company, Procedure, DigitalSignatureRecord } from '@/types/agro'
 
 interface RecordDocumentPdfModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   record: MonitoringRecord | null
   procedure?: Procedure | null
-  company: Company | null
+  company?: Company | null
   onSignatureSaved?: () => void
 }
 
@@ -43,47 +42,43 @@ export function RecordDocumentPdfModal({
   company,
   onSignatureSaved,
 }: RecordDocumentPdfModalProps) {
-  const { user } = useAuth()
   const { toast } = useToast()
-
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'visualizar' | 'assinar'>('visualizar')
-  const [signatureMethod, setSignatureMethod] = useState<'gov_br' | 'pfx'>('gov_br')
+  const [signatureMethod, setSignatureMethod] = useState<'pfx' | 'gov_br'>('gov_br')
   const [observacao, setObservacao] = useState('')
   const [savingSig, setSavingSig] = useState(false)
 
   if (!record) return null
 
-  const userRole = user?.role || 'RQ'
-  const canSignRecord = userRole === 'RQ' || userRole === 'RE' || userRole === 'admin'
-  const rqAssinatura = record.assinaturas_registro?.rq
-  const reAssinatura = record.assinaturas_registro?.re
+  const assinaturas = record.assinaturas_registro || {}
+  const rqAssinatura: DigitalSignatureRecord | undefined = assinaturas.rq
+  const reAssinatura: DigitalSignatureRecord | undefined = assinaturas.re
   const isFullySigned = Boolean(rqAssinatura && reAssinatura)
+  const userRole = user?.role || 'operador'
 
   const handlePrint = () => {
     window.print()
   }
 
-  const handleRegisterSignature = async (targetRole: 'RQ' | 'RE') => {
-    if (!canSignRecord) {
-      toast({
-        title: 'Ação não permitida',
-        description:
-          'Apenas o RQ (Qualidade) ou RE (Estabelecimento MAPA) podem assinar registros.',
-        variant: 'destructive',
-      })
-      return
-    }
+  const handleRegisterSignature = async (targetRole: 'RT' | 'RQ' | 'RE' | string) => {
+    if (!record) return
 
     setSavingSig(true)
     try {
-      const respNome =
-        targetRole === 'RQ'
-          ? company?.rq_nome || user?.name || 'Responsável pela Qualidade'
-          : company?.re_nome || user?.name || 'Responsável pelo Estabelecimento'
-      const respId =
-        targetRole === 'RQ'
-          ? company?.rq_cpf || user?.cpf || 'CPF RQ'
-          : company?.re_cpf || user?.cpf || 'CPF RE'
+      let respNome = user?.name || 'Responsável'
+      let respId = ''
+
+      if (targetRole === 'RT') {
+        respNome = company?.rt_nome || user?.name || 'Dr. Hélio Silva'
+        respId = company?.rt_registro_conselho || 'CRMV-SP 18.420'
+      } else if (targetRole === 'RQ') {
+        respNome = company?.rq_nome || user?.name || 'Dra. Mariana Siqueira'
+        respId = company?.rq_cpf || user?.cpf || 'CPF RQ'
+      } else {
+        respNome = company?.re_nome || user?.name || 'Carlos Eduardo Prado de Oliveira'
+        respId = company?.re_cpf || user?.cpf || 'CPF RE'
+      }
 
       await registerDigitalSignature({
         tipo_alvo: 'record',
@@ -92,6 +87,7 @@ export function RecordDocumentPdfModal({
         metodo: signatureMethod,
         responsavel_nome: respNome,
         responsavel_identificacao: respId,
+        imagem_url: user?.assinatura_imagem || undefined,
         observacao: observacao || `Validação diária de BPF/PCC pelo ${targetRole}`,
       })
 
@@ -182,9 +178,10 @@ export function RecordDocumentPdfModal({
                     Comprovação Formal de Execução do POP
                   </h3>
                   <p className="text-xs text-stone-600 mt-1">
-                    Segundo a IN 04/2007 do MAPA, o POP só é considerado comprovadamente executado
-                    quando o registro recebe o aval do{' '}
-                    <strong>Responsável pela Qualidade (RQ)</strong> e do{' '}
+                    Segundo a IN 04/2007 do MAPA, o POP é considerado comprovadamente executado
+                    quando o registro recebe a validação do{' '}
+                    <strong>Responsável Técnico (RT)</strong>,{' '}
+                    <strong>Responsável pela Qualidade (RQ)</strong> ou do{' '}
                     <strong>Responsável pelo Estabelecimento (RE)</strong>.
                   </p>
                 </div>
