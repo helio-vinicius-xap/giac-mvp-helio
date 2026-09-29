@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-29T22:29:06.970Z",
+  "generatedAt": "2026-09-29T23:41:36.726Z",
   "collections": [
     {
       "name": "users",
@@ -367,6 +367,42 @@
         {
           "name": "arquivo_pdf_assinado",
           "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "registro_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "registros_seguintes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "origem_registro",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "sistema_automatico",
+            "demanda_cliente_formulario",
+            "demanda_cliente_anexo"
+          ]
+        },
+        {
+          "name": "status_execucao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Pendente", "Em Preenchimento", "Preenchido", "Cancelado"]
+        },
+        {
+          "name": "aviso_pendencia",
+          "type": "json",
           "required": false,
           "system": false
         }

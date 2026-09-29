@@ -330,6 +330,26 @@ export function Pop01NormativeViewer({ procedure, company }: Pop01NormativeViewe
           6. Descrição Detalhada do Procedimento (Subitens 6.1 a 6.11)
         </h3>
 
+        {/* Destaque do Fluxo de Registros Encadeados e Comprovação */}
+        <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+              SISTEMÁTICA OBRIGATÓRIA
+            </span>
+            <h4 className="text-xs font-bold text-emerald-950 uppercase">
+              Fluxo Encadeado de Registros & Regra de Comprovação da Cadeia
+            </h4>
+          </div>
+          <p className="text-xs text-stone-700 leading-relaxed">
+            Cada registro técnico gerado no POP 01 possui <strong>subcampos de encadeamento</strong>{' '}
+            (registro anterior e próximos exigidos). Ao salvar um registro, o sistema engatilha
+            automaticamente os próximos passos obrigatórios vinculados (Recebimento → Amostra →
+            Laudo → Destinação/Ação Corretiva em caso de reprovação). O POP só atinge o status de{' '}
+            <strong className="text-emerald-900">Comprovado</strong> quando todos os elos abertos da
+            cadeia estiverem devidamente instruídos e sem pendências.
+          </p>
+        </div>
+
         <div className="space-y-4 text-xs text-stone-700">
           {/* 6.1 Qualificação */}
           <div className="p-3.5 bg-[#FAF7EF] rounded-xl border border-[#E2DCCF] space-y-2">

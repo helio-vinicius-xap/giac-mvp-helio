@@ -343,6 +343,43 @@ export function RecordDocumentPdfModal({
                 </div>
               )}
 
+              {/* Rastreabilidade e Encadeamento Obrigatório */}
+              {(record.registro_anterior ||
+                (record.registros_seguintes && record.registros_seguintes.length > 0)) && (
+                <div className="p-2.5 rounded bg-[#FAF7EF] border border-[#E2DCCF] space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#1B4332] block">
+                    Cadeia de Rastreabilidade e Encadeamento
+                  </span>
+                  <div className="flex flex-wrap gap-3 text-[11px] text-stone-700">
+                    {record.registro_anterior && (
+                      <div>
+                        <span className="font-semibold text-stone-500">
+                          Registro Anterior (Pai):{' '}
+                        </span>
+                        <strong className="font-mono text-[#1B4332]">
+                          {record.registro_anterior}
+                        </strong>
+                      </div>
+                    )}
+                    {record.registros_seguintes && record.registros_seguintes.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="font-semibold text-stone-500">
+                          Próximos Exigidos na Cadeia:{' '}
+                        </span>
+                        {record.registros_seguintes.map((s, idx) => (
+                          <span
+                            key={idx}
+                            className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-white border border-stone-300 font-bold"
+                          >
+                            {s.codigo_formulario} ({s.registro_id ? 'Instanciado' : 'Aguardando'})
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Dados do Formulário Específico (Item 07 da IN 04) */}
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#2D6A4F] border-b border-stone-200 pb-1">

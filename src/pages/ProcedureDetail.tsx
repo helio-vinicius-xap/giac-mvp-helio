@@ -55,6 +55,9 @@ import { Pop01NormativeViewer } from '@/components/Pop01NormativeViewer'
 import { Pop01FormsManager } from '@/components/Pop01FormsManager'
 import { Pop01KpiDashboard } from '@/components/Pop01KpiDashboard'
 import { RtSignatureUpload } from '@/components/RtSignatureUpload'
+import { PopPendingPanel } from '@/components/PopPendingPanel'
+import { PopDemandRecordModal } from '@/components/PopDemandRecordModal'
+import { evaluatePopChain } from '@/lib/recordFlow'
 import type { POP01PainelResumo } from '@/types/pop01Forms'
 import {
   POP_ITEM07_CATALOG,
@@ -78,6 +81,7 @@ export default function ProcedureDetail() {
   const [openPopPdfModal, setOpenPopPdfModal] = useState(false)
   const [selectedRecordForPdf, setSelectedRecordForPdf] = useState<MonitoringRecord | null>(null)
   const [openRecordPdfModal, setOpenRecordPdfModal] = useState(false)
+  const [openDemandRecordModal, setOpenDemandRecordModal] = useState(false)
 
   // Edit mode on Overview
   const [isEditing, setIsEditing] = useState(false)
@@ -628,8 +632,28 @@ export default function ProcedureDetail() {
       </div>
 
       {/* 2. Tabs */}
-      <Tabs defaultValue={isPop01 ? 'pop01_normativo' : 'visao_geral'} className="w-full">
+      <Tabs defaultValue={isPop01 ? 'pop_cadeia_pendencias' : 'visao_geral'} className="w-full">
         <TabsList className="bg-[#FAF7EF] p-1 border border-[#E2DCCF] rounded-xl no-print flex-wrap">
+          {/* Nova Aba de Cadeia de Registros & Painel de Pendências */}
+          <TabsTrigger
+            value="pop_cadeia_pendencias"
+            className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg gap-1.5"
+          >
+            <span className="font-bold">Cadeia & Pendências</span>
+            {(() => {
+              const chainEval = evaluatePopChain(procedure.id, procedure.codigo, records)
+              return chainEval.totalPendencias > 0 ? (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500 text-white font-bold">
+                  {chainEval.totalPendencias}
+                </span>
+              ) : chainEval.isComprovado ? (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-600 text-white font-bold">
+                  ✓
+                </span>
+              ) : null
+            })()}
+          </TabsTrigger>
+
           {isPop01 && (
             <TabsTrigger
               value="pop01_normativo"
@@ -687,6 +711,36 @@ export default function ProcedureDetail() {
             Anexos e Evidências
           </TabsTrigger>
         </TabsList>
+
+        {/* ABA: PAINEL DE PENDÊNCIAS & CADEIA COMPLETA DE REGISTROS */}
+        <TabsContent value="pop_cadeia_pendencias" className="space-y-6 mt-4">
+          <PopPendingPanel
+            procedure={procedure}
+            records={records}
+            onOpenRecord={(rec) => {
+              if ('id' in rec && rec.id) {
+                const fullRec = records.find((r) => r.id === rec.id)
+                if (fullRec) {
+                  setSelectedRecordForPdf(fullRec)
+                  setOpenRecordPdfModal(true)
+                  return
+                }
+              }
+              // Se for formulário do catálogo
+              const cat = POP_ITEM07_CATALOG[procedure.codigo]
+              if (cat && cat.formularios.length > 0) {
+                const found = cat.formularios.find((f) => f.codigo === rec.formulario_codigo)
+                if (found) setSelectedFormDef(found)
+              }
+              setOpenNewRecordModal(true)
+            }}
+            onOpenDemandModal={() => setOpenDemandRecordModal(true)}
+            onOpenRecordPdf={(rec) => {
+              setSelectedRecordForPdf(rec)
+              setOpenRecordPdfModal(true)
+            }}
+          />
+        </TabsContent>
 
         {/* ABA EXCLUSIVA POP 01: DOCUMENTO NORMATIVO COMPLETO (15 SEÇÕES) */}
         {isPop01 && (
@@ -1578,6 +1632,18 @@ export default function ProcedureDetail() {
         company={company}
         onSignatureSaved={loadAll}
       />
+
+      {/* POP DEMAND RECORD MODAL (CRIAÇÃO POR DEMANDA DO CLIENTE) */}
+      {procedure && (
+        <PopDemandRecordModal
+          open={openDemandRecordModal}
+          onOpenChange={setOpenDemandRecordModal}
+          procedure={procedure}
+          userName={user?.name || 'Responsável Técnico'}
+          existingRecords={records}
+          onRecordCreated={() => loadAll()}
+        />
+      )}
     </div>
   )
 }

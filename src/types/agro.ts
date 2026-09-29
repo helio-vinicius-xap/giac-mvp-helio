@@ -119,6 +119,31 @@ export type RecordSignatureStatus =
   | 'Assinado Parcial (RE)'
   | 'Comprovado (Assinado RQ/RE)'
 
+export type RecordOrigem =
+  | 'sistema_automatico'
+  | 'demanda_cliente_formulario'
+  | 'demanda_cliente_anexo'
+export type RecordStatusExecucao = 'Pendente' | 'Em Preenchimento' | 'Preenchido' | 'Cancelado'
+
+export interface RecordChainLink {
+  id?: string
+  codigo_formulario: string
+  titulo: string
+  obrigatorio: boolean
+  motivo_exigencia?: string
+  criado_em?: string
+  registro_id?: string
+}
+
+export interface RecordAvisoPendencia {
+  criado_por: 'sistema' | 'cliente'
+  titulo: string
+  descricao: string
+  prazo_horas?: number
+  data_alerta?: string
+  prioridade?: 'baixa' | 'media' | 'alta' | 'critica'
+}
+
 export interface MonitoringRecord {
   id: string
   procedure: string
@@ -141,6 +166,12 @@ export interface MonitoringRecord {
   }
   status_assinatura?: RecordSignatureStatus
   arquivo_pdf_assinado?: string
+  // Encadeamento e fluxo obrigatório
+  registro_anterior?: string // ID ou código de referência do registro pai
+  registros_seguintes?: RecordChainLink[]
+  origem_registro?: RecordOrigem
+  status_execucao?: RecordStatusExecucao
+  aviso_pendencia?: RecordAvisoPendencia
   created: string
   updated: string
 }

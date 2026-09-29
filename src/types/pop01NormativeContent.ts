@@ -369,11 +369,12 @@ export const POP01_NORMATIVE_DATA: POP01NormativeContent = {
   secao_6_procedimento: {
     qualificacao_fornecedores: [
       'Identificação da Demanda: solicitada pela Gerência de Nutrição ou pelo RT à Gerência de Suprimentos.',
-      'Coleta de Documentos Regulatórios: envio obrigatório do formulário FR 16, comprovante de Registro de Estabelecimento MAPA atualizado (Título II Dec. 12.031/2024), Certificado de Registro/Cadastro do Produto (arts. 49-57), Ficha Técnica com níveis de garantia e carência, Declaração de Conformidade A10 e Laudos analíticos dos últimos 3 lotes.',
+      'Fluxo Obrigatório Encadeado de Registros (Regra de Comprovação): Todo registro deve conter subcampos de encadeamento (registro anterior e próximos exigidos). A comprovação do POP só é validada quando a cadeia completa estiver resolvida sem pendências abertas.',
+      'Coleta de Documentos Regulatórios: envio obrigatório do formulário FR 16 / Anexo I, comprovante de Registro de Estabelecimento MAPA atualizado (Título II Dec. 12.031/2024), Certificado de Registro/Cadastro do Produto (arts. 49-57), Ficha Técnica com níveis de garantia e carência, Declaração de Conformidade A10 e Laudos analíticos dos últimos 3 lotes.',
       'Aplicação de Critérios Limitantes: vigência incondicional do Registro de Estabelecimento MAPA, regularidade de produto no SIPEAGRO e proibição taxativa de resíduos do varejo para matérias-primas de origem animal (item 19 do Manual).',
       'Avaliação Laboratorial de Amostra Prévia: envio de amostra piloto para ensaios físico-químicos, microscópicos e microbiológicos.',
       'Auditoria Presencial / Visita Técnica: obrigatória para insumos de Categoria de Risco Alto (Anexo A9) via Checklist A8.',
-      'Parecer e Homologação: avaliado pelo Coordenador do CQ e homologado pelo RT. Estando favorável, inclusão imediata na Lista FR 14.',
+      'Parecer e Homologação: avaliado pelo Coordenador do CQ e homologado pelo RT. Estando favorável, inclusão imediata e automática na Lista FR 14 / Anexo II.',
     ],
     criterios_limitantes: [
       'A existência e vigência incondicional do Registro de Estabelecimento no MAPA;',
@@ -381,11 +382,12 @@ export const POP01_NORMATIVE_DATA: POP01NormativeContent = {
       'A comprovação de que o fornecedor de matérias-primas de origem animal não utiliza resíduos provenientes do comércio varejista (proibição taxativa do item 19 do Manual de Fiscalização de Autocontroles).',
     ],
     recebimento_inspecao: [
-      'Conferência Prévia de Cadastro: consulta à Lista FR 14 no sistema para certificar qualificação ativa do fornecedor e do produto.',
+      'Conferência Prévia de Cadastro: consulta à Lista FR 14 / Anexo II no sistema para certificar qualificação ativa do fornecedor e do produto.',
       'Inspeção do Veículo Transportador: art. 77 do Decreto nº 12.031/2024 e itens 6.8 e 20 do Manual (higiene, assoalho sem pregos salientes, lona impermeável limpa, ausência de cargas incompatíveis e controle de temperatura).',
       'Conferência Documental e Rotulagem: Nota Fiscal confrontada com Ordem de Compra e Laudo do Lote. Rotulagem inspecionada conforme arts. 61-67.',
       'Avaliação Sensorial da Carga: cor, odor, textura, ausência de empedramento, pragas e umidade visível.',
-      'Geração do Lote Interno: atribuição de código interno de lote no sistema SaaS para rastreabilidade plena.',
+      'Geração do Lote Interno e Registro Encadeado (FR 08 / Anexo III): Ao salvar o recebimento conforme, o sistema gera automaticamente a Coleta de Amostra (Anexo IV) como pendência obrigatória. Se reprovado na recepção, gera de imediato Destinação (FR 18) e Ação Corretiva (FR 01).',
+      'Possibilidade de Registro por Demanda: Permite criação avulsa sob demanda do cliente via formulário digital interno ou planilha/documento externo anexado.',
     ],
     amostragem_procedimentos: {
       macro_ingredientes:
@@ -400,7 +402,7 @@ export const POP01_NORMATIVE_DATA: POP01NormativeContent = {
     ensaios_laboratoriais: [
       'Análises de Recebimento: parâmetros imediatos de liberação (umidade por infravermelho, densidade PH, impurezas visíveis, microscopia direta).',
       'Análises de Rotina e Complementares: ensaios físico-químicos completos (PB, EE, MM, FB, minerais, micotoxinas e microbiologia).',
-      'Decisão Técnica de Liberação: laudo confrontado com especificação interna pelo Coordenador do CQ.',
+      'Decisão Técnica de Liberação e Bifurcação do Fluxo (Anexo V): Ao emitir o laudo no sistema, se APROVADO, a cadeia analítica encerra-se com sucesso. Se REPROVADO, o sistema gera automaticamente os próximos registros vinculados de Destinação de Produtos Não Aprovados (FR 18 / Anexo VI) e Ação Corretiva (FR 01 / Anexo VII).',
     ],
     segregacao_deposito: [
       'Bloqueio Imediato: etiqueta vermelha "LOTE REPROVADO / EM QUARENTENA" e bloqueio digital no sistema.',

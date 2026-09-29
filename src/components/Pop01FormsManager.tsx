@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import type { Procedure, MonitoringRecord, Company } from '@/types/agro'
 import { createRecord, updateRecord } from '@/services/agroService'
+import { saveRecordWithChain } from '@/lib/recordFlow'
 
 // Importação dos componentes dos 7 Anexos completos
 import { AnexoIQualificacaoModal } from './pop01/AnexoIQualificacaoModal'
@@ -364,48 +365,27 @@ export function Pop01FormsManager({
 
   // Salvar Anexo I
   const handleSaveAnexoI = async (dados: AnexoIQualificacaoData, isDraft: boolean) => {
-    // 1. Cria o registro oficial da Qualificação
-    await createRecord({
-      procedure: procedure.id,
-      formulario_codigo: 'FR 16',
-      dados_formulario: dados,
-      data: `${dados.data_qualificacao} 08:00:00.000Z`,
+    const status = dados.parecer_final === 'Aprovado' ? 'Conforme' : 'Não Conforme'
+
+    await saveRecordWithChain({
+      procedureId: procedure.id,
+      procedureCode: procedure.codigo,
+      formularioCodigo: 'ANEXO I',
+      dadosFormulario: dados,
+      data: dados.data_qualificacao,
       turno: 'Manhã',
-      valor_medido: `Qualificação: ${dados.razao_social} - Parecer: ${dados.parecer_final}`,
-      status: dados.parecer_final === 'Aprovado' ? 'Conforme' : 'Não Conforme',
+      valorMedido: `Qualificação: ${dados.razao_social} - Parecer: ${dados.parecer_final}`,
+      status,
       responsavel: dados.assinado_rq_nome || user?.name || 'Responsável Qualidade',
       lote: dados.cnpj,
-      status_assinatura: 'Pendente Assinatura',
+      origemRegistro: 'sistema_automatico',
     })
 
-    // 2. FLUXO AUTOMÁTICO DE INTEGRAÇÃO:
-    // Atualiza automaticamente a Lista de Fornecedores Qualificados (Anexo II)
-    if (!isDraft) {
-      const statusForn =
-        dados.parecer_final === 'Aprovado' || dados.parecer_final === 'Aprovado Condicionalmente'
-          ? 'Ativo'
-          : 'Desqualificado'
-
-      const novoFornItem: Partial<AnexoIIFornecedorItem> = {
-        razao_social: dados.razao_social,
-        cnpj: dados.cnpj,
-        produtos_fornecidos: dados.documentacao_complementar || 'Matérias-Primas Homologadas',
-        data_qualificacao: dados.data_qualificacao,
-        data_validade: dados.data_validade_qualificacao,
-        status: statusForn,
-        responsavel_tecnico: dados.responsavel_tecnico,
-        telefone: dados.telefone,
-        email: dados.email,
-        motivo_desqualificacao: dados.motivo_rejeicao,
-      }
-
-      await salvarFornecedorNoAnexoII(procedure.id, novoFornItem, user?.name || 'Sistema')
-      await loadFornecedores()
-    }
+    await loadFornecedores()
 
     toast({
       title: isDraft ? 'Rascunho salvo' : 'Fornecedor qualificado com sucesso',
-      description: 'Registro gravado e Anexo II atualizado automaticamente.',
+      description: 'Registro gravado e encadeamento atualizado automaticamente.',
     })
 
     if (onRecordCreated) onRecordCreated()
@@ -415,23 +395,27 @@ export function Pop01FormsManager({
   const handleSaveAnexoIII = async (dados: AnexoIIIRecebimentoData, isDraft: boolean) => {
     const isReprovado = dados.resultado === 'Reprovado'
 
-    await createRecord({
-      procedure: procedure.id,
-      formulario_codigo: 'FR 08',
-      dados_formulario: dados,
-      data: `${dados.data_recebimento.split(' ')[0]} 08:00:00.000Z`,
+    const res = await saveRecordWithChain({
+      procedureId: procedure.id,
+      procedureCode: procedure.codigo,
+      formularioCodigo: 'ANEXO III',
+      dadosFormulario: dados,
+      data: dados.data_recebimento.split(' ')[0],
       turno: 'Manhã',
-      valor_medido: `Recebimento ${dados.numero_recebimento} - Parecer: ${dados.resultado} (${dados.quantidade_recebida} ${dados.unidade})`,
+      valorMedido: `Recebimento ${dados.numero_recebimento} - Parecer: ${dados.resultado} (${dados.quantidade_recebida} ${dados.unidade})`,
       status: isReprovado ? 'Não Conforme' : 'Conforme',
       responsavel: dados.responsavel_recebimento || user?.name || 'Operador',
       lote: dados.lote_partida,
       observacoes: dados.descricao_motivo_rejeicao || dados.observacoes_inspecao_visual || '',
-      status_assinatura: 'Pendente Assinatura',
+      origemRegistro: 'sistema_automatico',
     })
 
     toast({
       title: isDraft ? 'Rascunho de recebimento salvo' : 'Recebimento de matéria-prima concluído',
-      description: `Nº ${dados.numero_recebimento} registrado na base de autocontrole.`,
+      description:
+        res.proximosGerados.length > 0
+          ? `Recebimento salvo e ${res.proximosGerados.length} próximo(s) registro(s) obrigatório(s) gerado(s) na cadeia.`
+          : `Nº ${dados.numero_recebimento} registrado na base de autocontrole.`,
     })
 
     if (onRecordCreated) onRecordCreated()
@@ -439,22 +423,26 @@ export function Pop01FormsManager({
 
   // Salvar Anexo IV (Coleta de Amostra)
   const handleSaveAnexoIV = async (dados: AnexoIVColetaAmostraData, isDraft: boolean) => {
-    await createRecord({
-      procedure: procedure.id,
-      formulario_codigo: 'ANEXO IV',
-      dados_formulario: dados,
-      data: `${dados.data_coleta} 08:00:00.000Z`,
+    const res = await saveRecordWithChain({
+      procedureId: procedure.id,
+      procedureCode: procedure.codigo,
+      formularioCodigo: 'ANEXO IV',
+      dadosFormulario: dados,
+      data: dados.data_coleta,
       turno: 'Manhã',
-      valor_medido: `Coleta Amostra ${dados.numero_amostra} (Rec: ${dados.recebimento_numero}) - ${dados.quantidade_coletada} ${dados.unidade}`,
+      valorMedido: `Coleta Amostra ${dados.numero_amostra} (Rec: ${dados.recebimento_numero}) - ${dados.quantidade_coletada} ${dados.unidade}`,
       status: 'Conforme',
       responsavel: dados.responsavel_coleta || user?.name || 'Amostrador',
       lote: dados.lote_partida,
-      status_assinatura: 'Pendente Assinatura',
+      origemRegistro: 'sistema_automatico',
     })
 
     toast({
       title: isDraft ? 'Rascunho de coleta salvo' : 'Amostra enviada para laboratório',
-      description: `Amostra nº ${dados.numero_amostra} registrada e pronta para ensaios.`,
+      description:
+        res.proximosGerados.length > 0
+          ? `Coleta concluída! Próximo registro obrigatório (Laudo Laboratorial) gerado na cadeia.`
+          : `Amostra nº ${dados.numero_amostra} registrada e pronta para ensaios.`,
     })
 
     if (onRecordCreated) onRecordCreated()
@@ -464,23 +452,26 @@ export function Pop01FormsManager({
   const handleSaveAnexoV = async (dados: AnexoVAnaliseLaboratorialData, isDraft: boolean) => {
     const isReprovado = dados.resultado_geral === 'Reprovado'
 
-    await createRecord({
-      procedure: procedure.id,
-      formulario_codigo: 'ANEXO V',
-      dados_formulario: dados,
-      data: `${dados.data_emissao} 08:00:00.000Z`,
+    const res = await saveRecordWithChain({
+      procedureId: procedure.id,
+      procedureCode: procedure.codigo,
+      formularioCodigo: 'ANEXO V',
+      dadosFormulario: dados,
+      data: dados.data_emissao,
       turno: 'Manhã',
-      valor_medido: `Laudo LAB ${dados.numero_relatorio}: ${dados.resultado_geral} (${dados.percentual_conformidade}% conformidade)`,
+      valorMedido: `Laudo LAB ${dados.numero_relatorio}: ${dados.resultado_geral} (${dados.percentual_conformidade}% conformidade)`,
       status: isReprovado ? 'Não Conforme' : 'Conforme',
       responsavel: dados.responsavel_emissao || user?.name || 'Analista CQ',
       lote: dados.lote_partida,
       observacoes: dados.motivo_rejeicao_relatorio || dados.parecer_laboratorio,
-      status_assinatura: 'Pendente Assinatura',
+      origemRegistro: 'sistema_automatico',
     })
 
     toast({
       title: isDraft ? 'Rascunho de laudo salvo' : 'Laudo laboratorial liberado',
-      description: `Relatório nº ${dados.numero_relatorio} registrado com sucesso.`,
+      description: isReprovado
+        ? '⚠️ Laudo Reprovado: Destinação (FR 18) e Ação Corretiva (FR 01) geradas automaticamente como pendências!'
+        : 'Laudo Conforme: Cadeia analítica encerrada com aprovação!',
     })
 
     if (onRecordCreated) onRecordCreated()
@@ -488,23 +479,24 @@ export function Pop01FormsManager({
 
   // Salvar Anexo VI (Destinação)
   const handleSaveAnexoVI = async (dados: AnexoVIDestinacaoData, isDraft: boolean) => {
-    await createRecord({
-      procedure: procedure.id,
-      formulario_codigo: 'FR 18',
-      dados_formulario: dados,
-      data: `${dados.data_registro} 08:00:00.000Z`,
+    await saveRecordWithChain({
+      procedureId: procedure.id,
+      procedureCode: procedure.codigo,
+      formularioCodigo: 'ANEXO VI',
+      dadosFormulario: dados,
+      data: dados.data_registro,
       turno: 'Manhã',
-      valor_medido: `Destinação ${dados.numero_registro} (${dados.tipo_destinacao}): ${dados.quantidade} ${dados.unidade} de ${dados.produto_nome}`,
+      valorMedido: `Destinação ${dados.numero_registro} (${dados.tipo_destinacao}): ${dados.quantidade} ${dados.unidade} de ${dados.produto_nome}`,
       status: 'Não Conforme',
       responsavel: dados.responsavel_registro || user?.name || 'Responsável Descarte',
       lote: dados.lote_partida,
       observacoes: dados.descricao_motivo,
-      status_assinatura: 'Pendente Assinatura',
+      origemRegistro: 'sistema_automatico',
     })
 
     toast({
       title: isDraft ? 'Rascunho de destinação salvo' : 'Destinação final registrada com sucesso',
-      description: `Registro ${dados.numero_registro} vinculado ao recebimento ${dados.numero_recebimento}.`,
+      description: `Registro ${dados.numero_registro} vinculado e cadeia de descarte atendida.`,
     })
 
     if (onRecordCreated) onRecordCreated()
@@ -512,23 +504,24 @@ export function Pop01FormsManager({
 
   // Salvar Anexo VII (Ação Corretiva)
   const handleSaveAnexoVII = async (dados: AnexoVIIAcaoCorretivaData, isDraft: boolean) => {
-    await createRecord({
-      procedure: procedure.id,
-      formulario_codigo: 'FR 01',
-      dados_formulario: dados,
-      data: `${dados.data_abertura} 08:00:00.000Z`,
+    await saveRecordWithChain({
+      procedureId: procedure.id,
+      procedureCode: procedure.codigo,
+      formularioCodigo: 'ANEXO VII',
+      dadosFormulario: dados,
+      data: dados.data_abertura,
       turno: 'Manhã',
-      valor_medido: `Ação Corretiva ${dados.numero_acao_corretiva} (${dados.tipo_nc}): ${dados.descricao_detalhada.slice(0, 40)}...`,
+      valorMedido: `Ação Corretiva ${dados.numero_acao_corretiva} (${dados.tipo_nc}): ${dados.descricao_detalhada.slice(0, 40)}...`,
       status: 'Não Conforme',
       responsavel: dados.responsavel_abertura || user?.name || 'Responsável Qualidade',
       lote: dados.lote_partida,
       observacoes: dados.causa_raiz_identificada,
-      status_assinatura: 'Pendente Assinatura',
+      origemRegistro: 'sistema_automatico',
     })
 
     toast({
       title: isDraft ? 'Rascunho de Ação Corretiva salvo' : 'Ação Corretiva instaurada com sucesso',
-      description: `Processo nº ${dados.numero_acao_corretiva} aberto.`,
+      description: `Processo nº ${dados.numero_acao_corretiva} aberto e integrado à cadeia do POP.`,
     })
 
     if (onRecordCreated) onRecordCreated()
@@ -670,6 +663,24 @@ export function Pop01FormsManager({
           </div>
         </div>
       )}
+
+      {/* Box de Notificação do Fluxo Obrigatório Encadeado */}
+      <div className="p-3.5 rounded-xl border border-emerald-300 bg-emerald-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="space-y-0.5">
+          <span className="font-bold text-[#1B4332] flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
+            Fluxo Encadeado Ativo: Recebimento (III) → Coleta (IV) → Laudo (V) → Destinação (VI) /
+            Ação Corretiva (VII)
+          </span>
+          <p className="text-stone-600 text-[11px]">
+            Os registros geram automaticamente as próximas etapas vinculadas. Consulte a aba{' '}
+            <strong>Cadeia & Pendências</strong> para acompanhar a comprovação integral do POP.
+          </p>
+        </div>
+        <Badge className="bg-[#1B4332] text-white shrink-0 self-start sm:self-center text-[10px]">
+          Encadeamento Automático
+        </Badge>
+      </div>
 
       {/* 2. Barra de Navegação Rápida entre os 7 Anexos */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
