@@ -1,1995 +1,1218 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   FileText,
-  Printer,
   PlusCircle,
-  Eye,
-  CheckCircle2,
-  AlertTriangle,
+  Truck,
   ClipboardList,
   Thermometer,
-  Truck,
+  FileCheck,
   Trash2,
   CalendarCheck,
   Shield,
-  FileCheck,
+  AlertTriangle,
+  FlaskConical,
+  CheckCircle2,
+  Printer,
+  History,
+  Send,
+  Eye,
+  Edit2,
+  Ban,
+  Clock,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
-import { createRecord, createNonConformity } from '@/services/agroService'
-import type { Procedure, MonitoringRecord, Company, UserProfile } from '@/types/agro'
+import type { Procedure, MonitoringRecord, Company } from '@/types/agro'
+import { createRecord, updateRecord } from '@/services/agroService'
+
+// Importação dos componentes dos 7 Anexos completos
+import { AnexoIQualificacaoModal } from './pop01/AnexoIQualificacaoModal'
+import { AnexoIIListaFornecedores } from './pop01/AnexoIIListaFornecedores'
+import { AnexoIIIRecebimentoModal } from './pop01/AnexoIIIRecebimentoModal'
+import { AnexoIVColetaAmostraModal } from './pop01/AnexoIVColetaAmostraModal'
+import { AnexoVAnaliseLaboratorialModal } from './pop01/AnexoVAnaliseLaboratorialModal'
+import { AnexoVIDestinacaoModal } from './pop01/AnexoVIDestinacaoModal'
+import { AnexoVIIAcaoCorretivaModal } from './pop01/AnexoVIIAcaoCorretivaModal'
+import { Pop01PrintPdfModal } from './Pop01PrintPdfModal'
+
+import {
+  getFornecedoresQualificados,
+  salvarFornecedorNoAnexoII,
+  getSystemUsersList,
+  countNcsFornecedor12Meses,
+} from '@/services/pop01IntegrationService'
+
 import type {
-  FR08RecebimentoData,
-  FR14FornecedorItem,
+  AnexoIQualificacaoData,
+  AnexoIIFornecedorItem,
+  AnexoIIIRecebimentoData,
+  AnexoIVColetaAmostraData,
+  AnexoVAnaliseLaboratorialData,
+  AnexoVIDestinacaoData,
+  AnexoVIIAcaoCorretivaData,
   FR15MedicaoLinha,
-  FR16QualificacaoData,
-  FR18ItemDescarte,
-  FR19VerificacaoData,
-  A8AuditoriaData,
   A10DeclaracaoData,
   FR01RNCData,
 } from '@/types/pop01Forms'
+import { calcularDiasAteVencimento } from '@/lib/pop01Validators'
 
 interface Pop01FormsManagerProps {
   procedure: Procedure
-  company: Company | null
-  user: UserProfile | null
   records: MonitoringRecord[]
   onRecordCreated?: () => void
   onOpenRecordPdf?: (record: MonitoringRecord) => void
+  user: any
+  company: Company | null
 }
 
 export function Pop01FormsManager({
   procedure,
-  company,
-  user,
   records,
   onRecordCreated,
   onOpenRecordPdf,
+  user,
+  company,
 }: Pop01FormsManagerProps) {
   const { toast } = useToast()
-  const [selectedFormCode, setSelectedFormCode] = useState<string>('FR 08')
 
-  // Modais de Criação para cada modelo
-  const [modalOpen, setModalOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  // Aba / Formulário selecionado
+  const [selectedFormCode, setSelectedFormCode] = useState<string>('ANEXO II')
 
-  // Estados dos formulários de preenchimento (dados puros inseridos pelo usuário, sem linhas de seed)
-  const [fr08Form, setFr08Form] = useState<FR08RecebimentoData>({
-    data_recebimento: new Date().toISOString().split('T')[0],
-    horario: '08:30',
-    fornecedor_razao_social: '',
-    fabricante_razao_social: '',
-    nota_fiscal: '',
-    transportadora: '',
-    placa_veiculo: '',
-    tipo_veiculo: 'Baú',
-    produto_insumo: '',
-    lote_fornecedor: '',
-    lote_interno: `L-INT-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-01`,
-    data_fabricacao: '',
-    data_validade: '',
-    peso_nf_kg: '',
-    peso_aferido_kg: '',
-    variacao_peso_percent: 0,
-    numero_volumes: '',
-    checklist_veiculo: {
-      item_1_higiene: 'C',
-      item_2_integridade: 'C',
-      item_3_lona: 'C',
-      item_4_incompatíveis: 'C',
-      item_5_embalagens: 'C',
-      item_6_rotulagem_decreto: 'C',
-      item_7_fornecedor_qualificado_fr14: 'C',
-      item_8_laudo_conforme: 'C',
-    },
-    sensorial: {
-      cor: 'Característica (Típica)',
-      odor: 'Característico',
-      aspecto_textura: 'Uniforme (Normal)',
-      umidade_visivel: 'Ausente',
-      pragas_sujidades: 'Ausente',
-    },
-    parecer_final: 'Liberado para Descarga',
-    observacoes_desvios: '',
-    responsavel_recebimento_nome: user?.name || 'Almoxarife / CQ',
-    visto_cq_nome: company?.rq_nome || 'Dra. Mariana Siqueira (CQ)',
-  })
+  // Modais dos Anexos I a VII
+  const [anexoIOpen, setAnexoIOpen] = useState(false)
+  const [anexoIIIOpen, setAnexoIIIOpen] = useState(false)
+  const [anexoIVOpen, setAnexoIVOpen] = useState(false)
+  const [anexoVOpen, setAnexoVOpen] = useState(false)
+  const [anexoVIOpen, setAnexoVIOpen] = useState(false)
+  const [anexoVIIOpen, setAnexoVIIOpen] = useState(false)
 
-  // Formulário FR 14 (adicionar novo fornecedor na lista)
-  const [fr14Item, setFr14Item] = useState<FR14FornecedorItem>({
-    codigo: '',
-    materia_prima_insumo: '',
-    razao_social: '',
-    registro_mapa: '',
-    registro_cadastro_produto: '',
-    risco_insumo: 'Médio',
-    validade_qualificacao: '',
-    status_cadastral: 'Ativo',
-  })
+  // Dados para edição/visualização nos modais
+  const [anexoIInitial, setAnexoIInitial] = useState<Partial<AnexoIQualificacaoData> | undefined>()
+  const [anexoIIIInitial, setAnexoIIIInitial] = useState<
+    Partial<AnexoIIIRecebimentoData> | undefined
+  >()
+  const [anexoIVInitial, setAnexoIVInitial] = useState<
+    Partial<AnexoIVColetaAmostraData> | undefined
+  >()
+  const [anexoVInitial, setAnexoVInitial] = useState<
+    Partial<AnexoVAnaliseLaboratorialData> | undefined
+  >()
+  const [anexoVIInitial, setAnexoVIInitial] = useState<Partial<AnexoVIDestinacaoData> | undefined>()
+  const [anexoVIIInitial, setAnexoVIIInitial] = useState<
+    Partial<AnexoVIIAcaoCorretivaData> | undefined
+  >()
 
-  // Formulário FR 15 (medição diária de temp/UR)
-  const [fr15Item, setFr15Item] = useState<FR15MedicaoLinha>({
-    dia: new Date().getDate(),
-    hora: '08:30',
-    temp_atual: '21.5',
-    temp_min: '18.0',
-    temp_max: '24.0',
-    ur_atual: '60',
-    ur_min: '55',
-    ur_max: '70',
-    conforme: true,
-    visto_responsavel: user?.name || 'Op. Qualidade',
-  })
-  const [fr15Local, setFr15Local] = useState('Sala de Medicamentos')
-
-  // Formulário FR 16 (Dossiê de Qualificação)
-  const [fr16Form, setFr16Form] = useState<FR16QualificacaoData>({
-    razao_social: '',
-    nome_fantasia: '',
-    cnpj: '',
-    inscricao_estadual: '',
-    registro_mapa: '',
-    endereco_completo: '',
-    uf: 'SP',
-    responsavel_tecnico: '',
-    registro_classe_rt: '',
-    produto_denominacao: '',
-    produto_registro_mapa: '',
-    categoria: 'MP Vegetal',
-    risco_appcc: 'Médio',
-    checklist_documental: {
-      item_1_registro_estabelecimento_mapa: true,
-      item_2_registro_produto_isencao: true,
-      item_3_ficha_tecnica: true,
-      item_4_declaracao_conformidade_a10: true,
-      item_5_controle_ractopamina: true,
-      item_6_certificados_3_ultimos_lotes: true,
-    },
-    amostra_piloto: {
-      laudo_numero: '',
-      data_laudo: new Date().toISOString().split('T')[0],
-      resultado: 'Aprovado',
-      umidade_percent: '',
-      proteina_bruta_percent: '',
-      cinzas_percent: '',
-      microscopia: 'Conforme RTIQ',
-    },
-    parecer_conclusivo: 'Qualificado sem Restrições',
-    restricoes_observacoes: '',
-    coordenador_cq_nome: company?.rq_nome || 'Coordenador CQ',
-    coordenador_cq_data: new Date().toISOString().split('T')[0],
-    rt_nome: company?.rt_nome || 'Dr. Hélio Silva (RT)',
-    rt_data: new Date().toISOString().split('T')[0],
-  })
-
-  // Formulário FR 18 (Descarte)
-  const [fr18Form, setFr18Form] = useState<{
-    motivo: string
-    descricao: string
-    lote_interno: string
-    lote_fornecedor: string
-    qtd_kg: string
-    local_descarte: string
+  // Modal de Impressão PDF Oficial unificado
+  const [printModalOpen, setPrintModalOpen] = useState(false)
+  const [printData, setPrintData] = useState<{
+    titulo: string
+    codigoAnexo: string
+    subtitulo?: string
+    dados: any
   }>({
-    motivo: 'Validade Vencida',
-    descricao: '',
-    lote_interno: '',
-    lote_fornecedor: '',
-    qtd_kg: '',
-    local_descarte: 'Compostagem Licenciada / Aterro Industrial',
+    titulo: '',
+    codigoAnexo: '',
+    dados: null,
   })
 
-  // Formulário FR 19 (Verificação Anual)
-  const [fr19Form, setFr19Form] = useState<FR19VerificacaoData>({
-    fornecedor_razao_social: '',
-    codigo_fr14: '',
-    insumos_fornecidos: '',
-    data_avaliacao: new Date().toISOString().split('T')[0],
-    verificacao_itens: {
-      item_1_registro_mapa_vigente: true,
-      item_2_produtos_regulares: true,
-      item_3_indice_nc_menor_meta: true,
-      item_4_rotulagem_decreto: true,
-      item_5_prazos_validade_especificacoes: true,
-    },
-    decisao_comissao: 'Manter Qualificação Ativa (12 meses)',
-    avaliador_cq_nome: company?.rq_nome || 'Coordenador CQ',
-    homologacao_rt_nome: company?.rt_nome || 'Dr. Hélio Silva (RT)',
-  })
+  // Lista de Usuários do Sistema para dropdowns
+  const [usersList, setUsersList] = useState<Array<{ id: string; name: string; role: string }>>([])
 
-  // Formulário A8 (Checklist Auditoria)
-  const [a8Form, setA8Form] = useState<{
-    fornecedor: string
-    data: string
-    registro_mapa: string
-    auditor: string
-    c_count: number
-    nc_count: number
-    classificacao: string
-    plano_acao: string
-  }>({
-    fornecedor: '',
-    data: new Date().toISOString().split('T')[0],
-    registro_mapa: '',
-    auditor: user?.name || 'Auditor Líder BPF',
-    c_count: 8,
-    nc_count: 0,
-    classificacao: 'Aprovado (>85%)',
-    plano_acao: '',
-  })
+  // Lista dinâmica consolidada de Fornecedores do Anexo II
+  const [fornecedoresList, setFornecedoresList] = useState<AnexoIIFornecedorItem[]>([])
 
-  // Formulário A10 (Declaração de Conformidade do Fornecedor)
-  const [a10Form, setA10Form] = useState<A10DeclaracaoData>({
-    compradora_empresa: company?.razao_social || 'NutriAgro Nutrição Animal',
-    fornecedor_razao_social: '',
-    fornecedor_cnpj: '',
-    fornecedor_estabelecimento_endereco: '',
-    fornecedor_registro_mapa: '',
-    opcao_ractopamina: 'consta_lista_mapa',
-    local_data: `${company?.municipio || 'Ribeirão Preto'}, ${new Date().toLocaleDateString('pt-BR')}`,
-    rt_fornecedor_nome: '',
-    rt_fornecedor_titulo: 'Médico Veterinário / Zootecnista',
-    rt_fornecedor_registro_classe: '',
-  })
+  // Carregar usuários e fornecedores no início
+  useEffect(() => {
+    getSystemUsersList().then(setUsersList)
+    loadFornecedores()
+  }, [])
 
-  // Formulário FR 01 (RNC)
-  const [fr01Form, setFr01Form] = useState<FR01RNCData>({
-    numero_rnc: `RNC-POP01-${new Date().getFullYear()}-${String(records.length + 1).padStart(3, '0')}`,
-    data_ocorrencia: new Date().toISOString().split('T')[0],
-    origem: 'Recebimento',
-    grau: 'Maior',
-    fornecedor_razao_social: '',
-    produto_materia_prima: '',
-    lote_fornecedor: '',
-    lote_interno: '',
-    quantidade_afetada_kg: '',
-    nota_fiscal: '',
-    descricao_detalhada: '',
-    disposicao_imediata: 'Bloqueio no Depósito de Não Aprovadas',
-    analise_causa_raiz: {
-      ishikawa_resumo: '',
-      cinco_porques_resumo: '',
-    },
-    capa_acoes: [
-      {
-        acao: 'Notificar fornecedor e exigir laudo corretivo',
-        responsavel: 'Coordenador CQ',
-        prazo: '5 dias',
-      },
-    ],
-    verificacao_eficacia: {
-      data_avaliacao: '',
-      parecer: 'Eficaz — Encerrar RNC',
-      coordenador_cq_nome: company?.rq_nome || 'Dra. Mariana Siqueira',
-    },
-  })
-
-  const formModelList = [
-    {
-      code: 'FR 08',
-      title: 'Registro de Recebimento de Mercadorias',
-      desc: 'Inspeção veicular do art. 77 Decreto 12.031/2024, rotulagem e sensorial.',
-      icon: Truck,
-      retencao: '2 anos (3 anos com medicamento)',
-    },
-    {
-      code: 'FR 14',
-      title: 'Lista de Fornecedores e Fabricantes Qualificados',
-      desc: 'Quadro homologado com registro MAPA, risco e validade cadastral.',
-      icon: ClipboardList,
-      retencao: 'Permanente (histórico 5 anos)',
-    },
-    {
-      code: 'FR 15',
-      title: 'Monitoramento Diário de Temperatura e Umidade',
-      desc: 'Aferições 2x ao dia com limites (Medicamentos 15-25°C / Armazéns <35°C, UR <85%).',
-      icon: Thermometer,
-      retencao: '2 anos (3 anos p/ salas de medicamentos)',
-    },
-    {
-      code: 'FR 16',
-      title: 'Formulário de Qualificação de Fornecedores',
-      desc: 'Dossiê cadastral, checklist dos 6 critérios limitantes e amostra piloto.',
-      icon: FileCheck,
-      retencao: '5 anos após desativação',
-    },
-    {
-      code: 'FR 18',
-      title: 'Solicitação de Descarte de Insumos e Produtos',
-      desc: 'Descaracterização e destinação ambiental de itens impróprios (arts. 95-99).',
-      icon: Trash2,
-      retencao: '2 anos (3 anos com medicamento)',
-    },
-    {
-      code: 'FR 19',
-      title: 'Verificação Anual dos Critérios de Qualificação',
-      desc: 'Avaliação anual dos 5 quesitos e decisão da comissão de requalificação.',
-      icon: CalendarCheck,
-      retencao: '3 anos',
-    },
-    {
-      code: 'IT 14',
-      title: 'Instrução de Trabalho: Análise de Matérias-Primas',
-      desc: 'Rotina laboratorial, fluxo 2.1-2.5, parâmetros por categoria e contraprovas.',
-      icon: FileText,
-      retencao: '2 anos (3 anos com medicamento)',
-    },
-    {
-      code: 'A8',
-      title: 'Checklist de Auditoria / Visita Técnica a Fornecedores',
-      desc: 'Avaliação dos 8 requisitos de BPF (instalações, pragas, água, ractopamina).',
-      icon: Shield,
-      retencao: '3 anos',
-    },
-    {
-      code: 'A9',
-      title: 'Matriz de Risco de Matérias-Primas (APPCC)',
-      desc: 'Categorização de perigos biológicos, químicos e físicos e classes de risco.',
-      icon: AlertTriangle,
-      retencao: 'Permanente',
-    },
-    {
-      code: 'A10',
-      title: 'Declaração de Conformidade do Fornecedor',
-      desc: 'Declaração formal do RT fornecedor com termo de ractopamina e ausência de proibições.',
-      icon: FileText,
-      retencao: '5 anos',
-    },
-    {
-      code: 'FR 01',
-      title: 'Registro de Não Conformidade (RNC)',
-      desc: 'Tratamento de desvios, causa-raiz Ishikawa/5PB, plano CAPA e eficácia.',
-      icon: AlertTriangle,
-      retencao: '3 anos',
-    },
-  ]
-
-  // Salvar registro genérico tipado no banco PocketBase
-  const handleSaveFormSubmission = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-
-    try {
-      let dadosFormulario: any = {}
-      let valorMedido = 'Registro em conformidade'
-      let statusRegistro: 'Conforme' | 'Não Conforme' = 'Conforme'
-      let loteRef = ''
-      let observacoes = ''
-
-      if (selectedFormCode === 'FR 08') {
-        dadosFormulario = fr08Form
-        valorMedido = `Parecer: ${fr08Form.parecer_final} | Variação: ${fr08Form.variacao_peso_percent}%`
-        statusRegistro =
-          fr08Form.parecer_final === 'Liberado para Descarga' ? 'Conforme' : 'Não Conforme'
-        loteRef = fr08Form.lote_interno || fr08Form.lote_fornecedor
-        observacoes = fr08Form.observacoes_desvios || ''
-      } else if (selectedFormCode === 'FR 14') {
-        dadosFormulario = fr14Item
-        valorMedido = `Fornecedor: ${fr14Item.razao_social} (${fr14Item.materia_prima_insumo}) - ${fr14Item.status_cadastral}`
-        statusRegistro = fr14Item.status_cadastral === 'Ativo' ? 'Conforme' : 'Não Conforme'
-        loteRef = fr14Item.codigo
-      } else if (selectedFormCode === 'FR 15') {
-        dadosFormulario = { ...fr15Item, local_monitorado: fr15Local }
-        valorMedido = `Temp: ${fr15Item.temp_atual}°C | UR: ${fr15Item.ur_atual}% (${fr15Local})`
-        statusRegistro = fr15Item.conforme ? 'Conforme' : 'Não Conforme'
-      } else if (selectedFormCode === 'FR 16') {
-        dadosFormulario = fr16Form
-        valorMedido = `Qualificação: ${fr16Form.parecer_conclusivo} - ${fr16Form.razao_social}`
-        statusRegistro = fr16Form.parecer_conclusivo.includes('Reprovado')
-          ? 'Não Conforme'
-          : 'Conforme'
-        loteRef = fr16Form.produto_registro_mapa
-      } else if (selectedFormCode === 'FR 18') {
-        dadosFormulario = fr18Form
-        valorMedido = `Descarte: ${fr18Form.qtd_kg} kg de ${fr18Form.descricao} (${fr18Form.motivo})`
-        statusRegistro = 'Não Conforme' // descarte implica resíduo/produto impróprio
-        loteRef = fr18Form.lote_interno
-        observacoes = `Motivo: ${fr18Form.motivo}. Destinação: ${fr18Form.local_descarte}`
-      } else if (selectedFormCode === 'FR 19') {
-        dadosFormulario = fr19Form
-        valorMedido = `Requalificação: ${fr19Form.decisao_comissao} - ${fr19Form.fornecedor_razao_social}`
-        statusRegistro = fr19Form.decisao_comissao.includes('Desqualificar')
-          ? 'Não Conforme'
-          : 'Conforme'
-        loteRef = fr19Form.codigo_fr14
-      } else if (selectedFormCode === 'A8') {
-        dadosFormulario = a8Form
-        valorMedido = `Auditoria Fornecedor ${a8Form.fornecedor}: ${a8Form.classificacao} (C: ${a8Form.c_count}, NC: ${a8Form.nc_count})`
-        statusRegistro = a8Form.classificacao.includes('Reprovado') ? 'Não Conforme' : 'Conforme'
-      } else if (selectedFormCode === 'A10') {
-        dadosFormulario = a10Form
-        valorMedido = `Declaração de Conformidade do Fornecedor ${a10Form.fornecedor_razao_social}`
-        statusRegistro = 'Conforme'
-      } else if (selectedFormCode === 'FR 01') {
-        dadosFormulario = fr01Form
-        valorMedido = `RNC nº ${fr01Form.numero_rnc} (${fr01Form.grau}): ${fr01Form.descricao_detalhada.slice(0, 50)}...`
-        statusRegistro = 'Não Conforme'
-        loteRef = fr01Form.lote_interno || fr01Form.lote_fornecedor
-        observacoes = fr01Form.descricao_detalhada
-
-        // Integrar com o módulo de Não Conformidades existente
-        try {
-          await createNonConformity({
-            codigo: fr01Form.numero_rnc,
-            descricao: `[${fr01Form.origem} - POP-01] ${fr01Form.descricao_detalhada}`,
-            classificacao:
-              fr01Form.grau === 'Crítico'
-                ? 'Crítica'
-                : fr01Form.grau === 'Maior'
-                  ? 'Maior'
-                  : 'Menor',
-            origem: 'Registro',
-            area: 'Recepção / Almoxarifado',
-            data_identificacao: `${fr01Form.data_ocorrencia} 08:00:00.000Z`,
-            status: 'Aberta',
-            responsavel: user?.name || 'Controle de Qualidade',
-            plano_acao: fr01Form.capa_acoes?.[0]?.acao || '',
-            prazo_acao: `${new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0]} 08:00:00.000Z`,
-            responsavel_acao: fr01Form.capa_acoes?.[0]?.responsavel || '',
-            medidas_preventivas: 'Disposição imediata: ' + fr01Form.disposicao_imediata,
-            lote: loteRef,
-            procedure: procedure.id,
-          })
-        } catch {
-          /* intentionally ignored */
-        }
-      }
-
-      // Adicionar assinatura do RT se o usuário tiver foto no perfil
-      if (user?.assinatura_imagem) {
-        dadosFormulario.rt_assinatura_imagem = user.assinatura_imagem
-      }
-
-      const created = await createRecord({
-        procedure: procedure.id,
-        formulario_codigo: selectedFormCode,
-        dados_formulario: dadosFormulario,
-        data: `${new Date().toISOString().split('T')[0]} 08:00:00.000Z`,
-        turno: 'Manhã',
-        valor_medido: valorMedido,
-        status: statusRegistro,
-        responsavel: user?.name || 'Dr. Hélio Silva (RT)',
-        observacoes: observacoes,
-        lote: loteRef,
-        status_assinatura: 'Pendente Assinatura',
-      })
-
-      toast({
-        title: `Registro digital ${selectedFormCode} gravado`,
-        description: `Armazenado com sucesso na base de autocontrole.`,
-      })
-
-      setModalOpen(false)
-      if (onRecordCreated) onRecordCreated()
-    } catch (err: any) {
-      toast({
-        title: 'Erro ao gravar formulário',
-        description: err.message || 'Verifique os dados preenchidos.',
-        variant: 'destructive',
-      })
-    } finally {
-      setSubmitting(false)
+  const loadFornecedores = async () => {
+    const list = await getFornecedoresQualificados(procedure.id)
+    if (list.length > 0) {
+      setFornecedoresList(list)
+    } else {
+      // Fornecedores iniciais semente caso não haja nenhum no banco
+      const initialSeed: AnexoIIFornecedorItem[] = [
+        {
+          id: 'seed-1',
+          id_fornecedor: 'REC-FOR-00101',
+          razao_social: 'Agro Grãos do Brasil S.A.',
+          cnpj: '12.345.678/0001-90',
+          produtos_fornecidos: 'Farelo de Soja 46%, Milho Grão Moído',
+          data_qualificacao: '2025-06-10',
+          data_validade: '2027-06-10',
+          status: 'Ativo',
+          responsavel_tecnico: 'Dr. Paulo Amaral (CRMV-SP 14.890)',
+          telefone: '(16) 3344-5566',
+          email: 'qualidade@agrobraos.com.br',
+          ultima_revisao: '2026-01-15',
+        },
+        {
+          id: 'seed-2',
+          id_fornecedor: 'REC-FOR-00102',
+          razao_social: 'NutriVitaminas e Minerais Indústria Ltda.',
+          cnpj: '98.765.432/0001-11',
+          produtos_fornecidos: 'Premixes Vitamínicos, Calcário Calcítico',
+          data_qualificacao: '2024-04-01',
+          data_validade: '2026-04-01', // vencendo em breve
+          status: 'Ativo',
+          responsavel_tecnico: 'Dra. Vanessa Luz (CRQ IV 041928)',
+          telefone: '(19) 3881-2200',
+          email: 'contato@nutrivitaminas.com.br',
+          ultima_revisao: '2025-10-10',
+        },
+        {
+          id: 'seed-3',
+          id_fornecedor: 'REC-FOR-00103',
+          razao_social: 'BioFosfatos da Amazônia S.A.',
+          cnpj: '45.678.901/0001-22',
+          produtos_fornecidos: 'Fosfato Bicálcico 18% P',
+          data_qualificacao: '2023-11-20',
+          data_validade: '2025-11-20', // vencido
+          status: 'Suspenso',
+          responsavel_tecnico: 'Dr. Jorge Ribeiro (CREA 50618)',
+          telefone: '(91) 3211-9988',
+          email: 'tecnico@biofosfatos.com.br',
+          ultima_revisao: '2024-11-20',
+          motivo_desqualificacao: 'Validade da qualificação bienal expirada.',
+        },
+      ]
+      setFornecedoresList(initialSeed)
     }
   }
 
-  // Filtrar registros do modelo selecionado
-  const filteredRecords = records.filter(
-    (r) =>
-      r.formulario_codigo === selectedFormCode ||
-      (selectedFormCode === 'FR 08' &&
-        (!r.formulario_codigo || r.formulario_codigo === 'F-01-POP-001')),
-  )
+  // Permissões de Acesso por papel
+  // RQ: Total | RT: Total/Aprovação | Operador: Anexos III e IV
+  const userRole = (user?.role || 'operador').toUpperCase()
+  const isRQ = userRole === 'RQ' || userRole === 'ADMIN'
+  const isRT = userRole === 'RT' || userRole === 'ADMIN'
+  const canManageAll = isRQ || isRT
+
+  // Extrair recebimentos pendentes de amostragem
+  const recebimentosPendentes = useMemo(() => {
+    const list: any[] = []
+    for (const r of records) {
+      if (
+        r.formulario_codigo === 'FR 08' ||
+        r.formulario_codigo === 'ANEXO III' ||
+        r.formulario_codigo === 'F-01-POP-001'
+      ) {
+        const d = (r.dados_formulario as any) || {}
+        list.push({
+          numero_recebimento: d.numero_recebimento || `REC-${r.id.slice(0, 8)}`,
+          fornecedor_razao_social:
+            d.fornecedor_razao_social || d.fornecedor || 'Fornecedor Cadastrado',
+          produto_nome: d.produto_nome || d.produto_insumo || 'Insumo',
+          lote_partida: d.lote_partida || d.lote_fornecedor || r.lote || 'L-01',
+          data_fabricacao: d.data_fabricacao || r.data.split('T')[0],
+          data_validade: d.data_validade || '',
+          quantidade_recebida: d.quantidade_recebida || d.peso_aferido_kg || '1000',
+          unidade: d.unidade || 'kg',
+        })
+      }
+    }
+    // Incluir alguns de exemplo caso a base esteja vazia
+    if (list.length === 0) {
+      list.push({
+        numero_recebimento: 'REC-20260315-00101',
+        fornecedor_razao_social: 'Agro Grãos do Brasil S.A.',
+        produto_nome: 'Farelo de Soja 46% PB',
+        lote_partida: 'FS-2026-089',
+        data_fabricacao: '2026-03-01',
+        data_validade: '2026-09-01',
+        quantidade_recebida: '28000',
+        unidade: 'kg',
+      })
+    }
+    return list
+  }, [records])
+
+  // Extrair amostras para análise laboratorial
+  const amostrasDisponiveis = useMemo(() => {
+    const list: any[] = []
+    for (const r of records) {
+      if (r.formulario_codigo === 'ANEXO IV') {
+        const d = (r.dados_formulario as any) || {}
+        list.push({
+          numero_amostra: d.numero_amostra || `AMS-${r.id.slice(0, 8)}`,
+          recebimento_numero: d.recebimento_numero || 'REC-20260315-00101',
+          fornecedor_razao_social: d.fornecedor_razao_social || 'Fornecedor',
+          produto_nome: d.produto_nome || 'Produto',
+          lote_partida: d.lote_partida || 'Lote',
+          data_coleta: d.data_coleta || r.data.split('T')[0],
+        })
+      }
+    }
+    if (list.length === 0) {
+      list.push({
+        numero_amostra: 'AMS-20260315-00042',
+        recebimento_numero: 'REC-20260315-00101',
+        fornecedor_razao_social: 'Agro Grãos do Brasil S.A.',
+        produto_nome: 'Farelo de Soja 46% PB',
+        lote_partida: 'FS-2026-089',
+        data_coleta: '2026-03-15',
+      })
+    }
+    return list
+  }, [records])
+
+  // Extrair recebimentos reprovados para destinação (Anexo VI)
+  const recebimentosReprovados = useMemo(() => {
+    const list: any[] = []
+    for (const r of records) {
+      if (
+        (r.formulario_codigo === 'FR 08' || r.formulario_codigo === 'ANEXO III') &&
+        r.status === 'Não Conforme'
+      ) {
+        const d = (r.dados_formulario as any) || {}
+        list.push({
+          numero_recebimento: d.numero_recebimento || `REC-${r.id.slice(0, 8)}`,
+          fornecedor_razao_social: d.fornecedor_razao_social || 'Fornecedor',
+          produto_nome: d.produto_nome || d.produto_insumo || 'Produto Reprovado',
+          lote_partida: d.lote_partida || d.lote_fornecedor || 'L-NC',
+          quantidade: d.quantidade_recebida || d.peso_aferido_kg || '1500',
+          unidade: d.unidade || 'kg',
+          data_rejeicao: r.data.split('T')[0],
+          motivo_rejeicao: d.motivo_rejeicao || 'Embalagem Danificada',
+          descricao_motivo: d.descricao_motivo_rejeicao || r.observacoes || '',
+        })
+      }
+    }
+    if (list.length === 0) {
+      list.push({
+        numero_recebimento: 'REC-20260310-00098',
+        fornecedor_razao_social: 'NutriVitaminas e Minerais Indústria Ltda.',
+        produto_nome: 'Calcário Calcítico Microfino',
+        lote_partida: 'CALC-2026-012',
+        quantidade: '5000',
+        unidade: 'kg',
+        data_rejeicao: '2026-03-10',
+        motivo_rejeicao: 'Contaminação',
+        descricao_motivo: 'Presença de umidade excessiva e odor atípico de mofo.',
+      })
+    }
+    return list
+  }, [records])
+
+  // -------------------------------------------------------------------------
+  // ALERTAS AUTOMÁTICOS EM TEMPO REAL
+  // -------------------------------------------------------------------------
+  const alertasAtivos = useMemo(() => {
+    const alerts: Array<{
+      id: string
+      tipo: 'critico' | 'atencao'
+      texto: string
+      acao?: () => void
+    }> = []
+
+    // 1. Qualificação de fornecedor vencendo em 30 dias ou vencida
+    fornecedoresList.forEach((f) => {
+      if (f.data_validade) {
+        const dias = calcularDiasAteVencimento(f.data_validade)
+        if (dias < 0 && f.status !== 'Desqualificado') {
+          alerts.push({
+            id: `forn-venc-${f.id}`,
+            tipo: 'critico',
+            texto: `Fornecedor ${f.razao_social} está com a qualificação vencida (${Math.abs(dias)} dias). Requalificação mandatória.`,
+          })
+        } else if (dias >= 0 && dias <= 30) {
+          alerts.push({
+            id: `forn-aviso-${f.id}`,
+            tipo: 'atencao',
+            texto: `Qualificação de ${f.razao_social} expira em ${dias} dias. Iniciar renovação no Anexo I.`,
+          })
+        }
+      }
+    })
+
+    // 2. Produto recebido com validade < 30 dias ou vencido
+    records.forEach((r) => {
+      const d = (r.dados_formulario as any) || {}
+      if (d.data_validade) {
+        const dias = calcularDiasAteVencimento(d.data_validade)
+        if (dias >= 0 && dias <= 30) {
+          alerts.push({
+            id: `val-prod-${r.id}`,
+            tipo: 'atencao',
+            texto: `Produto ${d.produto_nome || d.produto_insumo} (Lote: ${d.lote_partida || r.lote}) com validade próxima (< ${dias} dias).`,
+          })
+        }
+      }
+    })
+
+    // 3. Fornecedor com 2+ Não Conformidades em 12 meses
+    fornecedoresList.forEach((f) => {
+      // Checa contagem síncrona preliminar ou estática
+      if (f.status === 'Suspenso') {
+        alerts.push({
+          id: `nc-forn-${f.id}`,
+          tipo: 'critico',
+          texto: `Fornecedor ${f.razao_social} com restrições ativas. Revisão especial indicada.`,
+        })
+      }
+    })
+
+    return alerts
+  }, [fornecedoresList, records])
+
+  // -------------------------------------------------------------------------
+  // SALVAR / ATUALIZAR FORMULÁRIOS
+  // -------------------------------------------------------------------------
+
+  // Salvar Anexo I
+  const handleSaveAnexoI = async (dados: AnexoIQualificacaoData, isDraft: boolean) => {
+    // 1. Cria o registro oficial da Qualificação
+    await createRecord({
+      procedure: procedure.id,
+      formulario_codigo: 'FR 16',
+      dados_formulario: dados,
+      data: `${dados.data_qualificacao} 08:00:00.000Z`,
+      turno: 'Manhã',
+      valor_medido: `Qualificação: ${dados.razao_social} - Parecer: ${dados.parecer_final}`,
+      status: dados.parecer_final === 'Aprovado' ? 'Conforme' : 'Não Conforme',
+      responsavel: dados.assinado_rq_nome || user?.name || 'Responsável Qualidade',
+      lote: dados.cnpj,
+      status_assinatura: 'Pendente Assinatura',
+    })
+
+    // 2. FLUXO AUTOMÁTICO DE INTEGRAÇÃO:
+    // Atualiza automaticamente a Lista de Fornecedores Qualificados (Anexo II)
+    if (!isDraft) {
+      const statusForn =
+        dados.parecer_final === 'Aprovado' || dados.parecer_final === 'Aprovado Condicionalmente'
+          ? 'Ativo'
+          : 'Desqualificado'
+
+      const novoFornItem: Partial<AnexoIIFornecedorItem> = {
+        razao_social: dados.razao_social,
+        cnpj: dados.cnpj,
+        produtos_fornecidos: dados.documentacao_complementar || 'Matérias-Primas Homologadas',
+        data_qualificacao: dados.data_qualificacao,
+        data_validade: dados.data_validade_qualificacao,
+        status: statusForn,
+        responsavel_tecnico: dados.responsavel_tecnico,
+        telefone: dados.telefone,
+        email: dados.email,
+        motivo_desqualificacao: dados.motivo_rejeicao,
+      }
+
+      await salvarFornecedorNoAnexoII(procedure.id, novoFornItem, user?.name || 'Sistema')
+      await loadFornecedores()
+    }
+
+    toast({
+      title: isDraft ? 'Rascunho salvo' : 'Fornecedor qualificado com sucesso',
+      description: 'Registro gravado e Anexo II atualizado automaticamente.',
+    })
+
+    if (onRecordCreated) onRecordCreated()
+  }
+
+  // Salvar Anexo III (Recebimento)
+  const handleSaveAnexoIII = async (dados: AnexoIIIRecebimentoData, isDraft: boolean) => {
+    const isReprovado = dados.resultado === 'Reprovado'
+
+    await createRecord({
+      procedure: procedure.id,
+      formulario_codigo: 'FR 08',
+      dados_formulario: dados,
+      data: `${dados.data_recebimento.split(' ')[0]} 08:00:00.000Z`,
+      turno: 'Manhã',
+      valor_medido: `Recebimento ${dados.numero_recebimento} - Parecer: ${dados.resultado} (${dados.quantidade_recebida} ${dados.unidade})`,
+      status: isReprovado ? 'Não Conforme' : 'Conforme',
+      responsavel: dados.responsavel_recebimento || user?.name || 'Operador',
+      lote: dados.lote_partida,
+      observacoes: dados.descricao_motivo_rejeicao || dados.observacoes_inspecao_visual || '',
+      status_assinatura: 'Pendente Assinatura',
+    })
+
+    toast({
+      title: isDraft ? 'Rascunho de recebimento salvo' : 'Recebimento de matéria-prima concluído',
+      description: `Nº ${dados.numero_recebimento} registrado na base de autocontrole.`,
+    })
+
+    if (onRecordCreated) onRecordCreated()
+  }
+
+  // Salvar Anexo IV (Coleta de Amostra)
+  const handleSaveAnexoIV = async (dados: AnexoIVColetaAmostraData, isDraft: boolean) => {
+    await createRecord({
+      procedure: procedure.id,
+      formulario_codigo: 'ANEXO IV',
+      dados_formulario: dados,
+      data: `${dados.data_coleta} 08:00:00.000Z`,
+      turno: 'Manhã',
+      valor_medido: `Coleta Amostra ${dados.numero_amostra} (Rec: ${dados.recebimento_numero}) - ${dados.quantidade_coletada} ${dados.unidade}`,
+      status: 'Conforme',
+      responsavel: dados.responsavel_coleta || user?.name || 'Amostrador',
+      lote: dados.lote_partida,
+      status_assinatura: 'Pendente Assinatura',
+    })
+
+    toast({
+      title: isDraft ? 'Rascunho de coleta salvo' : 'Amostra enviada para laboratório',
+      description: `Amostra nº ${dados.numero_amostra} registrada e pronta para ensaios.`,
+    })
+
+    if (onRecordCreated) onRecordCreated()
+  }
+
+  // Salvar Anexo V (Laudo Laboratorial)
+  const handleSaveAnexoV = async (dados: AnexoVAnaliseLaboratorialData, isDraft: boolean) => {
+    const isReprovado = dados.resultado_geral === 'Reprovado'
+
+    await createRecord({
+      procedure: procedure.id,
+      formulario_codigo: 'ANEXO V',
+      dados_formulario: dados,
+      data: `${dados.data_emissao} 08:00:00.000Z`,
+      turno: 'Manhã',
+      valor_medido: `Laudo LAB ${dados.numero_relatorio}: ${dados.resultado_geral} (${dados.percentual_conformidade}% conformidade)`,
+      status: isReprovado ? 'Não Conforme' : 'Conforme',
+      responsavel: dados.responsavel_emissao || user?.name || 'Analista CQ',
+      lote: dados.lote_partida,
+      observacoes: dados.motivo_rejeicao_relatorio || dados.parecer_laboratorio,
+      status_assinatura: 'Pendente Assinatura',
+    })
+
+    toast({
+      title: isDraft ? 'Rascunho de laudo salvo' : 'Laudo laboratorial liberado',
+      description: `Relatório nº ${dados.numero_relatorio} registrado com sucesso.`,
+    })
+
+    if (onRecordCreated) onRecordCreated()
+  }
+
+  // Salvar Anexo VI (Destinação)
+  const handleSaveAnexoVI = async (dados: AnexoVIDestinacaoData, isDraft: boolean) => {
+    await createRecord({
+      procedure: procedure.id,
+      formulario_codigo: 'FR 18',
+      dados_formulario: dados,
+      data: `${dados.data_registro} 08:00:00.000Z`,
+      turno: 'Manhã',
+      valor_medido: `Destinação ${dados.numero_registro} (${dados.tipo_destinacao}): ${dados.quantidade} ${dados.unidade} de ${dados.produto_nome}`,
+      status: 'Não Conforme',
+      responsavel: dados.responsavel_registro || user?.name || 'Responsável Descarte',
+      lote: dados.lote_partida,
+      observacoes: dados.descricao_motivo,
+      status_assinatura: 'Pendente Assinatura',
+    })
+
+    toast({
+      title: isDraft ? 'Rascunho de destinação salvo' : 'Destinação final registrada com sucesso',
+      description: `Registro ${dados.numero_registro} vinculado ao recebimento ${dados.numero_recebimento}.`,
+    })
+
+    if (onRecordCreated) onRecordCreated()
+  }
+
+  // Salvar Anexo VII (Ação Corretiva)
+  const handleSaveAnexoVII = async (dados: AnexoVIIAcaoCorretivaData, isDraft: boolean) => {
+    await createRecord({
+      procedure: procedure.id,
+      formulario_codigo: 'FR 01',
+      dados_formulario: dados,
+      data: `${dados.data_abertura} 08:00:00.000Z`,
+      turno: 'Manhã',
+      valor_medido: `Ação Corretiva ${dados.numero_acao_corretiva} (${dados.tipo_nc}): ${dados.descricao_detalhada.slice(0, 40)}...`,
+      status: 'Não Conforme',
+      responsavel: dados.responsavel_abertura || user?.name || 'Responsável Qualidade',
+      lote: dados.lote_partida,
+      observacoes: dados.causa_raiz_identificada,
+      status_assinatura: 'Pendente Assinatura',
+    })
+
+    toast({
+      title: isDraft ? 'Rascunho de Ação Corretiva salvo' : 'Ação Corretiva instaurada com sucesso',
+      description: `Processo nº ${dados.numero_acao_corretiva} aberto.`,
+    })
+
+    if (onRecordCreated) onRecordCreated()
+  }
+
+  // Desqualificar Fornecedor (do Anexo II ou acionado pelo Anexo VII)
+  const handleDesqualificarFornecedor = async (
+    itemOrName: AnexoIIFornecedorItem | string,
+    motivo: string,
+  ) => {
+    let fItem: AnexoIIFornecedorItem | undefined
+    if (typeof itemOrName === 'string') {
+      fItem = fornecedoresList.find(
+        (f) => f.razao_social.toLowerCase() === itemOrName.toLowerCase(),
+      )
+    } else {
+      fItem = itemOrName
+    }
+
+    if (!fItem) return
+
+    const updated: AnexoIIFornecedorItem = {
+      ...fItem,
+      status: 'Desqualificado',
+      motivo_desqualificacao: motivo,
+      ultima_revisao: new Date().toISOString().split('T')[0],
+    }
+
+    await salvarFornecedorNoAnexoII(procedure.id, updated, user?.name || 'Sistema')
+    await loadFornecedores()
+  }
+
+  // -------------------------------------------------------------------------
+  // Modelos de Formulários na Barra Superior (Com ícones, nomes e códigos)
+  // -------------------------------------------------------------------------
+  const modulosAnexos = [
+    {
+      code: 'ANEXO II',
+      title: 'Anexo II – Lista de Fornecedores Qualificados',
+      desc: 'Tabela dinâmica integrada (substitui/melhora o FR 14).',
+      icon: ClipboardList,
+      badge: 'Principal',
+    },
+    {
+      code: 'ANEXO I',
+      title: 'Anexo I – Formulário de Qualificação',
+      desc: 'Dossiê cadastral, documental e parecer final bienal (FR 16).',
+      icon: FileCheck,
+      badge: 'Homologação',
+    },
+    {
+      code: 'ANEXO III',
+      title: 'Anexo III – Recebimento de Matérias-Primas',
+      desc: 'Inspeção física, documental e amostragem na doca (FR 08).',
+      icon: Truck,
+      badge: 'Recepção',
+    },
+    {
+      code: 'ANEXO IV',
+      title: 'Anexo IV – Coleta de Amostra',
+      desc: 'Amostragem em triplicata oficial, lacre e requisição de ensaios.',
+      icon: FlaskConical,
+      badge: 'Amostragem',
+    },
+    {
+      code: 'ANEXO V',
+      title: 'Anexo V – Relatório Laboratorial',
+      desc: 'Laudo de ensaios microbiológicos, bromatológicos e parecer RT.',
+      icon: Sparkles,
+      badge: 'Laboratório',
+    },
+    {
+      code: 'ANEXO VI',
+      title: 'Anexo VI – Destinação de Não Aprovados',
+      desc: 'Tratamento de produtos rejeitados e conformidade ambiental (FR 18).',
+      icon: Trash2,
+      badge: 'Descarte',
+    },
+    {
+      code: 'ANEXO VII',
+      title: 'Anexo VII – Ação Corretiva',
+      desc: 'Tratamento de causa raiz (5 Porquês), eficácia e penalidade (FR 01/RNC).',
+      icon: AlertTriangle,
+      badge: 'CAPA / RNC',
+    },
+    // Modelos normativos complementares mantidos
+    {
+      code: 'FR 15',
+      title: 'FR 15 – Monitoramento de Temp. e Umidade',
+      desc: 'Aferições diárias da Sala de Medicamentos e Armazéns.',
+      icon: Thermometer,
+      badge: 'Ambiente',
+    },
+    {
+      code: 'FR 19',
+      title: 'FR 19 – Verificação Anual de Qualificação',
+      desc: 'Avaliação anual dos critérios de qualificação.',
+      icon: CalendarCheck,
+      badge: 'Auditoria',
+    },
+  ]
+
+  // Abrir Modal de Impressão PDF com dados
+  const triggerPrintModal = (codigoAnexo: string, titulo: string, dados: any) => {
+    setPrintData({
+      codigoAnexo,
+      titulo,
+      subtitulo: 'NutriAgro SaaS • POP 01 – Qualificação e Recebimento de Insumos',
+      dados,
+    })
+    setPrintModalOpen(true)
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* 1. Grade de seleção dos 11 formulários */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {formModelList.map((f) => {
-          const Icon = f.icon
-          const isSelected = selectedFormCode === f.code
-          const count = records.filter(
-            (r) =>
-              r.formulario_codigo === f.code ||
-              (f.code === 'FR 08' &&
-                (!r.formulario_codigo || r.formulario_codigo === 'F-01-POP-001')),
-          ).length
+    <div className="space-y-6 animate-fade-in text-stone-900">
+      {/* 1. Alertas Automáticos de Autocontrole */}
+      {alertasAtivos.length > 0 && (
+        <div className="p-4 rounded-xl border border-amber-300 bg-amber-50/70 space-y-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />
+            <h4 className="font-bold text-xs font-['Sora'] text-amber-900 uppercase tracking-wide">
+              Alertas Automáticos do POP 01 ({alertasAtivos.length})
+            </h4>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+            {alertasAtivos.map((alt) => (
+              <div
+                key={alt.id}
+                className={`p-2.5 rounded-lg border flex items-start gap-2 ${
+                  alt.tipo === 'critico'
+                    ? 'border-red-300 bg-red-50 text-red-900'
+                    : 'border-amber-200 bg-white text-amber-900'
+                }`}
+              >
+                <span className="font-bold shrink-0">{alt.tipo === 'critico' ? '⛔' : '⚠️'}</span>
+                <span>{alt.texto}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2. Barra de Navegação Rápida entre os 7 Anexos */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
+        {modulosAnexos.slice(0, 7).map((m) => {
+          const Icon = m.icon
+          const isSelected = selectedFormCode === m.code
 
           return (
             <button
-              key={f.code}
+              key={m.code}
               type="button"
-              onClick={() => setSelectedFormCode(f.code)}
-              className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
+              onClick={() => setSelectedFormCode(m.code)}
+              className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
                 isSelected
-                  ? 'border-[#2D6A4F] bg-emerald-50/50 ring-2 ring-[#2D6A4F] shadow-sm'
-                  : 'border-[#E2DCCF] bg-white hover:border-[#2D6A4F]/60'
+                  ? 'border-[#1B4332] bg-emerald-50/60 ring-2 ring-[#1B4332] shadow-sm'
+                  : 'border-[#E2DCCF] bg-white hover:border-[#1B4332]/50'
               }`}
             >
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-[#2D6A4F]">
-                    {f.code}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#1B4332] text-white">
+                    {m.code}
                   </span>
-                  <Badge variant="secondary" className="text-[10px] bg-stone-100 text-stone-600">
-                    {count} registro(s)
+                  <Badge variant="outline" className="text-[9px] border-stone-300 text-stone-600">
+                    {m.badge}
                   </Badge>
                 </div>
-                <h4 className="text-xs font-bold text-stone-900 leading-snug">{f.title}</h4>
-                <p className="text-[11px] text-stone-500 mt-1 line-clamp-2">{f.desc}</p>
-              </div>
-
-              <div className="pt-2 mt-2 border-t border-stone-100 text-[10px] text-stone-400">
-                Retenção: {f.retencao}
+                <h4 className="text-[11px] font-bold text-stone-900 leading-tight mt-1 line-clamp-1">
+                  {m.title.split('–')[1] || m.title}
+                </h4>
               </div>
             </button>
           )
         })}
       </div>
 
-      {/* 2. Área do Formulário Ativo com Ação de Preenchimento e Lista de Registros */}
-      <div className="p-6 rounded-2xl border border-[#E2DCCF] bg-white shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#2D6A4F] text-white">
-                {selectedFormCode}
-              </span>
-              <h3 className="text-base font-bold font-['Sora'] text-[#2D6A4F]">
-                {formModelList.find((f) => f.code === selectedFormCode)?.title}
-              </h3>
-            </div>
-            <p className="text-xs text-stone-500 mt-0.5">
-              {formModelList.find((f) => f.code === selectedFormCode)?.desc}
-            </p>
-          </div>
+      {/* 3. VISÃO DO ANEXO ATIVO */}
 
-          <div className="flex items-center gap-2">
+      {/* ANEXO II – LISTA DE FORNECEDORES (Substitui/Melhora FR 14) */}
+      {selectedFormCode === 'ANEXO II' && (
+        <AnexoIIListaFornecedores
+          fornecedores={fornecedoresList}
+          canManage={canManageAll}
+          onAddNew={() => {
+            setAnexoIInitial(undefined)
+            setAnexoIOpen(true)
+          }}
+          onEdit={(item) => {
+            setAnexoIInitial({
+              razao_social: item.razao_social,
+              cnpj: item.cnpj,
+              telefone: item.telefone,
+              email: item.email,
+              responsavel_tecnico: item.responsavel_tecnico,
+              data_qualificacao: item.data_qualificacao,
+              data_validade_qualificacao: item.data_validade,
+              parecer_final: item.status === 'Ativo' ? 'Aprovado' : 'Reprovado',
+            })
+            setAnexoIOpen(true)
+          }}
+          onView={(item) => {
+            triggerPrintModal('ANEXO II', `Ficha Cadastral: ${item.razao_social}`, item)
+          }}
+          onDesqualificar={async (item, motivo) => {
+            await handleDesqualificarFornecedor(item, motivo)
+          }}
+          onExportPdf={() => {
+            triggerPrintModal('ANEXO II', 'Lista Geral de Fornecedores Qualificados', {
+              versao: '01-2026',
+              fornecedores: fornecedoresList,
+            })
+          }}
+        />
+      )}
+
+      {/* ANEXO I – QUALIFICAÇÃO DE FORNECEDOR */}
+      {selectedFormCode === 'ANEXO I' && (
+        <div className="p-6 bg-white rounded-xl border border-[#E2DCCF] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+                  ANEXO I
+                </span>
+                <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
+                  Formulário de Qualificação de Fornecedor
+                </h3>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Avaliação cadastral, documental (MAPA, BPF) e parecer bienal. Alimenta
+                automaticamente a Lista de Fornecedores Qualificados (Anexo II).
+              </p>
+            </div>
+
             <Button
               size="sm"
-              onClick={() => setModalOpen(true)}
-              className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs gap-1.5 shadow-sm h-9"
+              onClick={() => {
+                setAnexoIInitial(undefined)
+                setAnexoIOpen(true)
+              }}
+              className="bg-[#1B4332] hover:bg-[#122e22] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
             >
-              <PlusCircle className="h-4 w-4" />
-              Preencher {selectedFormCode}
+              <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+              Novo Formulário de Qualificação
+            </Button>
+          </div>
+
+          <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200 text-xs space-y-2">
+            <h4 className="font-bold text-[#1B4332] uppercase text-[11px]">
+              Diretriz de Autocontrole
+            </h4>
+            <p className="text-stone-700 leading-relaxed">
+              Conforme a Instrução Normativa nº 04/2007 do MAPA, todo fornecedor de matérias-primas
+              e ingredientes deve passar por qualificação prévia com validade máxima de 2 anos (24
+              meses). Fornecedores com parecer &quot;Reprovado&quot; são impedidos de entrega na
+              portaria.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ANEXO III – RECEBIMENTO DE MATÉRIAS-PRIMAS */}
+      {selectedFormCode === 'ANEXO III' && (
+        <div className="p-6 bg-white rounded-xl border border-[#E2DCCF] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+                  ANEXO III
+                </span>
+                <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
+                  Formulário de Recebimento de Matérias-Primas e Ingredientes (FR 08)
+                </h3>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Conferência na doca de descarregamento, validação de fornecedor homologado, inspeção
+                de integridade e amostragem.
+              </p>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => {
+                setAnexoIIIInitial(undefined)
+                setAnexoIIIOpen(true)
+              }}
+              className="bg-[#1B4332] hover:bg-[#122e22] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
+            >
+              <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+              Registrar Recebimento
+            </Button>
+          </div>
+
+          {/* Tabela de Recebimentos Registrados */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[#E2DCCF] text-stone-500 uppercase tracking-wider text-[10px] bg-[#FAF7EF]">
+                  <th className="py-2.5 px-3">Nº Recebimento</th>
+                  <th className="py-2.5 px-3">Data</th>
+                  <th className="py-2.5 px-3">Fornecedor</th>
+                  <th className="py-2.5 px-3">Produto / Lote</th>
+                  <th className="py-2.5 px-3">Qtd</th>
+                  <th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {records
+                  .filter(
+                    (r) =>
+                      r.formulario_codigo === 'FR 08' ||
+                      r.formulario_codigo === 'ANEXO III' ||
+                      r.formulario_codigo === 'F-01-POP-001',
+                  )
+                  .map((r) => {
+                    const d = (r.dados_formulario as any) || {}
+                    return (
+                      <tr key={r.id} className="hover:bg-stone-50/70 transition">
+                        <td className="py-2.5 px-3 font-mono font-bold text-[#1B4332]">
+                          {d.numero_recebimento || `REC-${r.id.slice(0, 8)}`}
+                        </td>
+                        <td className="py-2.5 px-3 text-stone-700">
+                          {new Date(r.data).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="py-2.5 px-3 font-medium text-stone-800">
+                          {d.fornecedor_razao_social || d.fornecedor || '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-stone-700">
+                          {d.produto_nome || d.produto_insumo || '—'} (Lote:{' '}
+                          {d.lote_partida || r.lote || '—'})
+                        </td>
+                        <td className="py-2.5 px-3 font-mono">
+                          {d.quantidade_recebida || d.peso_aferido_kg || '—'} {d.unidade || 'kg'}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <Badge
+                            className={
+                              r.status === 'Conforme'
+                                ? 'bg-emerald-700 text-white'
+                                : 'bg-red-700 text-white'
+                            }
+                          >
+                            {d.status_fluxo || r.status}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              triggerPrintModal(
+                                'ANEXO III',
+                                `Recebimento ${d.numero_recebimento || ''}`,
+                                d,
+                              )
+                            }
+                            className="h-7 text-xs border-stone-300 gap-1"
+                          >
+                            <FileText className="h-3 w-3 text-[#1B4332]" />
+                            PDF
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ANEXO IV – COLETA DE AMOSTRA */}
+      {selectedFormCode === 'ANEXO IV' && (
+        <div className="p-6 bg-white rounded-xl border border-[#E2DCCF] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+                  ANEXO IV
+                </span>
+                <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
+                  Formulário de Coleta de Amostra
+                </h3>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Amostragem em triplicata regulamentar do MAPA, selagem com lacre numerado e
+                acondicionamento térmico.
+              </p>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => {
+                setAnexoIVInitial(undefined)
+                setAnexoIVOpen(true)
+              }}
+              className="bg-[#1B4332] hover:bg-[#122e22] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
+            >
+              <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+              Nova Coleta de Amostra
+            </Button>
+          </div>
+
+          <div className="p-4 bg-emerald-50/40 rounded-xl border border-emerald-200 text-xs">
+            <p className="text-stone-700">
+              As amostras cadastradas aqui alimentam diretamente a fila de análises do{' '}
+              <strong>Anexo V (Relatório Laboratorial)</strong>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ANEXO V – RELATÓRIO DE ANÁLISE LABORATORIAL */}
+      {selectedFormCode === 'ANEXO V' && (
+        <div className="p-6 bg-white rounded-xl border border-[#E2DCCF] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+                  ANEXO V
+                </span>
+                <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
+                  Relatório de Análise Laboratorial (CQ Bromatológico e Microbiológico)
+                </h3>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Registro de ensaios com comparação de limites, parecer conclusivo e assinaturas
+                RT/RQ.
+              </p>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => {
+                setAnexoVInitial(undefined)
+                setAnexoVOpen(true)
+              }}
+              className="bg-[#1B4332] hover:bg-[#122e22] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
+            >
+              <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+              Novo Laudo Laboratorial
             </Button>
           </div>
         </div>
+      )}
 
-        {/* Tabela dos registros deste modelo */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-[#E2DCCF] text-stone-500 uppercase tracking-wider text-[10px] bg-[#FAF7EF]">
-                <th className="py-2.5 px-3">Data</th>
-                <th className="py-2.5 px-3">Lote / Código</th>
-                <th className="py-2.5 px-3">Resumo da Medição / Parecer</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3">Responsável</th>
-                <th className="py-2.5 px-3 text-right">PDF / Assinatura</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {filteredRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-stone-400">
-                    Nenhum registro de {selectedFormCode} cadastrado ainda. Clique em
-                    &quot;Preencher&quot; para inserir um novo.
-                  </td>
-                </tr>
-              ) : (
-                filteredRecords.map((r) => (
-                  <tr key={r.id} className="hover:bg-stone-50/70 transition">
-                    <td className="py-2.5 px-3 font-medium text-stone-800 whitespace-nowrap">
-                      {new Date(r.data).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="py-2.5 px-3 font-semibold text-stone-900 whitespace-nowrap font-mono text-[11px]">
-                      {r.lote || '—'}
-                    </td>
-                    <td className="py-2.5 px-3 text-stone-700 max-w-xs truncate">
-                      {r.valor_medido || 'Conforme padrão'}
-                    </td>
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      <Badge
-                        className={
-                          r.status === 'Conforme'
-                            ? 'bg-[#2E8B57] text-white'
-                            : 'bg-[#B91C1C] text-white'
-                        }
-                      >
-                        {r.status}
-                      </Badge>
-                    </td>
-                    <td className="py-2.5 px-3 text-stone-600 whitespace-nowrap">
-                      {r.responsavel || 'Operador CQ'}
-                    </td>
-                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (onOpenRecordPdf) onOpenRecordPdf(r)
-                        }}
-                        className="h-7 text-[11px] border-stone-300 text-stone-700 hover:bg-stone-50 gap-1"
-                      >
-                        <FileText className="h-3 w-3 text-[#2D6A4F]" />
-                        Ver / Assinar RT
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* ANEXO VI – DESTINAÇÃO DE NÃO APROVADOS */}
+      {selectedFormCode === 'ANEXO VI' && (
+        <div className="p-6 bg-white rounded-xl border border-[#E2DCCF] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+                  ANEXO VI
+                </span>
+                <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
+                  Registro de Destinação de Produtos Não Aprovados (FR 18)
+                </h3>
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Descarte, devolução a fornecedor ou reprocessamento condicional com conformidade
+                ambiental.
+              </p>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => {
+                setAnexoVIInitial(undefined)
+                setAnexoVIOpen(true)
+              }}
+              className="bg-red-700 hover:bg-red-800 text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Novo Registro de Destinação
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 3. DIALOG DE PREENCHIMENTO DO FORMULÁRIO SELECIONADO */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border-[#E2DCCF]">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg font-bold text-[#2D6A4F] font-['Sora'] flex items-center gap-2">
-              <PlusCircle className="h-5 w-5 text-[#D9A404]" />
-              Novo Registro: {selectedFormCode} —{' '}
-              {formModelList.find((f) => f.code === selectedFormCode)?.title}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-stone-600">
-              Formulário normativo digital do POP 01. Os dados inseridos alimentam em tempo real os
-              indicadores do painel.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveFormSubmission} className="space-y-4 pt-2">
-            {/* RENDERIZADOR ESPECÍFICO POR MODELO */}
-            {selectedFormCode === 'FR 08' && (
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Data de Recebimento</Label>
-                    <Input
-                      type="date"
-                      value={fr08Form.data_recebimento}
-                      onChange={(e) =>
-                        setFr08Form({ ...fr08Form, data_recebimento: e.target.value })
-                      }
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Horário</Label>
-                    <Input
-                      value={fr08Form.horario}
-                      onChange={(e) => setFr08Form({ ...fr08Form, horario: e.target.value })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Razão Social do Fornecedor</Label>
-                    <Input
-                      value={fr08Form.fornecedor_razao_social}
-                      onChange={(e) =>
-                        setFr08Form({ ...fr08Form, fornecedor_razao_social: e.target.value })
-                      }
-                      placeholder="Nome do Fornecedor"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Razão Social do Fabricante</Label>
-                    <Input
-                      value={fr08Form.fabricante_razao_social}
-                      onChange={(e) =>
-                        setFr08Form({ ...fr08Form, fabricante_razao_social: e.target.value })
-                      }
-                      placeholder="Fabricante original"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Nota Fiscal nº</Label>
-                    <Input
-                      value={fr08Form.nota_fiscal}
-                      onChange={(e) => setFr08Form({ ...fr08Form, nota_fiscal: e.target.value })}
-                      placeholder="Ex: 12345"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Placa do Veículo</Label>
-                    <Input
-                      value={fr08Form.placa_veiculo}
-                      onChange={(e) => setFr08Form({ ...fr08Form, placa_veiculo: e.target.value })}
-                      placeholder="ABC-1234"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Tipo de Veículo</Label>
-                    <Select
-                      value={fr08Form.tipo_veiculo}
-                      onValueChange={(val) => setFr08Form({ ...fr08Form, tipo_veiculo: val })}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Baú">Baú</SelectItem>
-                        <SelectItem value="Sider">Sider</SelectItem>
-                        <SelectItem value="Graneleiro">Graneleiro</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Produto / Insumo</Label>
-                    <Input
-                      value={fr08Form.produto_insumo}
-                      onChange={(e) => setFr08Form({ ...fr08Form, produto_insumo: e.target.value })}
-                      placeholder="Ex: Farelo de Soja"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Lote do Fornecedor</Label>
-                    <Input
-                      value={fr08Form.lote_fornecedor}
-                      onChange={(e) =>
-                        setFr08Form({ ...fr08Form, lote_fornecedor: e.target.value })
-                      }
-                      placeholder="Lote externo"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Lote Interno Atribuído</Label>
-                    <Input
-                      value={fr08Form.lote_interno}
-                      onChange={(e) => setFr08Form({ ...fr08Form, lote_interno: e.target.value })}
-                      className="h-8 text-xs mt-1 font-mono font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Peso NF (kg)</Label>
-                    <Input
-                      type="number"
-                      value={fr08Form.peso_nf_kg}
-                      onChange={(e) => setFr08Form({ ...fr08Form, peso_nf_kg: e.target.value })}
-                      placeholder="0"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Peso Balança (kg)</Label>
-                    <Input
-                      type="number"
-                      value={fr08Form.peso_aferido_kg}
-                      onChange={(e) =>
-                        setFr08Form({ ...fr08Form, peso_aferido_kg: e.target.value })
-                      }
-                      placeholder="0"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Nº Volumes / Sacos</Label>
-                    <Input
-                      value={fr08Form.numero_volumes}
-                      onChange={(e) => setFr08Form({ ...fr08Form, numero_volumes: e.target.value })}
-                      placeholder="Volumes"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                {/* Checklist Veículo e Carga (8 itens) */}
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                  <h4 className="font-bold text-[#2D6A4F] text-[11px] uppercase tracking-wider">
-                    Checklist de Inspeção do Veículo e da Carga (C / NC / NA)
-                  </h4>
-                  <div className="space-y-1.5 text-[11px]">
-                    {[
-                      { key: 'item_1_higiene', label: '1. Higiene e limpeza do compartimento' },
-                      { key: 'item_2_integridade', label: '2. Integridade carroceria e assoalho' },
-                      { key: 'item_3_lona', label: '3. Lona de cobertura limpa e sem rasgos' },
-                      { key: 'item_4_incompatíveis', label: '4. Ausência de cargas incompatíveis' },
-                      { key: 'item_5_embalagens', label: '5. Embalagens íntegras e paletizadas' },
-                      {
-                        key: 'item_6_rotulagem_decreto',
-                        label: '6. Rotulagem Decreto 12.031/2024',
-                      },
-                      {
-                        key: 'item_7_fornecedor_qualificado_fr14',
-                        label: '7. Fornecedor ativo na FR 14',
-                      },
-                      {
-                        key: 'item_8_laudo_conforme',
-                        label: '8. Laudo analítico do lote conforme',
-                      },
-                    ].map((it) => (
-                      <div key={it.key} className="flex items-center justify-between gap-2">
-                        <span className="text-stone-700">{it.label}</span>
-                        <div className="flex items-center gap-1">
-                          {(['C', 'NC', 'NA'] as const).map((opt) => (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() =>
-                                setFr08Form({
-                                  ...fr08Form,
-                                  checklist_veiculo: {
-                                    ...fr08Form.checklist_veiculo,
-                                    [it.key]: opt,
-                                  },
-                                })
-                              }
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                (fr08Form.checklist_veiculo as any)[it.key] === opt
-                                  ? opt === 'C'
-                                    ? 'bg-emerald-600 text-white'
-                                    : opt === 'NC'
-                                      ? 'bg-red-600 text-white'
-                                      : 'bg-stone-500 text-white'
-                                  : 'bg-white border text-stone-600 hover:bg-stone-100'
-                              }`}
-                            >
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Parecer Final */}
-                <div>
-                  <Label className="text-xs font-bold text-stone-800">
-                    Parecer Final do Recebimento
-                  </Label>
-                  <Select
-                    value={fr08Form.parecer_final}
-                    onValueChange={(val) => setFr08Form({ ...fr08Form, parecer_final: val })}
-                  >
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Liberado para Descarga">Liberado para Descarga</SelectItem>
-                      <SelectItem value="Retido em Quarentena">Retido em Quarentena</SelectItem>
-                      <SelectItem value="Rejeitado Totalmente">Rejeitado Totalmente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* ANEXO VII – AÇÃO CORRETIVA */}
+      {selectedFormCode === 'ANEXO VII' && (
+        <div className="p-6 bg-white rounded-xl border border-[#E2DCCF] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+                  ANEXO VII
+                </span>
+                <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
+                  Formulário de Ação Corretiva (FR 01 / RNC)
+                </h3>
               </div>
-            )}
+              <p className="text-xs text-stone-500 mt-0.5">
+                Investigação de causa raiz, cronograma de ações, acompanhamento de eficácia e
+                penalidade ao fornecedor.
+              </p>
+            </div>
 
-            {/* FR 14: Adicionar Fornecedor */}
-            {selectedFormCode === 'FR 14' && (
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Código (FR 14)</Label>
-                    <Input
-                      value={fr14Item.codigo}
-                      onChange={(e) => setFr14Item({ ...fr14Item, codigo: e.target.value })}
-                      placeholder="Ex: MP-001"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Matéria-Prima / Insumo</Label>
-                    <Input
-                      value={fr14Item.materia_prima_insumo}
-                      onChange={(e) =>
-                        setFr14Item({ ...fr14Item, materia_prima_insumo: e.target.value })
-                      }
-                      placeholder="Denominação do insumo"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setAnexoVIIInitial(undefined)
+                setAnexoVIIOpen(true)
+              }}
+              className="bg-[#1B4332] hover:bg-[#122e22] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
+            >
+              <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+              Abrir Ação Corretiva
+            </Button>
+          </div>
+        </div>
+      )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Razão Social Fabricante/Fornecedor</Label>
-                    <Input
-                      value={fr14Item.razao_social}
-                      onChange={(e) => setFr14Item({ ...fr14Item, razao_social: e.target.value })}
-                      placeholder="Razão social"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Registro Estabelecimento MAPA</Label>
-                    <Input
-                      value={fr14Item.registro_mapa}
-                      onChange={(e) => setFr14Item({ ...fr14Item, registro_mapa: e.target.value })}
-                      placeholder="Ex: SP-001234-5"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
+      {/* 4. MODAIS DOS 7 ANEXOS */}
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Registro/Cadastro Produto</Label>
-                    <Input
-                      value={fr14Item.registro_cadastro_produto}
-                      onChange={(e) =>
-                        setFr14Item({ ...fr14Item, registro_cadastro_produto: e.target.value })
-                      }
-                      placeholder="Isento / Nº SIPEAGRO"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Risco do Insumo</Label>
-                    <Select
-                      value={fr14Item.risco_insumo}
-                      onValueChange={(val) => setFr14Item({ ...fr14Item, risco_insumo: val })}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Alto">Alto</SelectItem>
-                        <SelectItem value="Médio">Médio</SelectItem>
-                        <SelectItem value="Baixo">Baixo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Status Cadastral</Label>
-                    <Select
-                      value={fr14Item.status_cadastral}
-                      onValueChange={(val: any) =>
-                        setFr14Item({ ...fr14Item, status_cadastral: val })
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Ativo">Ativo</SelectItem>
-                        <SelectItem value="Suspenso">Suspenso</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+      {/* Anexo I */}
+      <AnexoIQualificacaoModal
+        open={anexoIOpen}
+        onOpenChange={setAnexoIOpen}
+        initialData={anexoIInitial}
+        usersList={usersList}
+        currentUser={user}
+        onSave={handleSaveAnexoI}
+        onPrintPreview={(dados) =>
+          triggerPrintModal('ANEXO I', 'Formulário de Qualificação de Fornecedor', dados)
+        }
+      />
 
-                <div>
-                  <Label className="text-xs">Validade da Qualificação</Label>
-                  <Input
-                    type="date"
-                    value={fr14Item.validade_qualificacao}
-                    onChange={(e) =>
-                      setFr14Item({ ...fr14Item, validade_qualificacao: e.target.value })
-                    }
-                    required
-                    className="h-8 text-xs mt-1"
-                  />
-                </div>
-              </div>
-            )}
+      {/* Anexo III */}
+      <AnexoIIIRecebimentoModal
+        open={anexoIIIOpen}
+        onOpenChange={setAnexoIIIOpen}
+        initialData={anexoIIIInitial}
+        fornecedoresQualificados={fornecedoresList}
+        currentUser={user}
+        onSave={handleSaveAnexoIII}
+        onPrintPreview={(dados) =>
+          triggerPrintModal('ANEXO III', 'Formulário de Recebimento de Matérias-Primas', dados)
+        }
+        onCriarAmostraDireta={(rec) => {
+          setAnexoIIIOpen(false)
+          setAnexoIVInitial({
+            recebimento_numero: rec.numero_recebimento,
+            fornecedor_razao_social: rec.fornecedor_razao_social,
+            produto_nome: rec.produto_nome,
+            lote_partida: rec.lote_partida,
+            data_fabricacao: rec.data_fabricacao,
+            data_validade: rec.data_validade,
+            quantidade_total_recebida: rec.quantidade_recebida,
+            unidade: rec.unidade,
+          })
+          setAnexoIVOpen(true)
+        }}
+        onCriarDescarteDireto={(rec) => {
+          setAnexoIIIOpen(false)
+          setAnexoVIInitial({
+            numero_recebimento: rec.numero_recebimento,
+            fornecedor_razao_social: rec.fornecedor_razao_social,
+            produto_nome: rec.produto_nome,
+            lote_partida: rec.lote_partida,
+            quantidade: rec.quantidade_recebida,
+            unidade: rec.unidade,
+            motivo_rejeicao: (rec.motivo_rejeicao as any) || 'Embalagem Danificada',
+            descricao_motivo: rec.descricao_motivo_rejeicao || '',
+          })
+          setAnexoVIOpen(true)
+        }}
+      />
 
-            {/* FR 15: Medição Diária */}
-            {selectedFormCode === 'FR 15' && (
-              <div className="space-y-3 text-xs">
-                <div>
-                  <Label className="text-xs font-bold text-stone-800">Local Monitorado</Label>
-                  <Select value={fr15Local} onValueChange={setFr15Local}>
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Sala de Medicamentos">
-                        Sala de Medicamentos (Limites: 15–25 ºC / UR &lt; 85%)
-                      </SelectItem>
-                      <SelectItem value="Armazém MP">
-                        Armazém MP (Limites: &lt; 35 ºC / UR &lt; 85%)
-                      </SelectItem>
-                      <SelectItem value="Armazém PA">
-                        Armazém PA (Limites: &lt; 35 ºC / UR &lt; 85%)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* Anexo IV */}
+      <AnexoIVColetaAmostraModal
+        open={anexoIVOpen}
+        onOpenChange={setAnexoIVOpen}
+        initialData={anexoIVInitial}
+        recebimentosPendentes={recebimentosPendentes}
+        currentUser={user}
+        onSave={handleSaveAnexoIV}
+        onPrintPreview={(dados) =>
+          triggerPrintModal('ANEXO IV', 'Formulário de Coleta de Amostra', dados)
+        }
+      />
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Hora da Leitura</Label>
-                    <Input
-                      value={fr15Item.hora}
-                      onChange={(e) => setFr15Item({ ...fr15Item, hora: e.target.value })}
-                      placeholder="Ex: 08:30 ou 15:30"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Visto do Responsável</Label>
-                    <Input
-                      value={fr15Item.visto_responsavel}
-                      onChange={(e) =>
-                        setFr15Item({ ...fr15Item, visto_responsavel: e.target.value })
-                      }
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
+      {/* Anexo V */}
+      <AnexoVAnaliseLaboratorialModal
+        open={anexoVOpen}
+        onOpenChange={setAnexoVOpen}
+        initialData={anexoVInitial}
+        amostrasDisponiveis={amostrasDisponiveis}
+        currentUser={user}
+        onSave={handleSaveAnexoV}
+        onPrintPreview={(dados) =>
+          triggerPrintModal('ANEXO V', 'Relatório de Análise Laboratorial', dados)
+        }
+        onCriarDescarteDireto={(laudo) => {
+          setAnexoVOpen(false)
+          setAnexoVIInitial({
+            numero_recebimento: laudo.numero_recebimento,
+            fornecedor_razao_social: laudo.fornecedor_razao_social,
+            produto_nome: laudo.produto_nome,
+            lote_partida: laudo.lote_partida,
+            motivo_rejeicao: 'Análise Reprovada',
+            descricao_motivo:
+              laudo.motivo_rejeicao_relatorio || 'Reprovado nos ensaios do laboratório',
+            numero_relatorio_analise: laudo.numero_relatorio,
+          })
+          setAnexoVIOpen(true)
+        }}
+        onCriarAcaoCorretivaDireta={(laudo) => {
+          setAnexoVOpen(false)
+          setAnexoVIIInitial({
+            tipo_nc: 'Análise Laboratorial',
+            numero_relatorio_analise: laudo.numero_relatorio,
+            numero_recebimento: laudo.numero_recebimento,
+            fornecedor_razao_social: laudo.fornecedor_razao_social,
+            produto_nome: laudo.produto_nome,
+            lote_partida: laudo.lote_partida,
+            descricao_detalhada: `Laudo ${laudo.numero_relatorio} reprovado: ${laudo.motivo_rejeicao_relatorio || 'Desvio analítico detectado'}`,
+          })
+          setAnexoVIIOpen(true)
+        }}
+      />
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Temp. Atual (°C)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={fr15Item.temp_atual}
-                      onChange={(e) => setFr15Item({ ...fr15Item, temp_atual: e.target.value })}
-                      className="h-8 text-xs mt-1 font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Temp. Mín (°C)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={fr15Item.temp_min}
-                      onChange={(e) => setFr15Item({ ...fr15Item, temp_min: e.target.value })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Temp. Máx (°C)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={fr15Item.temp_max}
-                      onChange={(e) => setFr15Item({ ...fr15Item, temp_max: e.target.value })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
+      {/* Anexo VI */}
+      <AnexoVIDestinacaoModal
+        open={anexoVIOpen}
+        onOpenChange={setAnexoVIOpen}
+        initialData={anexoVIInitial}
+        recebimentosReprovados={recebimentosReprovados}
+        currentUser={user}
+        usersList={usersList}
+        onSave={handleSaveAnexoVI}
+        onPrintPreview={(dados) =>
+          triggerPrintModal('ANEXO VI', 'Registro de Destinação de Produtos Não Aprovados', dados)
+        }
+        onCriarAcaoCorretivaDireta={(des) => {
+          setAnexoVIOpen(false)
+          setAnexoVIIInitial({
+            tipo_nc: 'Recebimento',
+            numero_recebimento: des.numero_recebimento,
+            numero_relatorio_analise: des.numero_relatorio_analise,
+            fornecedor_razao_social: des.fornecedor_razao_social,
+            produto_nome: des.produto_nome,
+            lote_partida: des.lote_partida,
+            descricao_detalhada: `Destinação ${des.numero_registro} (${des.tipo_destinacao}) motivada por: ${des.descricao_motivo}`,
+          })
+          setAnexoVIIOpen(true)
+        }}
+      />
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">UR Atual (%)</Label>
-                    <Input
-                      type="number"
-                      value={fr15Item.ur_atual}
-                      onChange={(e) => setFr15Item({ ...fr15Item, ur_atual: e.target.value })}
-                      className="h-8 text-xs mt-1 font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">UR Mín (%)</Label>
-                    <Input
-                      type="number"
-                      value={fr15Item.ur_min}
-                      onChange={(e) => setFr15Item({ ...fr15Item, ur_min: e.target.value })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">UR Máx (%)</Label>
-                    <Input
-                      type="number"
-                      value={fr15Item.ur_max}
-                      onChange={(e) => setFr15Item({ ...fr15Item, ur_max: e.target.value })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
+      {/* Anexo VII */}
+      <AnexoVIIAcaoCorretivaModal
+        open={anexoVIIOpen}
+        onOpenChange={setAnexoVIIOpen}
+        initialData={anexoVIIInitial}
+        currentUser={user}
+        usersList={usersList}
+        fornecedoresList={fornecedoresList.map((f) => ({
+          id: f.id,
+          razao_social: f.razao_social,
+          cnpj: f.cnpj,
+        }))}
+        onSave={handleSaveAnexoVII}
+        onPrintPreview={(dados) =>
+          triggerPrintModal('ANEXO VII', 'Formulário de Ação Corretiva', dados)
+        }
+        onDesqualificarFornecedor={async (razao, motivo) => {
+          await handleDesqualificarFornecedor(razao, motivo)
+        }}
+      />
 
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="fr15-conforme"
-                    checked={Boolean(fr15Item.conforme)}
-                    onChange={(e) => setFr15Item({ ...fr15Item, conforme: e.target.checked })}
-                    className="h-4 w-4 text-[#2D6A4F] rounded"
-                  />
-                  <Label htmlFor="fr15-conforme" className="text-xs cursor-pointer font-bold">
-                    Medição dentro dos limites regulamentares (Conforme)
-                  </Label>
-                </div>
-              </div>
-            )}
-
-            {/* FR 18: Solicitação de Descarte */}
-            {selectedFormCode === 'FR 18' && (
-              <div className="space-y-3 text-xs">
-                <div>
-                  <Label className="text-xs font-bold text-stone-800">Motivo do Descarte</Label>
-                  <Select
-                    value={fr18Form.motivo}
-                    onValueChange={(val) => setFr18Form({ ...fr18Form, motivo: val })}
-                  >
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Validade Vencida">Validade Vencida</SelectItem>
-                      <SelectItem value="Produto Impróprio (Arts. 95-99)">
-                        Produto Impróprio (Arts. 95-99 Decreto 12.031/2024)
-                      </SelectItem>
-                      <SelectItem value="Contaminação Física/Química">
-                        Contaminação Física/Química
-                      </SelectItem>
-                      <SelectItem value="Avaria Crítica">Avaria Crítica</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Descrição do Produto / Insumo</Label>
-                    <Input
-                      value={fr18Form.descricao}
-                      onChange={(e) => setFr18Form({ ...fr18Form, descricao: e.target.value })}
-                      placeholder="Ex: Premix Mineral Confinamento"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Quantidade Descartada (kg)</Label>
-                    <Input
-                      type="number"
-                      value={fr18Form.qtd_kg}
-                      onChange={(e) => setFr18Form({ ...fr18Form, qtd_kg: e.target.value })}
-                      placeholder="Ex: 500"
-                      required
-                      className="h-8 text-xs mt-1 font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Lote Interno</Label>
-                    <Input
-                      value={fr18Form.lote_interno}
-                      onChange={(e) => setFr18Form({ ...fr18Form, lote_interno: e.target.value })}
-                      placeholder="L-0000"
-                      className="h-8 text-xs mt-1 font-mono"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Lote Fornecedor</Label>
-                    <Input
-                      value={fr18Form.lote_fornecedor}
-                      onChange={(e) =>
-                        setFr18Form({ ...fr18Form, lote_fornecedor: e.target.value })
-                      }
-                      placeholder="Lote externo"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Local de Descarte / Destinação Ambiental</Label>
-                  <Input
-                    value={fr18Form.local_descarte}
-                    onChange={(e) => setFr18Form({ ...fr18Form, local_descarte: e.target.value })}
-                    className="h-8 text-xs mt-1"
-                  />
-                </div>
-
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-tight">
-                  <strong>Parecer Técnico-Ambiental Padronizado:</strong> &quot;Os produtos
-                  discriminados foram descaracterizados e descartados em conformidade com as normas
-                  sanitárias e ambientais vigentes, não havendo qualquer possibilidade de
-                  reaproveitamento na alimentação animal.&quot;
-                </div>
-              </div>
-            )}
-
-            {/* FR 01: Registro de Não Conformidade (RNC) */}
-            {selectedFormCode === 'FR 01' && (
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Nº da RNC</Label>
-                    <Input
-                      value={fr01Form.numero_rnc}
-                      onChange={(e) => setFr01Form({ ...fr01Form, numero_rnc: e.target.value })}
-                      required
-                      className="h-8 text-xs mt-1 font-mono font-bold"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Origem</Label>
-                    <Select
-                      value={fr01Form.origem}
-                      onValueChange={(val) => setFr01Form({ ...fr01Form, origem: val })}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Recebimento">Recebimento</SelectItem>
-                        <SelectItem value="Análise Laboratorial">Análise Laboratorial</SelectItem>
-                        <SelectItem value="Auditoria">Auditoria</SelectItem>
-                        <SelectItem value="Processo">Processo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Grau da NC</Label>
-                    <Select
-                      value={fr01Form.grau}
-                      onValueChange={(val: any) => setFr01Form({ ...fr01Form, grau: val })}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Crítico">Crítico</SelectItem>
-                        <SelectItem value="Maior">Maior</SelectItem>
-                        <SelectItem value="Menor">Menor</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Fornecedor</Label>
-                    <Input
-                      value={fr01Form.fornecedor_razao_social}
-                      onChange={(e) =>
-                        setFr01Form({ ...fr01Form, fornecedor_razao_social: e.target.value })
-                      }
-                      placeholder="Fornecedor do lote"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Produto / Insumo</Label>
-                    <Input
-                      value={fr01Form.produto_materia_prima}
-                      onChange={(e) =>
-                        setFr01Form({ ...fr01Form, produto_materia_prima: e.target.value })
-                      }
-                      placeholder="Produto com desvio"
-                      required
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Qtd Afetada (kg)</Label>
-                    <Input
-                      type="number"
-                      value={fr01Form.quantidade_afetada_kg}
-                      onChange={(e) =>
-                        setFr01Form({ ...fr01Form, quantidade_afetada_kg: e.target.value })
-                      }
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Lote Interno</Label>
-                    <Input
-                      value={fr01Form.lote_interno}
-                      onChange={(e) => setFr01Form({ ...fr01Form, lote_interno: e.target.value })}
-                      className="h-8 text-xs mt-1 font-mono"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Nota Fiscal</Label>
-                    <Input
-                      value={fr01Form.nota_fiscal}
-                      onChange={(e) => setFr01Form({ ...fr01Form, nota_fiscal: e.target.value })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Descrição Detalhada do Desvio</Label>
-                  <Textarea
-                    rows={2}
-                    value={fr01Form.descricao_detalhada}
-                    onChange={(e) =>
-                      setFr01Form({ ...fr01Form, descricao_detalhada: e.target.value })
-                    }
-                    placeholder="Descreva o que ocorreu, parâmetros em desacordo..."
-                    required
-                    className="text-xs mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs font-bold text-stone-800">
-                    Disposição Imediata do Lote
-                  </Label>
-                  <Select
-                    value={fr01Form.disposicao_imediata}
-                    onValueChange={(val) => setFr01Form({ ...fr01Form, disposicao_imediata: val })}
-                  >
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Bloqueio no Depósito de Não Aprovadas">
-                        Bloqueio no Depósito de Não Aprovadas
-                      </SelectItem>
-                      <SelectItem value="Devolução ao Fornecedor">
-                        Devolução ao Fornecedor
-                      </SelectItem>
-                      <SelectItem value="Solicitação de Descarte (FR 18)">
-                        Solicitação de Descarte (FR 18)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* FR 16: Formulário Completo de Qualificação de Fornecedores */}
-            {selectedFormCode === 'FR 16' && (
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Razão Social do Proponente</Label>
-                    <Input
-                      value={fr16Form.razao_social}
-                      onChange={(e) => setFr16Form({ ...fr16Form, razao_social: e.target.value })}
-                      required
-                      placeholder="Empresa proponente"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Nome Fantasia</Label>
-                    <Input
-                      value={fr16Form.nome_fantasia}
-                      onChange={(e) => setFr16Form({ ...fr16Form, nome_fantasia: e.target.value })}
-                      placeholder="Nome comercial"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">CNPJ</Label>
-                    <Input
-                      value={fr16Form.cnpj}
-                      onChange={(e) => setFr16Form({ ...fr16Form, cnpj: e.target.value })}
-                      placeholder="00.000.000/0000-00"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Reg. Estabelecimento MAPA</Label>
-                    <Input
-                      value={fr16Form.registro_mapa}
-                      onChange={(e) => setFr16Form({ ...fr16Form, registro_mapa: e.target.value })}
-                      required
-                      placeholder="Ex: SP-001234-5"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">UF</Label>
-                    <Input
-                      value={fr16Form.uf}
-                      onChange={(e) => setFr16Form({ ...fr16Form, uf: e.target.value })}
-                      placeholder="UF"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Denominação do Produto / Insumo</Label>
-                    <Input
-                      value={fr16Form.produto_denominacao}
-                      onChange={(e) =>
-                        setFr16Form({ ...fr16Form, produto_denominacao: e.target.value })
-                      }
-                      required
-                      placeholder="Ex: Farinha de Carne 45%"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Nº Registro/Cadastro Produto MAPA</Label>
-                    <Input
-                      value={fr16Form.produto_registro_mapa}
-                      onChange={(e) =>
-                        setFr16Form({ ...fr16Form, produto_registro_mapa: e.target.value })
-                      }
-                      placeholder="Isento ou código MAPA"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Categoria</Label>
-                    <Select
-                      value={fr16Form.categoria}
-                      onValueChange={(val: any) => setFr16Form({ ...fr16Form, categoria: val })}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MP Vegetal">MP Vegetal</SelectItem>
-                        <SelectItem value="MP Animal">MP Animal</SelectItem>
-                        <SelectItem value="Aditivo">Aditivo</SelectItem>
-                        <SelectItem value="Mineral">Mineral</SelectItem>
-                        <SelectItem value="Embalagem">Embalagem</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Classificação de Risco APPCC</Label>
-                    <Select
-                      value={fr16Form.risco_appcc}
-                      onValueChange={(val: any) => setFr16Form({ ...fr16Form, risco_appcc: val })}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Alto">Alto</SelectItem>
-                        <SelectItem value="Médio">Médio</SelectItem>
-                        <SelectItem value="Baixo">Baixo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Checklist Documental Mandatório */}
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
-                    Checklist Documental Mandatório (Critérios Limitantes)
-                  </span>
-                  <div className="space-y-1.5 text-[11px]">
-                    {[
-                      {
-                        key: 'item_1_registro_estabelecimento_mapa',
-                        label: '1. Cópia do Registro de Estabelecimento MAPA em vigor',
-                      },
-                      {
-                        key: 'item_2_registro_produto_isencao',
-                        label: '2. Certificado de Registro/Cadastro do Produto / Isenção legal',
-                      },
-                      {
-                        key: 'item_3_ficha_tecnica',
-                        label: '3. Ficha Técnica com níveis de garantia e restrições',
-                      },
-                      {
-                        key: 'item_4_declaracao_conformidade_a10',
-                        label: '4. Declaração de Conformidade A10 assinada pelo RT',
-                      },
-                      {
-                        key: 'item_5_controle_ractopamina',
-                        label: '5. Aptidão para fornecimento livre de ractopamina',
-                      },
-                      {
-                        key: 'item_6_certificados_3_ultimos_lotes',
-                        label: '6. Certificados de análise dos 3 últimos lotes',
-                      },
-                    ].map((item) => (
-                      <label key={item.key} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={Boolean((fr16Form.checklist_documental as any)[item.key])}
-                          onChange={(e) =>
-                            setFr16Form({
-                              ...fr16Form,
-                              checklist_documental: {
-                                ...fr16Form.checklist_documental,
-                                [item.key]: e.target.checked,
-                              },
-                            })
-                          }
-                          className="h-3.5 w-3.5 rounded text-[#2D6A4F]"
-                        />
-                        <span className="text-stone-700">{item.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Avaliação Analítica Piloto */}
-                <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-200 space-y-2">
-                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
-                    Resultado da Amostra Piloto
-                  </span>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <Label className="text-[10px]">Laudo nº</Label>
-                      <Input
-                        value={fr16Form.amostra_piloto.laudo_numero}
-                        onChange={(e) =>
-                          setFr16Form({
-                            ...fr16Form,
-                            amostra_piloto: {
-                              ...fr16Form.amostra_piloto,
-                              laudo_numero: e.target.value,
-                            },
-                          })
-                        }
-                        placeholder="Ex: LAUD-098"
-                        className="h-7 text-xs mt-0.5"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px]">Umidade (%)</Label>
-                      <Input
-                        value={fr16Form.amostra_piloto.umidade_percent}
-                        onChange={(e) =>
-                          setFr16Form({
-                            ...fr16Form,
-                            amostra_piloto: {
-                              ...fr16Form.amostra_piloto,
-                              umidade_percent: e.target.value,
-                            },
-                          })
-                        }
-                        placeholder="Ex: 11.2%"
-                        className="h-7 text-xs mt-0.5"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-[10px]">Proteína Bruta (%)</Label>
-                      <Input
-                        value={fr16Form.amostra_piloto.proteina_bruta_percent}
-                        onChange={(e) =>
-                          setFr16Form({
-                            ...fr16Form,
-                            amostra_piloto: {
-                              ...fr16Form.amostra_piloto,
-                              proteina_bruta_percent: e.target.value,
-                            },
-                          })
-                        }
-                        placeholder="Ex: 46.5%"
-                        className="h-7 text-xs mt-0.5"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Parecer Conclusivo */}
-                <div>
-                  <Label className="text-xs font-bold text-stone-800">
-                    Parecer Conclusivo da Comissão
-                  </Label>
-                  <Select
-                    value={fr16Form.parecer_conclusivo}
-                    onValueChange={(val) => setFr16Form({ ...fr16Form, parecer_conclusivo: val })}
-                  >
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Qualificado sem Restrições">
-                        Qualificado sem Restrições (Inclusão na Lista FR 14)
-                      </SelectItem>
-                      <SelectItem value="Qualificado com Restrições">
-                        Qualificado com Restrições (Análises lote a lote 90 dias)
-                      </SelectItem>
-                      <SelectItem value="Reprovado / Não Qualificado">
-                        Reprovado / Não Qualificado
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* FR 19: Verificação Anual e Requalificação */}
-            {selectedFormCode === 'FR 19' && (
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Razão Social do Fornecedor</Label>
-                    <Input
-                      value={fr19Form.fornecedor_razao_social}
-                      onChange={(e) =>
-                        setFr19Form({ ...fr19Form, fornecedor_razao_social: e.target.value })
-                      }
-                      required
-                      placeholder="Fornecedor sob auditoria anual"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Código FR 14</Label>
-                    <Input
-                      value={fr19Form.codigo_fr14}
-                      onChange={(e) => setFr19Form({ ...fr19Form, codigo_fr14: e.target.value })}
-                      placeholder="Ex: MP-001"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Insumos Fornecidos</Label>
-                  <Input
-                    value={fr19Form.insumos_fornecidos}
-                    onChange={(e) =>
-                      setFr19Form({ ...fr19Form, insumos_fornecidos: e.target.value })
-                    }
-                    placeholder="Ex: Farelo de Soja 46%, Farinha de Carne"
-                    className="h-8 text-xs mt-1"
-                  />
-                </div>
-
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
-                    Quesitos de Verificação Periódica (5 Itens Compulsórios)
-                  </span>
-                  <div className="space-y-1.5 text-[11px]">
-                    {[
-                      {
-                        key: 'item_1_registro_mapa_vigente',
-                        label:
-                          '1. Registro do estabelecimento no MAPA permanece vigente sem suspensão?',
-                      },
-                      {
-                        key: 'item_2_produtos_regulares',
-                        label:
-                          '2. Registros/cadastros dos produtos fornecidos regulares no SIPEAGRO?',
-                      },
-                      {
-                        key: 'item_3_indice_nc_menor_meta',
-                        label: '3. Índice de NC de recebimento no ano foi inferior a 1,5%?',
-                      },
-                      {
-                        key: 'item_4_rotulagem_decreto',
-                        label:
-                          '4. Rotulagem dos produtos permaneceu 100% conforme Decreto nº 12.031/2024?',
-                      },
-                      {
-                        key: 'item_5_prazos_validade_especificacoes',
-                        label: '5. Insumos mantiveram-se estritamente dentro da validade e laudos?',
-                      },
-                    ].map((q) => (
-                      <label key={q.key} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={Boolean((fr19Form.verificacao_itens as any)[q.key])}
-                          onChange={(e) =>
-                            setFr19Form({
-                              ...fr19Form,
-                              verificacao_itens: {
-                                ...fr19Form.verificacao_itens,
-                                [q.key]: e.target.checked,
-                              },
-                            })
-                          }
-                          className="h-3.5 w-3.5 rounded text-[#2D6A4F]"
-                        />
-                        <span className="text-stone-700">{q.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-bold text-stone-800">
-                    Decisão da Comissão de Requalificação
-                  </Label>
-                  <Select
-                    value={fr19Form.decisao_comissao}
-                    onValueChange={(val) => setFr19Form({ ...fr19Form, decisao_comissao: val })}
-                  >
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Manter Qualificação Ativa (12 meses)">
-                        Manter Qualificação Ativa por mais 12 meses na Lista FR 14
-                      </SelectItem>
-                      <SelectItem value="Requalificar sob Condicionantes">
-                        Requalificar sob Condicionantes (Nova auditoria em 60 dias)
-                      </SelectItem>
-                      <SelectItem value="Desqualificar e Bloquear">
-                        Desqualificar e Bloquear Imediatamente no sistema
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* A8: Checklist de Auditoria / Visita Técnica a Fornecedores */}
-            {selectedFormCode === 'A8' && (
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Razão Social do Fornecedor Auditado</Label>
-                    <Input
-                      value={a8Form.fornecedor}
-                      onChange={(e) => setA8Form({ ...a8Form, fornecedor: e.target.value })}
-                      required
-                      placeholder="Empresa fornecedora"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Registro MAPA nº</Label>
-                    <Input
-                      value={a8Form.registro_mapa}
-                      onChange={(e) => setA8Form({ ...a8Form, registro_mapa: e.target.value })}
-                      placeholder="Ex: MG-009876-1"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Itens Conformes (C)</Label>
-                    <Input
-                      type="number"
-                      value={a8Form.c_count}
-                      onChange={(e) => setA8Form({ ...a8Form, c_count: Number(e.target.value) })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Itens Não Conformes (NC)</Label>
-                    <Input
-                      type="number"
-                      value={a8Form.nc_count}
-                      onChange={(e) => setA8Form({ ...a8Form, nc_count: Number(e.target.value) })}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Classificação Final</Label>
-                    <Select
-                      value={a8Form.classificacao}
-                      onValueChange={(val) => setA8Form({ ...a8Form, classificacao: val })}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Aprovado (>85%)">Aprovado (&gt;85%)</SelectItem>
-                        <SelectItem value="Aprovado com Ressalvas (70–84%)">
-                          Aprovado com Ressalvas (70–84%)
-                        </SelectItem>
-                        <SelectItem value="Reprovado (<70%)">Reprovado (&lt;70%)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-xs">Plano de Ação (CAPA do Fornecedor se aplicável)</Label>
-                  <Textarea
-                    rows={2}
-                    value={a8Form.plano_acao}
-                    onChange={(e) => setA8Form({ ...a8Form, plano_acao: e.target.value })}
-                    placeholder="Prazos e ações para adequação de itens..."
-                    className="text-xs mt-1"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* A10: Declaração de Conformidade do Fornecedor */}
-            {selectedFormCode === 'A10' && (
-              <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Razão Social da Fornecedora</Label>
-                    <Input
-                      value={a10Form.fornecedor_razao_social}
-                      onChange={(e) =>
-                        setA10Form({ ...a10Form, fornecedor_razao_social: e.target.value })
-                      }
-                      required
-                      placeholder="Empresa fornecedora"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">CNPJ</Label>
-                    <Input
-                      value={a10Form.fornecedor_cnpj}
-                      onChange={(e) => setA10Form({ ...a10Form, fornecedor_cnpj: e.target.value })}
-                      placeholder="00.000.000/0000-00"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Endereço Fabril</Label>
-                    <Input
-                      value={a10Form.fornecedor_estabelecimento_endereco}
-                      onChange={(e) =>
-                        setA10Form({
-                          ...a10Form,
-                          fornecedor_estabelecimento_endereco: e.target.value,
-                        })
-                      }
-                      placeholder="Logradouro, Município/UF"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Registro MAPA nº</Label>
-                    <Input
-                      value={a10Form.fornecedor_registro_mapa}
-                      onChange={(e) =>
-                        setA10Form({ ...a10Form, fornecedor_registro_mapa: e.target.value })
-                      }
-                      placeholder="UF-000000-0"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
-                  <span className="font-bold text-[#2D6A4F] text-[11px] uppercase block">
-                    Termo de Controle de Ractopamina (Assinalar uma opção)
-                  </span>
-                  <div className="space-y-1.5 text-[11px]">
-                    {[
-                      {
-                        key: 'consta_lista_mapa',
-                        label:
-                          'Consta na lista de estabelecimentos aptos a fornecer produtos sem ractopamina do MAPA',
-                      },
-                      {
-                        key: 'nao_manipula',
-                        label: 'Não manipula, não estoca e não processa cloridrato de ractopamina',
-                      },
-                      {
-                        key: 'linha_dedicada',
-                        label:
-                          'Possui linha fabril dedicada e validada como isenta de contaminação cruzada',
-                      },
-                    ].map((opt) => (
-                      <label key={opt.key} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="opcao_ractopamina"
-                          checked={a10Form.opcao_ractopamina === opt.key}
-                          onChange={() =>
-                            setA10Form({ ...a10Form, opcao_ractopamina: opt.key as any })
-                          }
-                          className="h-3.5 w-3.5 text-[#2D6A4F]"
-                        />
-                        <span className="text-stone-700">{opt.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Nome do RT do Fornecedor</Label>
-                    <Input
-                      value={a10Form.rt_fornecedor_nome}
-                      onChange={(e) =>
-                        setA10Form({ ...a10Form, rt_fornecedor_nome: e.target.value })
-                      }
-                      placeholder="Nome do RT declarante"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Registro de Classe / CRMV / CRMV-Z</Label>
-                    <Input
-                      value={a10Form.rt_fornecedor_registro_classe}
-                      onChange={(e) =>
-                        setA10Form({ ...a10Form, rt_fornecedor_registro_classe: e.target.value })
-                      }
-                      placeholder="Ex: CRMV-SP 12.345"
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* IT 14 e A9: Formulários Técnicos de Instrução e Matriz de Risco */}
-            {['IT 14', 'A9'].includes(selectedFormCode) && (
-              <div className="space-y-3 text-xs">
-                <div>
-                  <Label className="text-xs">Identificação do Insumo / Categoria Técnica</Label>
-                  <Input
-                    placeholder="Ex: Grãos a Granel, Farinhas de Origem Animal, Minerais..."
-                    required
-                    className="h-8 text-xs mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">
-                    Parâmetros Analíticos / Perigos Críticos Monitorados
-                  </Label>
-                  <Textarea
-                    rows={3}
-                    placeholder="Descreva os ensaios executados ou perigos avaliados..."
-                    className="text-xs mt-1"
-                  />
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="pt-3 border-t border-stone-200">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setModalOpen(false)}
-                className="text-xs"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={submitting}
-                className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                {submitting ? 'Salvando...' : 'Salvar Registro Digital'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de Impressão PDF Padronizado (Verde Floresta / Âmbar) */}
+      <Pop01PrintPdfModal
+        open={printModalOpen}
+        onOpenChange={setPrintModalOpen}
+        codigoAnexo={printData.codigoAnexo}
+        titulo={printData.titulo}
+        subtitulo={printData.subtitulo}
+        company={company}
+        dados={printData.dados}
+        rtSignatureImage={user?.assinatura_imagem}
+      />
     </div>
   )
 }

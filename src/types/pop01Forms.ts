@@ -1,6 +1,546 @@
-// Modelos Tipados para os 11 Formulários/Anexos Digitais do POP 01 (conforme docx e planilha XLSX)
-// ESTRUTURAS NORMATIVAS APENAS — SEM DADOS DE EXEMPLO EMBUTIDOS
+// Types para os 7 Anexos Aprimorados do POP 01 (Qualificação e Controle de Matérias-Primas - IN 04/2007)
+// Mantém total compatibilidade com modelos existentes (FR 15, IT 14, A8, A9, A10, FR 01/RNC, Indicadores)
 
+export interface ChangeHistoryItem {
+  usuario: string
+  data_hora: string
+  acao: string
+  detalhes?: string
+}
+
+// -------------------------------------------------------------
+// ANEXO I – Formulário de Qualificação de Fornecedor
+// -------------------------------------------------------------
+export interface AnexoIQualificacaoData {
+  // Cabeçalho
+  versao: string
+  data_qualificacao: string
+  responsavel_qualificacao: string
+  status_fluxo:
+    | 'Rascunho'
+    | 'Enviado para Aprovação'
+    | 'Aprovado'
+    | 'Reprovado'
+    | 'Aprovado Condicionalmente'
+
+  // Seção 1 Dados do Fornecedor
+  razao_social: string
+  cnpj: string
+  cpf?: string
+  endereco_completo: string
+  telefone: string
+  email: string
+  responsavel_tecnico: string
+  inscricao_profissional?: string
+
+  // Seção 2 Documentação Apresentada (checkboxes)
+  doc_cnpj_cpf: boolean
+  doc_registro_mapa: boolean
+  doc_regularidade_fiscal: boolean
+  doc_manual_bpf: boolean
+  doc_autocontrole: boolean
+  doc_especificacao_tecnica: boolean
+  doc_certificado_analise_recente: boolean
+  doc_certificado_origem_animal: boolean
+  doc_licenca_mapa_medicamentos: boolean
+  doc_certificado_conformidade_embalagens: boolean
+  documentacao_complementar?: string
+
+  // Seção 3 Critérios de Qualificação
+  criterio_registro_mapa: 'Sim' | 'Não' | 'Não Aplicável'
+  criterio_bpf: 'Conforme' | 'Não Conforme' | 'Pendente'
+  criterio_autocontrole: 'Implementado' | 'Em Implementação' | 'Não Implementado'
+  criterio_historico: 'Satisfatório' | 'Insatisfatório' | 'Sem Histórico'
+  criterio_capacidade_tecnica: 'Adequada' | 'Inadequada' | 'Pendente Avaliação'
+  criterio_origem_animal: 'N/A' | 'Registrado' | 'Não Registrado'
+  criterio_medicamentos: 'N/A' | 'Licenciado' | 'Não Licenciado'
+  criterio_produtos_importados: 'N/A' | 'Documentação Completa' | 'Documentação Incompleta'
+
+  // Seção 4 Parecer Final
+  parecer_final: 'Aprovado' | 'Reprovado' | 'Aprovado Condicionalmente'
+  motivo_rejeicao?: string // obrigatório se reprovado
+  condicoes_aprovacao_condicional?: string
+  observacoes_gerais?: string
+  data_validade_qualificacao: string // data + 2 anos
+
+  // Seção 5 Assinaturas
+  assinado_rq_nome: string
+  assinado_rq_data: string
+  assinado_rt_nome: string
+  assinado_rt_data: string
+  rt_assinatura_imagem?: string
+
+  // Histórico
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+// -------------------------------------------------------------
+// ANEXO II – Lista de Fornecedores Qualificados
+// -------------------------------------------------------------
+export type FornecedorStatus = 'Ativo' | 'Inativo' | 'Suspenso' | 'Desqualificado'
+
+export interface AnexoIIFornecedorItem {
+  id: string
+  id_fornecedor: string // REC-FOR-XXXXX ou similar
+  razao_social: string
+  cnpj: string
+  produtos_fornecidos: string
+  data_qualificacao: string
+  data_validade: string
+  status: FornecedorStatus
+  responsavel_tecnico: string
+  telefone: string
+  email: string
+  ultima_revisao: string
+  motivo_desqualificacao?: string
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+export interface AnexoIIListaData {
+  versao: string
+  data_atualizacao: string
+  responsavel: string
+  fornecedores: AnexoIIFornecedorItem[]
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+// -------------------------------------------------------------
+// ANEXO III – Formulário de Recebimento de Matérias-Primas e Ingredientes
+// -------------------------------------------------------------
+export interface AnexoIIIRecebimentoData {
+  // Cabeçalho
+  numero_recebimento: string // REC-YYYYMMDD-NNNNN
+  data_recebimento: string
+  responsavel_recebimento: string
+  versao: string
+  status_fluxo:
+    | 'Rascunho'
+    | 'Aguardando Análise'
+    | 'Aprovado'
+    | 'Reprovado'
+    | 'Aprovado Condicionalmente'
+
+  // Seção 1 Fornecedor
+  fornecedor_id?: string
+  fornecedor_razao_social: string
+  fornecedor_cnpj: string
+  fornecedor_contato?: string
+  fornecedor_telefone?: string
+
+  // Seção 2 Identificação do Produto
+  produto_nome: string
+  especificacao_tecnica?: string
+  lote_partida: string
+  data_fabricacao: string
+  data_validade: string
+  dias_ate_vencimento?: number
+  quantidade_recebida: number | string
+  unidade: 'kg' | 'L' | 'unidade' | 'saco' | 'tonelada' | string
+  numero_nota_fiscal: string
+
+  // Seção 3 Inspeção Visual (Sim / Não)
+  insp_embalagem_integra: boolean
+  insp_rotulo_legivel: boolean
+  insp_sem_contaminacao: boolean
+  insp_sem_vazamento: boolean
+  insp_sem_infestacao: boolean
+  insp_temperatura_adequada: boolean
+  observacoes_inspecao_visual?: string
+
+  // Seção 4 Documentação
+  doc_nota_fiscal: boolean
+  doc_certificado_analise: boolean
+  doc_certificado_origem: boolean
+  doc_registro_mapa: boolean
+  documentacao_complementar?: string
+
+  // Seção 5 Coleta de Amostra
+  coleta_amostra: boolean
+  amostra_numero?: string // AMS-YYYYMMDD-NNNNN
+  amostra_data?: string
+  amostra_quantidade?: number | string
+  amostra_triplicata?: boolean
+  amostra_local_armazenamento?: string
+  amostra_temperatura_c?: number | string
+  amostra_responsavel?: string
+
+  // Seção 6 Resultado da Inspeção
+  resultado: 'Aprovado' | 'Reprovado' | 'Aprovado Condicionalmente'
+  motivo_rejeicao?:
+    | 'Validade Expirada'
+    | 'Embalagem Danificada'
+    | 'Contaminação'
+    | 'Fornecedor Não Qualificado'
+    | 'Outro'
+    | string
+  descricao_motivo_rejeicao?: string
+  condicoes_aprovacao_condicional?: string
+
+  // Seção 7 Armazenamento
+  local_armazenamento: string
+  posicao_armazem?: string
+  data_entrada_armazem: string
+  responsavel_armazenamento: string
+
+  // Seção 8 Assinatura
+  assinado_por_nome: string
+  assinado_data: string
+  rt_assinatura_imagem?: string
+
+  // Histórico
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+// -------------------------------------------------------------
+// ANEXO IV – Formulário de Coleta de Amostra
+// -------------------------------------------------------------
+export interface AmostraTriplicataItem {
+  identificacao: string
+  quantidade: number | string
+  destino: 'Análise' | 'Contra-Prova' | 'Retenção'
+}
+
+export interface AnexoIVColetaAmostraData {
+  // Cabeçalho
+  numero_amostra: string // AMS-YYYYMMDD-NNNNN
+  data_coleta: string
+  hora_coleta: string
+  responsavel_coleta: string
+  versao: string
+  status_fluxo: 'Rascunho' | 'Enviado para Análise' | 'Em Análise' | 'Concluída'
+
+  // Seção 1 Identificação do Recebimento (Vinculado)
+  recebimento_numero: string // REC-YYYYMMDD-NNNNN
+  fornecedor_razao_social: string
+  produto_nome: string
+  lote_partida: string
+  data_fabricacao: string
+  data_validade: string
+
+  // Seção 2 Coleta
+  quantidade_total_recebida: number | string
+  quantidade_coletada: number | string
+  unidade: string
+  metodo_coleta:
+    | 'Amostragem Aleatória'
+    | 'Amostragem Sistemática'
+    | 'Amostragem Estratificada'
+    | 'Amostragem Intencional'
+    | string
+
+  // Seção 3 Triplicata
+  amostra_em_triplicata: boolean
+  amostras: AmostraTriplicataItem[]
+
+  // Seção 4 Acondicionamento e Armazenamento
+  tipo_embalagem: 'Frasco de Vidro' | 'Saco Plástico' | 'Caixa de Papelão' | 'Outro' | string
+  identificacao_embalagem?: string
+  lacre_selo: boolean
+  numero_lacre?: string
+  temperatura_armazenamento_c: number | string
+  local_armazenamento: 'Câmara Fria' | 'Temperatura Ambiente' | 'Congelador' | 'Outro' | string
+  data_armazenamento: string
+  responsavel_armazenamento: string
+
+  // Seção 5 Análises Solicitadas
+  analises: {
+    micro_mesofilos: boolean
+    micro_coliformes: boolean
+    micro_salmonella: boolean
+    micro_listeria: boolean
+    fq_umidade: boolean
+    fq_proteina: boolean
+    fq_gordura: boolean
+    microscopica_contaminantes: boolean
+    residuos_pesticidas: boolean
+    residuos_metais: boolean
+    molecular_ogm: boolean
+    outras_analises?: string
+  }
+
+  // Seção 6 Observações
+  observacoes_gerais?: string
+  condicoes_transporte?: string
+
+  // Seção 7 Assinatura
+  assinado_por_nome: string
+  assinado_data: string
+  rt_assinatura_imagem?: string
+
+  // Histórico
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+// -------------------------------------------------------------
+// ANEXO V – Relatório de Análise Laboratorial
+// -------------------------------------------------------------
+export interface EnsaioLaboratorialItem {
+  id: string
+  grupo: 'Microbiológica' | 'Físico-Química' | 'Complementar'
+  analise: string
+  resultado: string | number
+  unidade: string
+  limite_especificacao: string
+  status: 'Conforme' | 'Não Conforme' | 'Não Realizado'
+  observacoes?: string
+}
+
+export interface AnexoVAnaliseLaboratorialData {
+  // Cabeçalho
+  numero_relatorio: string // LAB-YYYYMMDD-NNNNN
+  data_emissao: string
+  responsavel_emissao: string
+  versao: string
+  status_fluxo:
+    | 'Rascunho'
+    | 'Pendente Aprovação'
+    | 'Aprovado'
+    | 'Reprovado'
+    | 'Aprovado Condicionalmente'
+
+  // Seção 1 Identificação da Amostra (Vinculada)
+  numero_amostra: string // AMS-YYYYMMDD-NNNNN
+  numero_recebimento: string // REC-YYYYMMDD-NNNNN
+  fornecedor_razao_social: string
+  produto_nome: string
+  lote_partida: string
+  data_coleta: string
+  data_recebimento_laboratorio: string
+
+  // Seção 2 Informações do Laboratório
+  laboratorio_nome: string
+  responsavel_tecnico_laboratorio: string
+  acreditacao: string
+  data_inicio_analise: string
+  data_conclusao_analise: string
+
+  // Seções 3-5 Resultados dos Ensaios
+  ensaios: EnsaioLaboratorialItem[]
+
+  // Seção 6 Resumo de Conformidade
+  total_analises: number
+  analises_conformes: number
+  analises_nao_conformes: number
+  percentual_conformidade: number
+  resultado_geral: 'Aprovado' | 'Reprovado' | 'Aprovado Condicionalmente'
+  motivo_rejeicao_relatorio?: string
+
+  // Seção 7 Parecer Técnico
+  parecer_laboratorio: string
+  recomendacoes?: string
+  observacoes_gerais?: string
+
+  // Seção 8 Assinaturas
+  assinado_rt_laboratorio_nome: string
+  assinado_rt_laboratorio_data: string
+  assinado_rq_empresa_nome: string
+  assinado_rq_empresa_data: string
+  rt_assinatura_imagem?: string
+
+  // Histórico
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+// -------------------------------------------------------------
+// ANEXO VI – Registro de Destinação de Produtos Não Aprovados
+// -------------------------------------------------------------
+export type TipoDestinacaoFinal =
+  | 'Devolução ao Fornecedor'
+  | 'Destruição/Inutilização'
+  | 'Aproveitamento Condicional'
+  | 'Doação'
+  | 'Outro'
+
+export interface AnexoVIDestinacaoData {
+  // Cabeçalho
+  numero_registro: string // DES-YYYYMMDD-NNNNN
+  data_registro: string
+  responsavel_registro: string
+  versao: string
+  status_fluxo: 'Rascunho' | 'Pendente Aprovação' | 'Concluído' | 'Cancelado'
+
+  // Seção 1 Identificação do Produto Não Aprovado (Vinculado)
+  numero_recebimento: string // REC-YYYYMMDD-NNNNN
+  fornecedor_razao_social: string
+  produto_nome: string
+  lote_partida: string
+  quantidade: number | string
+  unidade: string
+  data_rejeicao: string
+
+  // Seção 2 Motivo da Rejeição
+  motivo_rejeicao:
+    | 'Validade Expirada'
+    | 'Embalagem Danificada'
+    | 'Contaminação Microbiológica'
+    | 'Contaminação Química'
+    | 'Contaminação Física'
+    | 'Fornecedor Não Qualificado'
+    | 'Análise Reprovada'
+    | 'Outro'
+    | string
+  descricao_motivo: string
+  numero_relatorio_analise?: string
+
+  // Seção 3 Armazenamento Provisório
+  local_armazenamento: string // "Área de Produtos Não Aprovados"
+  data_armazenamento: string
+  responsavel_armazenamento: string
+  condicoes_armazenamento?: string
+
+  // Seção 4 Destinação Final
+  tipo_destinacao: TipoDestinacaoFinal
+
+  // Campos específicos de Devolução
+  devolucao_data?: string
+  devolucao_transportadora?: string
+  devolucao_rastreamento?: string
+  devolucao_responsavel?: string
+
+  // Campos de Destruição/Inutilização
+  destruicao_data?: string
+  destruicao_metodo?: 'Incineração' | 'Aterro' | 'Compostagem' | 'Outro' | string
+  destruicao_local?: string
+  destruicao_responsavel?: string
+  destruicao_comprovante_nome?: string
+
+  // Campos de Aproveitamento Condicional
+  aproveitamento_acao_corretiva?: string
+  aproveitamento_data_reprocessamento?: string
+  aproveitamento_responsavel?: string
+  aproveitamento_resultado?: 'Aprovado' | 'Reprovado'
+
+  // Campos de Doação
+  doacao_destinatario?: string
+  doacao_data?: string
+  doacao_transportadora?: string
+  doacao_rastreamento?: string
+  doacao_responsavel?: string
+  doacao_comprovante_nome?: string
+
+  // Campos de Outro
+  outro_descricao?: string
+  outro_data_conclusao?: string
+  outro_responsavel?: string
+  outro_comprovante_nome?: string
+
+  // Seção 5 Conformidade Ambiental
+  conformidade_ambiental: boolean
+  referencia_legislacao?: string
+  orgao_ambiental_notificado: 'Sim' | 'Não' | 'Não Aplicável'
+  numero_protocolo_ambiental?: string
+
+  // Seção 6 Observações
+  observacoes_gerais?: string
+  licoes_aprendidas?: string
+
+  // Seção 7 Assinaturas
+  assinado_rq_nome: string
+  assinado_rq_data: string
+  assinado_rt_nome: string
+  assinado_rt_data: string
+  rt_assinatura_imagem?: string
+
+  // Histórico
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+// -------------------------------------------------------------
+// ANEXO VII – Formulário de Ação Corretiva
+// -------------------------------------------------------------
+export interface AcaoCorretivaItem {
+  id: string
+  descricao: string
+  responsavel: string
+  data_inicio: string
+  data_conclusao_prevista: string
+  status: 'Planejada' | 'Em Execução' | 'Concluída' | 'Atrasada'
+  resultado?: string
+  data_conclusao_real?: string
+}
+
+export interface AcompanhamentoHistoricoItem {
+  id: string
+  data: string
+  responsavel: string
+  status: string
+  observacoes: string
+}
+
+export interface AnexoVIIAcaoCorretivaData {
+  // Cabeçalho
+  numero_acao_corretiva: string // AC-YYYYMMDD-NNNNN
+  data_abertura: string
+  responsavel_abertura: string
+  versao: string
+  status_geral: 'Aberta' | 'Em Andamento' | 'Concluída' | 'Fechada' | 'Reaberta'
+
+  // Seção 1 Identificação da Não Conformidade
+  tipo_nc: 'Recebimento' | 'Análise Laboratorial' | 'Armazenamento' | 'Fornecedor' | 'Outro'
+  numero_recebimento?: string
+  numero_relatorio_analise?: string
+  fornecedor_razao_social: string
+  produto_nome: string
+  lote_partida: string
+  data_identificacao: string
+
+  // Seção 2 Descrição da Não Conformidade
+  descricao_detalhada: string
+  impacto_potencial: 'Baixo' | 'Médio' | 'Alto'
+  justificativa_impacto: string
+  evidencias_anexo?: string
+
+  // Seção 3 Análise de Causa Raiz
+  causa_raiz_identificada: string
+  metodo_analise: '5 Porquês' | 'Diagrama de Ishikawa' | 'Análise de Falhas' | 'Outro' | string
+  responsavel_analise: string
+  data_analise: string
+
+  // Seção 4 Ações Corretivas
+  acoes_corretivas: AcaoCorretivaItem[]
+
+  // Seção 5 Ações Preventivas (opcional)
+  acoes_preventivas_necessarias: boolean
+  acoes_preventivas?: AcaoCorretivaItem[]
+
+  // Seção 6 Acompanhamento
+  frequencia_acompanhamento: 'Diária' | 'Semanal' | 'Quinzenal' | 'Mensal'
+  responsavel_acompanhamento: string
+  data_proximo_acompanhamento: string
+  historico_acompanhamento: AcompanhamentoHistoricoItem[]
+
+  // Seção 7 Verificação de Efetividade
+  acao_efetiva: 'Sim' | 'Não' | 'Pendente Verificação'
+  motivo_inefetividade?: string
+  acoes_adicionais?: string
+  data_reabertura?: string
+  evidencias_efetividade?: string
+  data_fechamento?: string
+
+  // Seção 8 Impacto na Qualificação de Fornecedor
+  impacto_qualificacao_fornecedor: boolean
+  acao_recomendada_fornecedor?: 'Manutenção' | 'Revisão Especial' | 'Desqualificação'
+  justificativa_impacto_fornecedor?: string
+  ncs_anteriores_contagem?: number
+
+  // Seção 9 Observações
+  observacoes_gerais?: string
+  licoes_aprendidas?: string
+
+  // Seção 10 Assinaturas
+  assinado_rq_nome: string
+  assinado_rq_data: string
+  assinado_rt_nome: string
+  assinado_rt_data: string
+  rt_assinatura_imagem?: string
+
+  // Histórico
+  historico_alteracoes?: ChangeHistoryItem[]
+}
+
+// -------------------------------------------------------------
+// MODELOS NORMATIVOS MANTIDOS (FR 15, IT 14, A8, A9, A10, FR 01)
+// -------------------------------------------------------------
 export interface CheckItemState {
   item: number | string
   descricao: string
@@ -8,88 +548,6 @@ export interface CheckItemState {
   observacoes?: string
 }
 
-// 1. FR 08 - Registro de Recebimento de Mercadorias
-export interface FR08RecebimentoData {
-  data_recebimento: string
-  horario: string
-  fornecedor_razao_social: string
-  fabricante_razao_social: string
-  nota_fiscal: string
-  transportadora: string
-  placa_veiculo: string
-  tipo_veiculo: 'Baú' | 'Sider' | 'Graneleiro' | string
-  produto_insumo: string
-  lote_fornecedor: string
-  lote_interno: string
-  data_fabricacao: string
-  data_validade: string
-  peso_nf_kg: number | string
-  peso_aferido_kg: number | string
-  variacao_peso_percent: number | string
-  numero_volumes: number | string
-
-  // Checklist de Inspeção do Veículo e da Carga (8 itens)
-  checklist_veiculo: {
-    item_1_higiene: 'C' | 'NC' | 'NA'
-    item_1_obs?: string
-    item_2_integridade: 'C' | 'NC' | 'NA'
-    item_2_obs?: string
-    item_3_lona: 'C' | 'NC' | 'NA'
-    item_3_obs?: string
-    item_4_incompatíveis: 'C' | 'NC' | 'NA'
-    item_4_obs?: string
-    item_5_embalagens: 'C' | 'NC' | 'NA'
-    item_5_obs?: string
-    item_6_rotulagem_decreto: 'C' | 'NC' | 'NA'
-    item_6_obs?: string
-    item_7_fornecedor_qualificado_fr14: 'C' | 'NC' | 'NA'
-    item_7_obs?: string
-    item_8_laudo_conforme: 'C' | 'NC' | 'NA'
-    item_8_obs?: string
-  }
-
-  // Avaliação Sensorial
-  sensorial: {
-    cor: 'Característica (Típica)' | 'Alterada' | string
-    odor: 'Característico' | 'Estranho / Rancoso / Mofo' | string
-    aspecto_textura: 'Uniforme (Normal)' | 'Empedrado / Desuniforme' | string
-    umidade_visivel: 'Ausente' | 'Presente' | string
-    pragas_sujidades: 'Ausente' | 'Presente' | string
-  }
-
-  // Parecer Final
-  parecer_final: 'Liberado para Descarga' | 'Retido em Quarentena' | 'Rejeitado Totalmente' | string
-  observacoes_desvios?: string
-  responsavel_recebimento_nome: string
-  visto_cq_nome: string
-  rt_assinatura_imagem?: string
-}
-
-// 2. FR 14 - Lista de Fornecedores e Fabricantes Qualificados
-export interface FR14FornecedorItem {
-  id?: string
-  codigo: string
-  materia_prima_insumo: string
-  razao_social: string
-  registro_mapa: string
-  registro_cadastro_produto: string
-  risco_insumo: 'Alto' | 'Médio' | 'Baixo' | string
-  validade_qualificacao: string
-  status_cadastral: 'Ativo' | 'Suspenso'
-  observacoes?: string
-}
-
-export interface FR14Data {
-  titulo: string
-  data_atualizacao: string
-  fornecedores: FR14FornecedorItem[]
-  notas_normativas: {
-    nota_1: string
-    nota_2: string
-  }
-}
-
-// 3. FR 15 - Monitoramento Diário de Temperatura e Umidade
 export interface FR15MedicaoLinha {
   dia: number
   hora: string
@@ -116,118 +574,6 @@ export interface FR15TempUmidadeData {
   }
 }
 
-// 4. FR 16 - Formulário de Qualificação de Fornecedores
-export interface FR16QualificacaoData {
-  // Proponente
-  razao_social: string
-  nome_fantasia?: string
-  cnpj: string
-  inscricao_estadual?: string
-  registro_mapa: string
-  endereco_completo: string
-  uf: string
-  responsavel_tecnico: string
-  registro_classe_rt: string
-
-  // Produto
-  produto_denominacao: string
-  produto_registro_mapa: string
-  categoria: 'MP Vegetal' | 'MP Animal' | 'Aditivo' | 'Mineral' | 'Embalagem' | string
-  risco_appcc: 'Alto' | 'Médio' | 'Baixo' | string
-
-  // Checklist Documental Mandatório (Critérios Limitantes) - 6 itens
-  checklist_documental: {
-    item_1_registro_estabelecimento_mapa: boolean
-    item_2_registro_produto_isencao: boolean
-    item_3_ficha_tecnica: boolean
-    item_4_declaracao_conformidade_a10: boolean
-    item_5_controle_ractopamina: boolean
-    item_6_certificados_3_ultimos_lotes: boolean
-  }
-
-  // Avaliação Analítica da Amostra Piloto
-  amostra_piloto: {
-    laudo_numero: string
-    data_laudo: string
-    resultado: 'Aprovado' | 'Reprovado' | string
-    umidade_percent?: number | string
-    proteina_bruta_percent?: number | string
-    cinzas_percent?: number | string
-    microscopia?: string
-  }
-
-  // Parecer Conclusivo
-  parecer_conclusivo:
-    | 'Qualificado sem Restrições'
-    | 'Qualificado com Restrições'
-    | 'Reprovado / Não Qualificado'
-    | string
-  restricoes_observacoes?: string
-  coordenador_cq_nome: string
-  coordenador_cq_data?: string
-  rt_nome: string
-  rt_data?: string
-  rt_assinatura_imagem?: string
-}
-
-// 5. FR 18 - Solicitação de Descarte de Insumos e Produtos
-export interface FR18ItemDescarte {
-  id?: string
-  item_num: number
-  descricao: string
-  lote_interno: string
-  lote_fornecedor: string
-  quantidade_kg: number | string
-  local_destinacao: string
-  data_execucao: string
-}
-
-export interface FR18DescarteData {
-  motivo_descarte:
-    | 'Validade Vencida'
-    | 'Produto Impróprio (Arts. 95-99)'
-    | 'Contaminação Física/Química'
-    | 'Avaria Crítica'
-    | string
-  itens: FR18ItemDescarte[]
-  parecer_tecnico_ambiental: string
-  encarregado_almoxarifado_nome: string
-  rt_nome: string
-  rt_assinatura_imagem?: string
-}
-
-// 6. FR 19 - Verificação Anual dos Critérios de Qualificação
-export interface FR19VerificacaoData {
-  fornecedor_razao_social: string
-  codigo_fr14: string
-  insumos_fornecidos: string
-  data_avaliacao: string
-
-  // 5 Itens de Avaliação
-  verificacao_itens: {
-    item_1_registro_mapa_vigente: boolean
-    item_1_obs?: string
-    item_2_produtos_regulares: boolean
-    item_2_obs?: string
-    item_3_indice_nc_menor_meta: boolean
-    item_3_obs?: string
-    item_4_rotulagem_decreto: boolean
-    item_4_obs?: string
-    item_5_prazos_validade_especificacoes: boolean
-    item_5_obs?: string
-  }
-
-  decisao_comissao:
-    | 'Manter Qualificação Ativa (12 meses)'
-    | 'Requalificar sob Condicionantes (Auditoria em 60 dias)'
-    | 'Desqualificar e Bloquear Imediatamente'
-    | string
-  avaliador_cq_nome: string
-  homologacao_rt_nome: string
-  rt_assinatura_imagem?: string
-}
-
-// 7. IT 14 - Instrução de Trabalho: Análise de Matérias-Primas
 export interface IT14ParametroCategoria {
   categoria: string
   parametros_recebimento: string
@@ -249,7 +595,6 @@ export interface IT14AnaliseData {
   rt_assinatura_imagem?: string
 }
 
-// 8. A8 - Checklist de Auditoria / Visita Técnica a Fornecedores
 export interface A8RequisitoItem {
   id: string
   item: string
@@ -271,7 +616,6 @@ export interface A8AuditoriaData {
   rt_assinatura_imagem?: string
 }
 
-// 9. A9 - Matriz de Risco de Matérias-Primas (APPCC)
 export interface A9MatrizRiscoItem {
   id?: string
   categoria_insumo: string
@@ -289,7 +633,6 @@ export interface A9MatrizRiscoData {
   rt_assinatura_imagem?: string
 }
 
-// 10. A10 - Declaração de Conformidade do Fornecedor
 export interface A10DeclaracaoData {
   compradora_empresa: string
   fornecedor_razao_social: string
@@ -308,7 +651,6 @@ export interface A10DeclaracaoData {
   rt_fornecedor_assinatura_url?: string
 }
 
-// 11. FR 01 - Registro de Não Conformidade (RNC)
 export interface FR01RNCData {
   numero_rnc: string
   data_ocorrencia: string
@@ -343,7 +685,9 @@ export interface FR01RNCData {
   }
 }
 
-// 12. PAINEL DE INDICADORES (Seção 14 do POP 01 e aba PAINEL_Indicadores)
+// -------------------------------------------------------------
+// Indicadores e Dashboard
+// -------------------------------------------------------------
 export interface POP01IndicadoresKPI {
   id: string
   codigo: string

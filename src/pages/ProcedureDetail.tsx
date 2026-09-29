@@ -154,12 +154,25 @@ export default function ProcedureDetail() {
   const calculatePop01Summary = (): POP01PainelResumo => {
     const fr08Records = records.filter(
       (r) =>
-        r.formulario_codigo === 'FR 08' || (!r.formulario_codigo && r.procedure === procedure?.id),
+        r.formulario_codigo === 'FR 08' ||
+        r.formulario_codigo === 'ANEXO III' ||
+        r.formulario_codigo === 'F-01-POP-001' ||
+        (!r.formulario_codigo && r.procedure === procedure?.id),
     )
-    const fr14Records = records.filter((r) => r.formulario_codigo === 'FR 14')
+    const fr14Records = records.filter(
+      (r) =>
+        r.formulario_codigo === 'FR 14' ||
+        r.formulario_codigo === 'ANEXO II' ||
+        r.formulario_codigo === 'FR 16' ||
+        r.formulario_codigo === 'ANEXO I',
+    )
     const fr15Records = records.filter((r) => r.formulario_codigo === 'FR 15')
-    const fr18Records = records.filter((r) => r.formulario_codigo === 'FR 18')
-    const fr01Records = records.filter((r) => r.formulario_codigo === 'FR 01')
+    const fr18Records = records.filter(
+      (r) => r.formulario_codigo === 'FR 18' || r.formulario_codigo === 'ANEXO VI',
+    )
+    const fr01Records = records.filter(
+      (r) => r.formulario_codigo === 'FR 01' || r.formulario_codigo === 'ANEXO VII',
+    )
 
     const totalRecebimentos = fr08Records.length
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
