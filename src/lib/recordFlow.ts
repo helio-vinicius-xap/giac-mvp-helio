@@ -354,6 +354,12 @@ export function evaluatePopChain(
   procedureId: string,
   procedureCode: string,
   records: MonitoringRecord[],
+  customForms?: Array<{
+    codigo: string
+    titulo: string
+    obrigatorio_na_cadeia?: boolean
+    gera_pendencia?: boolean
+  }>,
 ): PopChainStatus {
   const normCode = normalizePopCode(procedureCode)
   const flowDef = POP_FLOW_DEFINITIONS[normCode]
@@ -430,6 +436,32 @@ export function evaluatePopChain(
             origem: 'sistema',
             registroAnterior: r.formulario_codigo || r.id,
             lote: r.lote,
+            procedureId,
+          })
+        }
+      }
+    }
+  }
+
+  // Integração dos Formulários Customizados Criados pelo Cliente na Cadeia:
+  // Se existirem formulários marcados como 'obrigatorio_na_cadeia' e ainda não houver nenhum registro preenchido para ele
+  if (Array.isArray(customForms)) {
+    for (const cf of customForms) {
+      if (cf.obrigatorio_na_cadeia) {
+        const hasFilled = procRecords.some(
+          (r) => r.formulario_codigo === cf.codigo && r.status_execucao === 'Preenchido',
+        )
+        if (!hasFilled) {
+          pendenciasAbertas.push({
+            id: `pend-custom-${cf.codigo}`,
+            registroId: '',
+            codigoFormulario: cf.codigo,
+            titulo: cf.titulo,
+            motivo:
+              'Formulário customizado obrigatório na cadeia aguardando preenchimento do ciclo',
+            prazoEstimadoHoras: 24,
+            diasAberto: 0,
+            origem: 'cliente',
             procedureId,
           })
         }

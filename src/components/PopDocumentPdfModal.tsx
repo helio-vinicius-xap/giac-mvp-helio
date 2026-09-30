@@ -308,28 +308,56 @@ export function PopDocumentPdfModal({
                     />
                   </div>
 
-                  <div className="pt-4 border-t border-stone-200 flex flex-col sm:flex-row gap-2 justify-end">
-                    {(userRole === 'RT' || userRole === 'admin') && (
+                  <div className="pt-4 border-t border-stone-200 flex flex-col sm:flex-row gap-2 justify-end flex-wrap">
+                    {/* HIERARQUIA GIAC: RE > RT > RQ */}
+                    {/* Assinatura 1: RT ou RE */}
+                    {(userRole === 'RT' ||
+                      userRole === 'RE' ||
+                      userRole === 'super_admin' ||
+                      userRole === 'admin_cliente') && (
                       <Button
                         type="button"
                         disabled={savingSig}
-                        onClick={() => handleRegisterSignature('RT')}
-                        className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5"
+                        onClick={() => handleRegisterSignature(userRole === 'RE' ? 'RE' : 'RT')}
+                        className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5 font-semibold"
                       >
-                        <ShieldCheck className="h-4 w-4" />
-                        {savingSig ? 'Registrando...' : 'Assinar como RT (Responsável Técnico)'}
+                        <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
+                        {savingSig
+                          ? 'Registrando...'
+                          : userRole === 'RE'
+                            ? 'Assinar como RE (Substituição Legal RT)'
+                            : 'Assinar como RT (Assinatura 1: Técnica)'}
                       </Button>
                     )}
 
-                    {(userRole === 'RE' || userRole === 'admin') && (
+                    {/* Assinatura 2: RQ ou RE */}
+                    {(userRole === 'RQ' ||
+                      userRole === 'RE' ||
+                      userRole === 'super_admin' ||
+                      userRole === 'admin_cliente') && (
+                      <Button
+                        type="button"
+                        disabled={savingSig}
+                        onClick={() => handleRegisterSignature('RQ')}
+                        className="bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs gap-1.5 font-semibold"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        {savingSig
+                          ? 'Registrando...'
+                          : 'Assinar como RQ (Assinatura 2: Verificação)'}
+                      </Button>
+                    )}
+
+                    {/* RE pode assinar formalmente como autoridade máxima do estabelecimento */}
+                    {(userRole === 'RE' || userRole === 'super_admin') && (
                       <Button
                         type="button"
                         disabled={savingSig}
                         onClick={() => handleRegisterSignature('RE')}
-                        className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs gap-1.5"
+                        className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-bold text-xs gap-1.5"
                       >
                         <KeyRound className="h-4 w-4" />
-                        {savingSig ? 'Registrando...' : 'Assinar como RE (Resp. Estabelecimento)'}
+                        {savingSig ? 'Registrando...' : 'Homologar como RE (Autoridade Máxima)'}
                       </Button>
                     )}
                   </div>
@@ -415,9 +443,16 @@ export function PopDocumentPdfModal({
                   1. Objetivo e Justificativa Técnica
                 </h4>
                 <p className="text-stone-700 leading-normal">
-                  {procedure.objetivo ||
+                  {procedure.secoes_normativas?.objetivo ||
+                    procedure.objetivo ||
                     'Padronizar as operações industriais e os critérios higiênico-sanitários para garantia da inocuidade alimentar animal, mitigando perigos biológicos, químicos e físicos em conformidade com o Item 07 da Instrução Normativa nº 04/2007 do MAPA.'}
                 </p>
+                {procedure.secoes_normativas?.campo_aplicacao && (
+                  <div className="pt-1 text-stone-600 text-[11px]">
+                    <strong>Campo de Aplicação: </strong>
+                    {procedure.secoes_normativas.campo_aplicacao}
+                  </div>
+                )}
               </div>
 
               {/* SEÇÃO 2: PERIGOS E MEDIDAS PREVENTIVAS */}
@@ -447,6 +482,15 @@ export function PopDocumentPdfModal({
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#2D6A4F] border-b border-stone-200 pb-1">
                   2. Procedimento Operacional: Como Deve Ser Executado
                 </h4>
+
+                {/* Exibição do texto normativo editado/revisado */}
+                {(procedure.texto_normativo_custom ||
+                  procedure.secoes_normativas?.descricao_detalhada) && (
+                  <div className="p-3 bg-stone-50 rounded border border-stone-200 text-stone-800 leading-relaxed whitespace-pre-wrap font-mono text-[11px]">
+                    {procedure.texto_normativo_custom ||
+                      procedure.secoes_normativas?.descricao_detalhada}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
                   <div className="p-2.5 bg-stone-50 rounded border border-stone-200">
@@ -579,60 +623,19 @@ export function PopDocumentPdfModal({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
-                  {/* Direção Executiva */}
-                  <div className="p-3 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-stone-50/50">
-                    <div className="text-stone-400 text-[10px] uppercase font-bold tracking-wider">
-                      Aprovado por (Direção)
-                    </div>
-                    {procedure.assinaturas_pop?.direcao ? (
-                      <div className="my-2 p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
-                        <strong>Assinado Eletronicamente por:</strong>
-                        <br />
-                        {procedure.assinaturas_pop.direcao.responsavel_nome}
-                      </div>
-                    ) : (
-                      <div className="my-4 border-b border-dashed border-stone-400 w-3/4 mx-auto" />
-                    )}
-                    <div>
-                      <p className="font-bold text-xs text-stone-900">
-                        {company?.re_nome || 'Carlos Eduardo Prado de Oliveira'}
-                      </p>
-                      <p className="text-[10px] text-stone-600">Direção Executiva da Empresa</p>
-                    </div>
-                  </div>
-
-                  {/* Coordenador CQ */}
-                  <div className="p-3 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-stone-50/50">
-                    <div className="text-stone-400 text-[10px] uppercase font-bold tracking-wider">
-                      Aprovado por (Controle CQ)
-                    </div>
-                    {procedure.assinaturas_pop?.cq ? (
-                      <div className="my-2 p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
-                        <strong>Assinado Eletronicamente por:</strong>
-                        <br />
-                        {procedure.assinaturas_pop.cq.responsavel_nome}
-                      </div>
-                    ) : (
-                      <div className="my-4 border-b border-dashed border-stone-400 w-3/4 mx-auto" />
-                    )}
-                    <div>
-                      <p className="font-bold text-xs text-stone-900">
-                        {company?.rq_nome || 'Dra. Mariana Siqueira'}
-                      </p>
-                      <p className="text-[10px] text-stone-600">
-                        Coordenador do Controle da Qualidade
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Responsável Técnico RT */}
+                  {/* ASSINATURA 1: RT ou RE (Responsabilidade Técnica ou Substituição Legal pelo RE) */}
                   <div className="p-3 border border-emerald-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-emerald-50/40">
                     <div className="text-emerald-800 text-[10px] uppercase font-bold tracking-wider">
-                      Homologado por (RT)
+                      Assinatura 1: Homologação Técnica (RT / RE)
                     </div>
-                    {rtAssinatura?.imagem_url ? (
+                    {procedure.assinaturas_pop?.re ? (
+                      <div className="my-2 p-1.5 bg-emerald-100/80 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
+                        <strong>Assinado pelo RE (Substituição Legal):</strong>
+                        <br />
+                        {procedure.assinaturas_pop.re.responsavel_nome}
+                      </div>
+                    ) : rtAssinatura?.imagem_url ? (
                       <div className="my-1 p-1 bg-white rounded border border-emerald-200 flex items-center justify-center">
                         <img
                           src={rtAssinatura.imagem_url}
@@ -643,7 +646,7 @@ export function PopDocumentPdfModal({
                     ) : rtAssinatura ? (
                       <div className="my-2 p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
-                        <strong>Assinado Eletronicamente por:</strong>
+                        <strong>Assinado pelo RT:</strong>
                         <br />
                         {rtAssinatura.responsavel_nome}
                       </div>
@@ -652,13 +655,40 @@ export function PopDocumentPdfModal({
                     )}
                     <div>
                       <p className="font-bold text-xs text-stone-900">
-                        {company?.rt_nome || 'Dr. Hélio Silva'}
+                        {procedure.assinaturas_pop?.re
+                          ? procedure.assinaturas_pop.re.responsavel_nome
+                          : company?.rt_nome || 'Dr. Hélio Silva'}
                       </p>
                       <p className="text-[10px] text-stone-600">
-                        Responsável Técnico — {company?.rt_registro_conselho || 'CRMV-SP 18.420'}
+                        {procedure.assinaturas_pop?.re
+                          ? 'Responsável pelo Estabelecimento (RE MAPA)'
+                          : `Responsável Técnico — ${company?.rt_registro_conselho || 'CRMV-SP 18.420'}`}
                       </p>
                     </div>
                   </div>
+                  {/* ASSINATURA 2: RQ (Verificação da Qualidade) */}
+                  <div className="p-3 border border-amber-300 rounded text-center flex flex-col justify-between min-h-[130px] bg-amber-50/40">
+                    <div className="text-amber-800 text-[10px] uppercase font-bold tracking-wider">
+                      Assinatura 2: Verificação da Qualidade (RQ)
+                    </div>
+                    {procedure.assinaturas_pop?.rq || procedure.assinaturas_pop?.cq ? (
+                      <div className="my-2 p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900 leading-tight">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto mb-0.5" />
+                        <strong>Verificado e Assinado por RQ:</strong>
+                        <br />
+                        {procedure.assinaturas_pop?.rq?.responsavel_nome ||
+                          procedure.assinaturas_pop?.cq?.responsavel_nome}
+                      </div>
+                    ) : (
+                      <div className="my-4 border-b border-dashed border-amber-400 w-3/4 mx-auto" />
+                    )}
+                    <div>
+                      <p className="font-bold text-xs text-stone-900">
+                        {company?.rq_nome || 'Dra. Mariana Siqueira'}
+                      </p>
+                      <p className="text-[10px] text-stone-600">Responsável pela Qualidade (RQ)</p>
+                    </div>
+                  </div>{' '}
                 </div>
 
                 <div className="text-[9px] text-stone-500 text-center pt-3 border-t border-stone-200">

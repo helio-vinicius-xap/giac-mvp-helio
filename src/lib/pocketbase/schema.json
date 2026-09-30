@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T01:46:47.857Z",
+  "generatedAt": "2026-09-30T12:13:51.723Z",
   "collections": [
     {
       "name": "users",
@@ -267,6 +267,18 @@
           "required": false,
           "system": false,
           "collectionRef": "organizations"
+        },
+        {
+          "name": "texto_normativo_custom",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero_revisao",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -2409,6 +2421,212 @@
         "CREATE INDEX idx_forn_validados_uf ON fornecedores_validados (uf)",
         "CREATE INDEX idx_forn_validados_cat ON fornecedores_validados (categoria)",
         "CREATE INDEX idx_forn_validados_validade ON fornecedores_validados (validade_aprovacao)"
+      ]
+    },
+    {
+      "name": "procedure_revisions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization && (@request.auth.role = 'admin_cliente' || @request.auth.role = 'RE' || @request.auth.role = 'RT'))",
+        "delete": "@request.auth.role = 'super_admin'"
+      },
+      "fields": [
+        {
+          "name": "procedure",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "procedures"
+        },
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "versao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao_alteracao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "autor_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "autor_email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "autor_role",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secoes_normativas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campos_execucao",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "texto_completo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "restaurado_de",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_proc_rev_proc ON procedure_revisions (procedure)",
+        "CREATE INDEX idx_proc_rev_org ON procedure_revisions (organization)",
+        "CREATE INDEX idx_proc_rev_created ON procedure_revisions (created DESC)"
+      ]
+    },
+    {
+      "name": "pop_custom_forms",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization && (@request.auth.role = 'admin_cliente' || @request.auth.role = 'RE' || @request.auth.role = 'RT'))"
+      },
+      "fields": [
+        {
+          "name": "procedure",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "procedures"
+        },
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campos",
+          "type": "json",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "regras_limites",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criado_por_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "obrigatorio_na_cadeia",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "gera_pendencia",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_pop_forms_proc ON pop_custom_forms (procedure)",
+        "CREATE INDEX idx_pop_forms_org ON pop_custom_forms (organization)",
+        "CREATE INDEX idx_pop_forms_cod ON pop_custom_forms (codigo)"
       ]
     }
   ]

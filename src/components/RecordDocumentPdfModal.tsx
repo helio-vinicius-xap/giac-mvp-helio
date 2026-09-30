@@ -229,51 +229,67 @@ export function RecordDocumentPdfModal({
                 </div>
 
                 <div className="pt-3 border-t border-stone-200 flex flex-col sm:flex-row gap-2 justify-end flex-wrap">
-                  <Button
-                    type="button"
-                    disabled={savingSig}
-                    onClick={() => handleRegisterSignature('RT')}
-                    className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5 font-semibold"
-                  >
-                    <CheckCircle2 className="h-4 w-4 text-[#D9A404]" />
-                    {savingSig ? 'Salvando...' : 'Assinar como RT (Responsável Técnico)'}
-                  </Button>
-
-                  {user?.assinatura_imagem && (
-                    <div className="p-2 bg-emerald-50 rounded-md border border-emerald-200 text-[11px] text-[#2D6A4F] flex items-center justify-between">
-                      <span className="font-semibold">
-                        Sua rubrica gráfica (JPG/PNG) vinculada ao perfil:
-                      </span>
-                      <img
-                        src={user.assinatura_imagem}
-                        alt="Assinatura RT"
-                        className="h-6 object-contain"
-                      />
-                    </div>
+                  {/* HIERARQUIA GIAC: RE > RT > RQ > usuários por setor */}
+                  {/* Assinatura 1: RT ou RE */}
+                  {(userRole === 'RT' ||
+                    userRole === 'RE' ||
+                    userRole === 'super_admin' ||
+                    userRole === 'admin_cliente') && (
+                    <Button
+                      type="button"
+                      disabled={savingSig}
+                      onClick={() => handleRegisterSignature(userRole === 'RE' ? 'RE' : 'RT')}
+                      className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5 font-semibold"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-[#D9A404]" />
+                      {savingSig
+                        ? 'Salvando...'
+                        : userRole === 'RE'
+                          ? 'Assinar como RE (Substituição Legal RT)'
+                          : 'Assinar como RT (Assinatura 1: Técnica)'}
+                    </Button>
                   )}
 
-                  {(userRole === 'RQ' || userRole === 'admin') && (
+                  {/* Assinatura 2: RQ ou RE */}
+                  {(userRole === 'RQ' ||
+                    userRole === 'RE' ||
+                    userRole === 'super_admin' ||
+                    userRole === 'admin_cliente') && (
                     <Button
                       type="button"
                       disabled={savingSig}
                       onClick={() => handleRegisterSignature('RQ')}
-                      className="bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs gap-1.5"
+                      className="bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs gap-1.5 font-semibold"
                     >
                       <CheckCircle2 className="h-4 w-4" />
-                      {savingSig ? 'Salvando...' : 'Assinar como RQ (Qualidade)'}
+                      {savingSig ? 'Salvando...' : 'Assinar como RQ (Assinatura 2: Verificação)'}
                     </Button>
                   )}
 
-                  {(userRole === 'RE' || userRole === 'admin') && (
+                  {/* RE pode assinar especificamente como Responsável pelo Estabelecimento */}
+                  {(userRole === 'RE' || userRole === 'super_admin') && (
                     <Button
                       type="button"
                       disabled={savingSig}
                       onClick={() => handleRegisterSignature('RE')}
-                      className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs gap-1.5"
+                      className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-bold text-xs gap-1.5"
                     >
                       <KeyRound className="h-4 w-4" />
-                      {savingSig ? 'Salvando...' : 'Assinar como RE (Estabelecimento MAPA)'}
+                      {savingSig ? 'Salvando...' : 'Homologar como RE (Autoridade Máxima)'}
                     </Button>
+                  )}
+
+                  {user?.assinatura_imagem && (
+                    <div className="w-full p-2 bg-emerald-50 rounded-md border border-emerald-200 text-[11px] text-[#2D6A4F] flex items-center justify-between">
+                      <span className="font-semibold">
+                        Sua rubrica gráfica vinculada ({userRole}):
+                      </span>
+                      <img
+                        src={user.assinatura_imagem}
+                        alt="Assinatura"
+                        className="h-6 object-contain"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -417,19 +433,30 @@ export function RecordDocumentPdfModal({
                 </div>
               </div>
 
-              {/* Bloco de Assinaturas de Comprovação (RQ, RE e RT com suporte a imagem digitalizada) */}
+              {/* Bloco de Assinaturas de Comprovação - HIERARQUIA GIAC: RE > RT > RQ > Execução */}
+              {/* REGRA OBRIGATÓRIA: Assinatura 1 = RT ou RE (primeira assinatura) + Assinatura 2 = RQ (segunda assinatura) */}
               <div className="pt-4 border-t-2 border-stone-800 space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 text-center">
-                  Comprovação de Execução do Autocontrole (RT, RQ & RE)
+                  Comprovação e Dupla Assinatura Obrigatória (RT/RE + RQ)
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  {/* Assinatura RT (com foto/imagem digitalizada se enviada) */}
-                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-stone-50">
-                    <span className="text-[10px] font-bold text-[#2D6A4F] uppercase">
-                      Assinatura RT (Técnico)
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  {/* ASSINATURA 1: RT ou RE */}
+                  <div className="p-2.5 border border-emerald-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-emerald-50/50">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase">
+                      Assinatura 1: Homologação Técnica (RT ou RE)
                     </span>
-                    {dadosForm?.rt_assinatura_imagem ? (
+                    {reAssinatura ? (
+                      <div className="p-1.5 bg-emerald-100 rounded border border-emerald-300 text-[10px] text-emerald-950">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto" />
+                        <strong>Assinado pelo RE (Substituição Legal):</strong>{' '}
+                        {reAssinatura.responsavel_nome}
+                        <br />
+                        <span className="text-[8px] text-stone-500">
+                          {reAssinatura.autenticidade_mapa}
+                        </span>
+                      </div>
+                    ) : dadosForm?.rt_assinatura_imagem ? (
                       <div className="my-1 p-1 bg-white rounded border border-stone-200 flex items-center justify-center">
                         <img
                           src={dadosForm.rt_assinatura_imagem}
@@ -437,66 +464,52 @@ export function RecordDocumentPdfModal({
                           className="max-h-12 max-w-full object-contain"
                         />
                       </div>
+                    ) : record.assinaturas_registro?.rt ? (
+                      <div className="p-1.5 bg-emerald-100 rounded border border-emerald-300 text-[10px] text-emerald-950">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto" />
+                        <strong>Assinado pelo RT:</strong>{' '}
+                        {record.assinaturas_registro.rt.responsavel_nome}
+                      </div>
                     ) : (
-                      <div className="border-b border-dashed border-stone-400 w-3/4 mx-auto my-3" />
+                      <div className="border-b border-dashed border-emerald-400 w-3/4 mx-auto my-3" />
                     )}
                     <div>
                       <p className="font-bold text-[11px] text-stone-900">
-                        {company?.rt_nome || 'Dr. Hélio Silva'}
+                        {reAssinatura
+                          ? reAssinatura.responsavel_nome
+                          : company?.rt_nome || 'Dr. Hélio Silva'}
                       </p>
                       <p className="text-[9px] text-stone-500">
-                        {company?.rt_registro_conselho || 'CRMV-SP 18.420'}
+                        {reAssinatura
+                          ? 'Responsável pelo Estabelecimento (RE MAPA)'
+                          : `Responsável Técnico — ${company?.rt_registro_conselho || 'CRMV-SP 18.420'}`}
                       </p>
                     </div>
                   </div>
 
-                  {/* Assinatura RQ */}
-                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-stone-50">
-                    <span className="text-[10px] font-bold text-stone-400 uppercase">
-                      Assinatura RQ (Qualidade)
+                  {/* ASSINATURA 2: RQ (Verificação da Qualidade) */}
+                  <div className="p-2.5 border border-amber-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-amber-50/50">
+                    <span className="text-[10px] font-bold text-amber-800 uppercase">
+                      Assinatura 2: Verificação da Qualidade (RQ)
                     </span>
                     {rqAssinatura ? (
                       <div className="p-1.5 bg-emerald-50 rounded border border-emerald-300 text-[10px] text-emerald-900">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700 mx-auto" />
-                        <strong>Assinado:</strong> {rqAssinatura.responsavel_nome}
+                        <strong>Verificado e Assinado por RQ:</strong>{' '}
+                        {rqAssinatura.responsavel_nome}
                         <br />
                         <span className="text-[8px] text-stone-500">
                           {rqAssinatura.autenticidade_mapa}
                         </span>
                       </div>
                     ) : (
-                      <div className="border-b border-dashed border-stone-400 w-3/4 mx-auto my-3" />
+                      <div className="border-b border-dashed border-amber-400 w-3/4 mx-auto my-3" />
                     )}
                     <div>
                       <p className="font-bold text-[11px] text-stone-900">
                         {company?.rq_nome || 'Dra. Mariana Siqueira'}
                       </p>
-                      <p className="text-[9px] text-stone-500">Resp. pela Qualidade (RQ)</p>
-                    </div>
-                  </div>
-
-                  {/* Assinatura RE */}
-                  <div className="p-2.5 border border-stone-300 rounded text-center flex flex-col justify-between min-h-[120px] bg-stone-50">
-                    <span className="text-[10px] font-bold text-stone-400 uppercase">
-                      Assinatura RE (MAPA)
-                    </span>
-                    {reAssinatura ? (
-                      <div className="p-1.5 bg-amber-50 rounded border border-amber-300 text-[10px] text-amber-900">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-amber-700 mx-auto" />
-                        <strong>Assinado:</strong> {reAssinatura.responsavel_nome}
-                        <br />
-                        <span className="text-[8px] text-stone-500">
-                          {reAssinatura.autenticidade_mapa}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="border-b border-dashed border-stone-400 w-3/4 mx-auto my-3" />
-                    )}
-                    <div>
-                      <p className="font-bold text-[11px] text-stone-900">
-                        {company?.re_nome || 'Carlos Eduardo Prado de Oliveira'}
-                      </p>
-                      <p className="text-[9px] text-stone-500">RE - Resp. Estabelecimento</p>
+                      <p className="text-[9px] text-stone-500">Responsável pela Qualidade (RQ)</p>
                     </div>
                   </div>
                 </div>

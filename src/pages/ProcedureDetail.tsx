@@ -57,6 +57,11 @@ import { Pop01KpiDashboard } from '@/components/Pop01KpiDashboard'
 import { PaasoContainer } from '@/components/paaso/PaasoContainer'
 import { RtSignatureUpload } from '@/components/RtSignatureUpload'
 import { PopPendingPanel } from '@/components/PopPendingPanel'
+import { PopNormativeEditor } from '@/components/PopNormativeEditor'
+import { PopFormBuilderModal } from '@/components/PopFormBuilderModal'
+import { PopCustomRecordFillModal } from '@/components/PopCustomRecordFillModal'
+import { getPopCustomForms, deletePopCustomForm } from '@/services/agroService'
+import type { PopCustomForm } from '@/types/agro'
 import { PopDemandRecordModal } from '@/components/PopDemandRecordModal'
 import { evaluatePopChain } from '@/lib/recordFlow'
 import type { POP01PainelResumo } from '@/types/pop01Forms'
@@ -83,6 +88,15 @@ export default function ProcedureDetail() {
   const [selectedRecordForPdf, setSelectedRecordForPdf] = useState<MonitoringRecord | null>(null)
   const [openRecordPdfModal, setOpenRecordPdfModal] = useState(false)
   const [openDemandRecordModal, setOpenDemandRecordModal] = useState(false)
+
+  // Custom Forms (Parte c)
+  const [customForms, setCustomForms] = useState<PopCustomForm[]>([])
+  const [openBuilderModal, setOpenBuilderModal] = useState(false)
+  const [formToEdit, setFormToEdit] = useState<PopCustomForm | null>(null)
+  const [openFillCustomRecordModal, setOpenFillCustomRecordModal] = useState(false)
+  const [selectedCustomFormToFill, setSelectedCustomFormToFill] = useState<PopCustomForm | null>(
+    null,
+  )
 
   // Edit mode on Overview
   const [isEditing, setIsEditing] = useState(false)
@@ -129,6 +143,9 @@ export default function ProcedureDetail() {
 
       const recs = await getRecords(`procedure = '${id}'`, '-data')
       setRecords(recs)
+
+      const cForms = (await getPopCustomForms(id).catch(() => [])) as PopCustomForm[]
+      setCustomForms(cForms)
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar procedimento',
@@ -642,7 +659,12 @@ export default function ProcedureDetail() {
           >
             <span className="font-bold">Cadeia & Pendências</span>
             {(() => {
-              const chainEval = evaluatePopChain(procedure.id, procedure.codigo, records)
+              const chainEval = evaluatePopChain(
+                procedure.id,
+                procedure.codigo,
+                records,
+                customForms,
+              )
               return chainEval.totalPendencias > 0 ? (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500 text-white font-bold">
                   {chainEval.totalPendencias}
@@ -653,6 +675,24 @@ export default function ProcedureDetail() {
                 </span>
               ) : null
             })()}
+          </TabsTrigger>
+
+          {/* Aba Editor de Texto Normativo com Histórico de Revisões (Parte b) */}
+          <TabsTrigger
+            value="editor_normativo"
+            className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg gap-1"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-[#D9A404]" />
+            Editor Normativo & Revisões
+          </TabsTrigger>
+
+          {/* Aba Construtor de Formulários do POP (Parte c) */}
+          <TabsTrigger
+            value="formularios_custom"
+            className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg gap-1"
+          >
+            <Layers className="h-3.5 w-3.5 text-[#D9A404]" />
+            Formulários do POP ({customForms.length})
           </TabsTrigger>
 
           {isPop01 && (
@@ -726,6 +766,7 @@ export default function ProcedureDetail() {
           <PopPendingPanel
             procedure={procedure}
             records={records}
+            customForms={customForms}
             onOpenRecord={(rec) => {
               if ('id' in rec && rec.id) {
                 const fullRec = records.find((r) => r.id === rec.id)
@@ -735,6 +776,15 @@ export default function ProcedureDetail() {
                   return
                 }
               }
+
+              // Checar se é um formulário customizado criado pelo cliente
+              const matchedCustom = customForms.find((cf) => cf.codigo === rec.formulario_codigo)
+              if (matchedCustom) {
+                setSelectedCustomFormToFill(matchedCustom)
+                setOpenFillCustomRecordModal(true)
+                return
+              }
+
               // Se for formulário do catálogo
               const cat = POP_ITEM07_CATALOG[procedure.codigo]
               if (cat && cat.formularios.length > 0) {
@@ -749,6 +799,199 @@ export default function ProcedureDetail() {
               setOpenRecordPdfModal(true)
             }}
           />
+        </TabsContent>
+
+        {/* ABA: EDITOR NORMATIVO COM HISTÓRICO DE REVISÕES E SENHA DO ADMIN (PARTE B) */}
+        <TabsContent value="editor_normativo" className="space-y-6 mt-4">
+          <PopNormativeEditor
+            procedure={procedure}
+            company={company}
+            onRevisionSaved={() => {
+              loadAll()
+            }}
+          />
+        </TabsContent>
+
+        {/* ABA: CONSTRUTOR DE FORMULÁRIOS DIGITAIS DO CLIENTE POR POP (PARTE C) */}
+        <TabsContent value="formularios_custom" className="space-y-6 mt-4">
+          <div className="bg-white p-6 rounded-2xl border border-[#E2DCCF] shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E2DCCF]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
+                    {procedure.codigo}
+                  </span>
+                  <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
+                    Formulários Digitais Customizados do POP
+                  </h3>
+                </div>
+                <p className="text-xs text-stone-600 mt-1">
+                  Gerencie fichas operacionais próprias definidas para este POP. Cada formulário
+                  integra a <strong>Cadeia de Registros</strong>, possui avaliação conforme/não
+                  conforme e gera pendências operacionais.
+                </p>
+              </div>
+
+              <Button
+                size="sm"
+                onClick={() => {
+                  setFormToEdit(null)
+                  setOpenBuilderModal(true)
+                }}
+                className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
+              >
+                <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+                Criar Novo Formulário
+              </Button>
+            </div>
+
+            {/* Listagem dos formulários existentes (Padrões do Sistema + Customizados) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Formulários do modelo interno do POP */}
+              {(POP_ITEM07_CATALOG[procedure.codigo]?.formularios || []).map((formDef) => (
+                <div
+                  key={formDef.codigo}
+                  className="p-4 rounded-xl border border-stone-200 bg-stone-50/70 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-[10px] bg-white text-stone-700"
+                        >
+                          {formDef.codigo}
+                        </Badge>
+                        <Badge className="bg-stone-200 text-stone-700 hover:bg-stone-200 text-[10px]">
+                          Modelo do Sistema
+                        </Badge>
+                      </div>
+                      <h4 className="text-xs font-bold text-stone-900 mt-1.5">{formDef.titulo}</h4>
+                      <p className="text-[10px] text-stone-500">
+                        Freq: {formDef.frequencia} • Norma: {formDef.item_in04}
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedFormDef(formDef)
+                        setDynamicFormValues({})
+                        setOpenNewRecordModal(true)
+                      }}
+                      className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-[11px] h-8 shrink-0 gap-1"
+                    >
+                      <PlusCircle className="h-3.5 w-3.5" />
+                      Preencher
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Formulários Customizados Criados pelo Cliente */}
+              {customForms.map((cf) => (
+                <div
+                  key={cf.id}
+                  className="p-4 rounded-xl border border-[#E2DCCF] bg-white hover:border-[#2D6A4F] transition space-y-3 shadow-xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge className="bg-[#1B4332] text-white font-mono text-[10px]">
+                          {cf.codigo}
+                        </Badge>
+                        <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px]">
+                          Criado pelo Cliente
+                        </Badge>
+                        {cf.obrigatorio_na_cadeia && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] border-emerald-300 text-emerald-800"
+                          >
+                            Cadeia Obrigatória
+                          </Badge>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold text-stone-900 mt-1.5">{cf.titulo}</h4>
+                      <p className="text-[10px] text-stone-500">
+                        {cf.descricao || 'Frequência: ' + (cf.frequencia || 'Diário')} •{' '}
+                        {cf.campos?.length || 0} campos
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedCustomFormToFill(cf)
+                          setOpenFillCustomRecordModal(true)
+                        }}
+                        className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-bold text-[11px] h-8 gap-1"
+                      >
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        Preencher
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setFormToEdit(cf)
+                          setOpenBuilderModal(true)
+                        }}
+                        className="h-8 w-8 p-0 text-stone-600 hover:text-stone-900"
+                        title="Editar estrutura"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={async () => {
+                          if (confirm(`Deseja excluir o formulário ${cf.codigo}?`)) {
+                            try {
+                              await deletePopCustomForm(cf.id)
+                              toast({ title: 'Formulário excluído' })
+                              loadAll()
+                            } catch (err: any) {
+                              toast({
+                                title: 'Erro ao excluir',
+                                description: err.message,
+                                variant: 'destructive',
+                              })
+                            }
+                          }
+                        }}
+                        className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                        title="Excluir formulário"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Prévia de campos */}
+                  <div className="pt-2 border-t border-stone-100 flex flex-wrap gap-1">
+                    {(cf.campos || []).slice(0, 5).map((f) => (
+                      <span
+                        key={f.id}
+                        className="text-[9px] bg-stone-100 text-stone-700 px-2 py-0.5 rounded font-mono"
+                      >
+                        {f.rotulo}{' '}
+                        {f.limite_min !== undefined ? `[${f.limite_min}..${f.limite_max}]` : ''}
+                      </span>
+                    ))}
+                    {(cf.campos || []).length > 5 && (
+                      <span className="text-[9px] text-stone-400 self-center">
+                        +{(cf.campos?.length || 0) - 5} campos
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </TabsContent>
 
         {/* ABA EXCLUSIVA POP 01: DOCUMENTO NORMATIVO COMPLETO (15 SEÇÕES) */}
@@ -1658,6 +1901,29 @@ export default function ProcedureDetail() {
           userName={user?.name || 'Responsável Técnico'}
           existingRecords={records}
           onRecordCreated={() => loadAll()}
+        />
+      )}
+
+      {/* 6. MODAL: CONSTRUTOR DE FORMULÁRIO PERSONALIZADO (PARTE C) */}
+      {procedure && (
+        <PopFormBuilderModal
+          open={openBuilderModal}
+          onOpenChange={setOpenBuilderModal}
+          procedure={procedure}
+          formToEdit={formToEdit}
+          onFormSaved={loadAll}
+        />
+      )}
+
+      {/* 7. MODAL: PREENCHER FORMULÁRIO PERSONALIZADO (PARTE C) */}
+      {procedure && (
+        <PopCustomRecordFillModal
+          open={openFillCustomRecordModal}
+          onOpenChange={setOpenFillCustomRecordModal}
+          procedure={procedure}
+          form={selectedCustomFormToFill}
+          company={company}
+          onRecordCreated={loadAll}
         />
       )}
     </div>

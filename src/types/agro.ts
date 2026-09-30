@@ -182,9 +182,12 @@ export interface Procedure {
   formularios_item07?: any[]
   metadados_saas?: PopSaaSMetadata | Record<string, any>
   secoes_normativas?: Record<string, any>
+  texto_normativo_custom?: string
+  numero_revisao?: number
   assinaturas_pop?: {
     rt?: DigitalSignatureRecord & { imagem_url?: string }
     re?: DigitalSignatureRecord & { imagem_url?: string }
+    rq?: DigitalSignatureRecord & { imagem_nome?: string }
     direcao?: DigitalSignatureRecord & { imagem_nome?: string }
     cq?: DigitalSignatureRecord & { imagem_nome?: string }
   }
@@ -243,8 +246,10 @@ export interface MonitoringRecord {
   formulario_codigo?: string
   dados_formulario?: Record<string, any>
   assinaturas_registro?: {
+    rt?: DigitalSignatureRecord
     rq?: DigitalSignatureRecord
     re?: DigitalSignatureRecord
+    operador?: DigitalSignatureRecord
   }
   status_assinatura?: RecordSignatureStatus
   arquivo_pdf_assinado?: string
@@ -395,4 +400,62 @@ export interface UserProfile {
   expand?: {
     organization?: Organization
   }
+}
+
+export interface ProcedureRevision {
+  id: string
+  procedure: string
+  organization?: string
+  versao: string
+  descricao_alteracao?: string
+  autor_nome?: string
+  autor_email?: string
+  autor_role?: string
+  secoes_normativas?: any
+  campos_execucao?: any
+  texto_completo?: string
+  restaurado_de?: string
+  created: string
+  updated: string
+}
+
+export interface PopCustomFormField {
+  id: string
+  nome: string
+  rotulo: string
+  tipo:
+    | 'text'
+    | 'textarea'
+    | 'number'
+    | 'date'
+    | 'select'
+    | 'checklist'
+    | 'dynamic_table'
+    | 'signature_execution'
+  obrigatorio?: boolean
+  opcoes?: string[] // Para select ou checklist
+  limite_min?: number // Limite inferior para validação conforme/não conforme
+  limite_max?: number // Limite superior
+  unidade_medida?: string
+  valor_padrao?: any
+  descricao_ajuda?: string
+  colunas_tabela?: Array<{ id: string; titulo: string; tipo: string }>
+}
+
+export interface PopCustomForm {
+  id: string
+  procedure: string
+  organization?: string
+  codigo: string
+  titulo: string
+  descricao?: string
+  frequencia?: string
+  campos: PopCustomFormField[]
+  regras_limites?: any
+  criado_por_nome?: string
+  obrigatorio_na_cadeia?: boolean
+  gera_pendencia?: boolean
+  is_ativo?: boolean
+  created: string
+  updated: string
 }

@@ -62,9 +62,10 @@ import {
   updatePlan,
   createPlan,
   getInvoices,
-  createBillingInvoice,
   simulateInvoicePayment,
+  createBillingInvoice,
   getAuditLogs,
+  purgeOrganizationData,
 } from '@/services/agroService'
 import { useToast } from '@/hooks/use-toast'
 
@@ -103,6 +104,14 @@ export default function SuperAdmin() {
   const [openOrgDetailModal, setOpenOrgDetailModal] = useState(false)
   const [selectedOrg, setSelectedOrg] = useState<any>(null)
   const [selectedPlan, setSelectedPlan] = useState<any>(null)
+
+  // Modal Zerar Dados da Organização (Parte a)
+  const [openPurgeModal, setOpenPurgeModal] = useState(false)
+  const [orgToPurge, setOrgToPurge] = useState<any>(null)
+  const [purgeStep, setPurgeStep] = useState<1 | 2>(1)
+  const [purgeCnpjInput, setPurgeCnpjInput] = useState('')
+  const [purgeKeywordInput, setPurgeKeywordInput] = useState('')
+  const [purging, setPurging] = useState(false)
 
   // Forms
   const [orgForm, setOrgForm] = useState({
@@ -589,11 +598,29 @@ export default function SuperAdmin() {
                                     'Suspensão manual pelo Super Admin',
                                   )
                                 }
-                                className="h-8 text-[11px] border-red-300 text-red-600 hover:bg-red-50"
+                                className="h-8 text-[11px] border-amber-300 text-amber-700 hover:bg-amber-50"
                               >
                                 Suspender
                               </Button>
                             )}
+
+                            {/* Ferramenta Zerar Dados da Organização (Parte a) */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setOrgToPurge(org)
+                                setPurgeStep(1)
+                                setPurgeCnpjInput('')
+                                setPurgeKeywordInput('')
+                                setOpenPurgeModal(true)
+                              }}
+                              className="h-8 text-[11px] border-red-300 text-red-700 hover:bg-red-50 font-semibold gap-1"
+                              title="Excluir em massa todos os dados de negócio da organização"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5 text-red-600" />
+                              Zerar Dados
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -1419,6 +1446,148 @@ export default function SuperAdmin() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: ZERAR DADOS DE NEGÓCIO DA ORGANIZAÇÃO (CONFIRMAÇÃO DUPLA) */}
+      <Dialog open={openPurgeModal} onOpenChange={setOpenPurgeModal}>
+        <DialogContent className="sm:max-w-[540px] bg-white border-red-200">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-red-700 font-['Sora'] flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              Zerar Dados de Negócio da Organização
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-600">
+              Ação irreversível de exclusão de dados de negócio da empresa selecionada.
+            </DialogDescription>
+          </DialogHeader>
+
+          {orgToPurge && (
+            <div className="space-y-4 pt-2">
+              <div className="p-3 bg-red-50 rounded-lg border border-red-200 text-xs text-red-900 space-y-1.5">
+                <p className="font-bold">
+                  Empresa alvo: {orgToPurge.razao_social} (CNPJ: {orgToPurge.cnpj})
+                </p>
+                <p className="text-[11px] text-red-800 leading-relaxed">
+                  <strong>O que será apagado:</strong> POPs, registros de monitoramento, auditorias,
+                  evidências, não conformidades, testes de rastreabilidade/recall, treinamentos,
+                  documentos, dados PAASO (sipeagro, fornecedores, qualificações, devoluções, NCs de
+                  fornecedor) e formulários customizados vinculados a este CNPJ.
+                </p>
+                <p className="text-[11px] text-emerald-900 font-semibold bg-emerald-50/80 p-2 rounded border border-emerald-200">
+                  <strong>O que será PRESERVADO:</strong> A organização cadastral, contas de
+                  usuários vinculadas, planos contratados, histórico de faturas e a base global de
+                  fornecedores homologados.
+                </p>
+              </div>
+
+              {purgeStep === 1 ? (
+                <div className="space-y-3 p-3 bg-stone-50 rounded-lg border border-stone-200">
+                  <div className="flex items-center gap-2 text-xs font-bold text-stone-800">
+                    <span className="w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-[11px]">
+                      1
+                    </span>
+                    Etapa 1 de 2: Confirme o CNPJ da organização
+                  </div>
+                  <p className="text-[11px] text-stone-600">
+                    Digite exatamente o CNPJ da organização ({orgToPurge.cnpj}):
+                  </p>
+                  <Input
+                    value={purgeCnpjInput}
+                    onChange={(e) => setPurgeCnpjInput(e.target.value)}
+                    placeholder="Ex: 12.345.678/0001-90"
+                    className="h-9 text-xs font-mono"
+                  />
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setOpenPurgeModal(false)}
+                      className="text-xs"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={
+                        purgeCnpjInput.replace(/\D/g, '') !== orgToPurge.cnpj.replace(/\D/g, '')
+                      }
+                      onClick={() => setPurgeStep(2)}
+                      className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold"
+                    >
+                      Avançar para Etapa 2
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 p-3 bg-red-50/50 rounded-lg border border-red-200">
+                  <div className="flex items-center gap-2 text-xs font-bold text-red-800">
+                    <span className="w-5 h-5 rounded-full bg-red-700 text-white flex items-center justify-center text-[11px]">
+                      2
+                    </span>
+                    Etapa 2 de 2: Confirmação Crítica
+                  </div>
+                  <p className="text-[11px] text-stone-700">
+                    Para autorizar a purga definitiva de dados e registrar a ocorrência no livro de
+                    auditoria, digite a palavra{' '}
+                    <strong className="font-mono text-red-700">ZERAR</strong> em letras maiúsculas:
+                  </p>
+                  <Input
+                    value={purgeKeywordInput}
+                    onChange={(e) => setPurgeKeywordInput(e.target.value)}
+                    placeholder="Digite ZERAR"
+                    className="h-9 text-xs font-mono font-bold tracking-widest uppercase border-red-300"
+                  />
+                  <div className="flex justify-between items-center gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPurgeStep(1)}
+                      className="text-xs"
+                    >
+                      Voltar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={purging || purgeKeywordInput.trim().toUpperCase() !== 'ZERAR'}
+                      onClick={async () => {
+                        setPurging(true)
+                        try {
+                          const res: any = await purgeOrganizationData({
+                            organization_id: orgToPurge.id,
+                            confirmation_cnpj: purgeCnpjInput,
+                            confirmation_keyword: purgeKeywordInput.trim().toUpperCase(),
+                          })
+                          toast({
+                            title: 'Dados da Organização Zerados',
+                            description: `Foram removidos ${res.total_deleted || 0} registros de negócio. Ação registrada no Audit Log.`,
+                          })
+                          setOpenPurgeModal(false)
+                          loadAllData()
+                        } catch (err: any) {
+                          toast({
+                            title: 'Erro ao zerar dados',
+                            description: err.message || 'Falha na validação das confirmações.',
+                            variant: 'destructive',
+                          })
+                        } finally {
+                          setPurging(false)
+                        }
+                      }}
+                      className="bg-red-700 hover:bg-red-800 text-white text-xs font-bold gap-1.5"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      {purging ? 'Excluindo registros...' : 'Confirmar e Zerar Agora'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

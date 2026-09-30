@@ -313,3 +313,76 @@ export const getAuditLogs = async (filter?: string, sort = '-created') => {
     expand: 'user,organization',
   })
 }
+
+// Zerar dados de negócio de uma organização (Super Admin)
+export const purgeOrganizationData = async (payload: {
+  organization_id: string
+  confirmation_cnpj: string
+  confirmation_keyword: string
+}) => {
+  return await pb.send('/backend/v1/admin/purge-organization-data', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+// Salvar revisão de texto normativo do POP (com validação de senha do Administrador)
+export const saveProcedureRevision = async (
+  procedureId: string,
+  payload: {
+    admin_password: string
+    admin_email?: string
+    descricao_alteracao?: string
+    versao?: string
+    secoes_normativas?: any
+    campos_execucao?: any
+    texto_completo?: string
+  },
+) => {
+  return await pb.send(`/backend/v1/procedures/${procedureId}/save-revision`, {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+// Restaurar revisão do POP
+export const restoreProcedureRevision = async (
+  procedureId: string,
+  payload: {
+    revision_id: string
+    admin_password: string
+  },
+) => {
+  return await pb.send(`/backend/v1/procedures/${procedureId}/restore-revision`, {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+// Listar revisões do POP
+export const getProcedureRevisions = async (procedureId: string) => {
+  return await pb.collection('procedure_revisions').getFullList({
+    filter: `procedure = "${procedureId}"`,
+    sort: '-created',
+  })
+}
+
+// Formulários Customizados por POP
+export const getPopCustomForms = async (procedureId: string) => {
+  return await pb.collection('pop_custom_forms').getFullList({
+    filter: `procedure = "${procedureId}"`,
+    sort: 'codigo',
+  })
+}
+
+export const createPopCustomForm = async (payload: any) => {
+  return await pb.collection('pop_custom_forms').create(payload)
+}
+
+export const updatePopCustomForm = async (id: string, payload: any) => {
+  return await pb.collection('pop_custom_forms').update(id, payload)
+}
+
+export const deletePopCustomForm = async (id: string) => {
+  return await pb.collection('pop_custom_forms').delete(id)
+}

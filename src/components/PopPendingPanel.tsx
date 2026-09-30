@@ -32,6 +32,7 @@ interface PopPendingPanelProps {
   onOpenRecord: (record: MonitoringRecord | { formulario_codigo: string; id?: string }) => void
   onOpenDemandModal: () => void
   onOpenRecordPdf?: (record: MonitoringRecord) => void
+  customForms?: any[]
 }
 
 export function PopPendingPanel({
@@ -40,11 +41,17 @@ export function PopPendingPanel({
   onOpenRecord,
   onOpenDemandModal,
   onOpenRecordPdf,
+  customForms,
 }: PopPendingPanelProps) {
   const [filterPendingOnly, setFilterPendingOnly] = useState(false)
 
   // Avalia a integridade da cadeia e pendências
-  const chainStatus: PopChainStatus = evaluatePopChain(procedure.id, procedure.codigo, records)
+  const chainStatus: PopChainStatus = evaluatePopChain(
+    procedure.id,
+    procedure.codigo,
+    records,
+    customForms,
+  )
 
   const displayedChain = filterPendingOnly
     ? chainStatus.cadeias.filter(
