@@ -23,27 +23,38 @@ routerAdd(
       }
 
       // HIERARQUIA GIAC: RE > RT > RQ > usuários por setor
-      // - RE: autoridade máxima, pode assinar por si mesmo ou substituir RT e RQ
+      // - RE: autoridade máxima, possui todas as permissões de RT e pode substituir RT e RQ
+      // - admin_cliente: gestor da própria organização, com autoridade administrativa/técnica no seu tenant
       // - RT: assina como RT; não pode assinar como RE
       // - RQ: assina verificação (RQ); não pode assinar como RT ou RE
       // - Outros (setor): assinam apenas como operador / execução
       if (userRole !== 'super_admin') {
-        if (papel === 'RE' && userRole !== 'RE') {
+        if (papel === 'RE' && userRole !== 'RE' && userRole !== 'admin_cliente') {
           return e.json(403, {
             error:
-              'Apenas o RE possui autoridade para assinar como Responsável pelo Estabelecimento.',
+              'Apenas o RE (ou admin da organização) possui autoridade para assinar como Responsável pelo Estabelecimento.',
           })
         }
-        if (papel === 'RT' && userRole !== 'RT' && userRole !== 'RE') {
+        if (
+          papel === 'RT' &&
+          userRole !== 'RT' &&
+          userRole !== 'RE' &&
+          userRole !== 'admin_cliente'
+        ) {
           return e.json(403, {
             error:
-              'Apenas o RT (ou o RE em substituição) possui autoridade técnica para assinar como RT.',
+              'Apenas o RT (ou o RE / admin da organização em substituição) possui autoridade técnica para assinar como RT.',
           })
         }
-        if (papel === 'RQ' && userRole !== 'RQ' && userRole !== 'RE') {
+        if (
+          papel === 'RQ' &&
+          userRole !== 'RQ' &&
+          userRole !== 'RE' &&
+          userRole !== 'admin_cliente'
+        ) {
           return e.json(403, {
             error:
-              'Apenas o RQ (ou o RE em supervisão) possui autoridade para assinar verificação de qualidade (RQ).',
+              'Apenas o RQ (ou o RE / admin da organização em supervisão) possui autoridade para assinar verificação de qualidade (RQ).',
           })
         }
       }
@@ -73,6 +84,37 @@ routerAdd(
         if (papel === 'CQ') assinaturas.cq = registroAssinatura
         proc.set('assinaturas_pop', assinaturas)
         $app.save(proc)
+
+        // Gravar no log de auditoria
+        try {
+          const auditLogCol = $app.findCollectionByNameOrId('audit_logs')
+          const logRecord = new Record(auditLogCol)
+          if (authRecord) {
+            logRecord.set('user', authRecord.id)
+            logRecord.set('user_email', authRecord.getString('email'))
+            logRecord.set('user_name', responsavelNome || authRecord.getString('name'))
+            logRecord.set('user_role', userRole)
+          }
+          logRecord.set('action', 'SIGNATURE_APPLIED')
+          logRecord.set('target', 'procedures')
+          logRecord.set('target_id', targetId)
+          logRecord.set(
+            'details',
+            JSON.stringify({
+              target_type: 'procedure',
+              target_id: targetId,
+              target_code: proc.getString('codigo'),
+              papel: papel,
+              metodo: metodo,
+              responsavel_nome: responsavelNome,
+              responsavel_identificacao: responsavelIdentificacao,
+              timestamp: carimboData,
+            }),
+          )
+          const procOrg = proc.getString('organization')
+          if (procOrg) logRecord.set('organization', procOrg)
+          $app.save(logRecord)
+        } catch (_) {}
 
         return e.json(200, {
           success: true,
@@ -105,6 +147,39 @@ routerAdd(
         }
         rec.set('status_assinatura', novoStatus)
         $app.save(rec)
+
+        // Gravar no log de auditoria
+        try {
+          const auditLogCol = $app.findCollectionByNameOrId('audit_logs')
+          const logRecord = new Record(auditLogCol)
+          if (authRecord) {
+            logRecord.set('user', authRecord.id)
+            logRecord.set('user_email', authRecord.getString('email'))
+            logRecord.set('user_name', responsavelNome || authRecord.getString('name'))
+            logRecord.set('user_role', userRole)
+          }
+          logRecord.set('action', 'SIGNATURE_APPLIED')
+          logRecord.set('target', 'records')
+          logRecord.set('target_id', targetId)
+          logRecord.set(
+            'details',
+            JSON.stringify({
+              target_type: 'record',
+              target_id: targetId,
+              formulario_codigo: rec.getString('formulario_codigo'),
+              lote: rec.getString('lote'),
+              papel: papel,
+              metodo: metodo,
+              novo_status: novoStatus,
+              responsavel_nome: responsavelNome,
+              responsavel_identificacao: responsavelIdentificacao,
+              timestamp: carimboData,
+            }),
+          )
+          const recOrg = rec.getString('organization')
+          if (recOrg) logRecord.set('organization', recOrg)
+          $app.save(logRecord)
+        } catch (_) {}
 
         return e.json(200, {
           success: true,

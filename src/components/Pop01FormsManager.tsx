@@ -185,12 +185,16 @@ export function Pop01FormsManager({
     }
   }
 
-  // Permissões de Acesso por papel
-  // RQ: Total | RT: Total/Aprovação | Operador: Anexos III e IV
+  // Permissões de Acesso por papel - HIERARQUIA GIAC: RE > RT > RQ > usuários por setor
+  // RE tem todos os poderes do RT em todos os formulários e registros.
+  // admin_cliente é gestor da própria organização (mesmos poderes dentro da org).
   const userRole = (user?.role || 'operador').toUpperCase()
-  const isRQ = userRole === 'RQ' || userRole === 'ADMIN'
-  const isRT = userRole === 'RT' || userRole === 'ADMIN'
-  const canManageAll = isRQ || isRT
+  const isSuperAdmin = userRole === 'SUPER_ADMIN'
+  const isAdminCliente = userRole === 'ADMIN_CLIENTE' || userRole === 'ADMIN'
+  const isRE = userRole === 'RE' || isSuperAdmin || isAdminCliente
+  const isRT = userRole === 'RT' || isRE
+  const isRQ = userRole === 'RQ' || isRE
+  const canManageAll = isRT || isRQ || isRE || isAdminCliente || isSuperAdmin
 
   // Extrair recebimentos pendentes de amostragem
   const recebimentosPendentes = useMemo(() => {

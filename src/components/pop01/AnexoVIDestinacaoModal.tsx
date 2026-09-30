@@ -144,7 +144,8 @@ export function AnexoVIDestinacaoModal({
 
     assinado_rq_nome: currentUser?.name || 'Dra. Mariana Siqueira (RQ)',
     assinado_rq_data: new Date().toISOString().split('T')[0],
-    assinado_rt_nome: usersList.find((u) => u.role === 'RT')?.name || 'Dr. Hélio Silva (RT)',
+    assinado_rt_nome:
+      usersList.find((u) => u.role === 'RT' || u.role === 'RE')?.name || 'Dr. Hélio Silva (RT)',
     assinado_rt_data: new Date().toISOString().split('T')[0],
     historico_alteracoes: [],
   }
@@ -834,7 +835,13 @@ export function AnexoVIDestinacaoModal({
                   </SelectTrigger>
                   <SelectContent>
                     {usersList
-                      .filter((u) => u.role === 'RT' || u.role === 'admin')
+                      .filter(
+                        (u) =>
+                          u.role === 'RT' ||
+                          u.role === 'RE' ||
+                          u.role === 'admin' ||
+                          u.role === 'admin_cliente',
+                      )
                       .map((u) => (
                         <SelectItem key={u.id} value={u.name}>
                           {u.name} (RT)
