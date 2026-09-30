@@ -58,24 +58,30 @@ export function PopDocumentPdfModal({
   const [savingSig, setSavingSig] = useState(false)
 
   const userRole = user?.role || 'RT'
-  const canSignPop = userRole === 'RT' || userRole === 'RE' || userRole === 'admin'
+  const canSignPop =
+    userRole === 'RT' ||
+    userRole === 'RE' ||
+    userRole === 'RQ' ||
+    userRole === 'admin' ||
+    userRole === 'admin_cliente' ||
+    userRole === 'super_admin'
   const isRT = userRole === 'RT'
   const isRE = userRole === 'RE'
 
   const rtAssinatura = procedure.assinaturas_pop?.rt
   const reAssinatura = procedure.assinaturas_pop?.re
-  const isFullySigned = Boolean(rtAssinatura && reAssinatura)
+  const rqAssinatura = procedure.assinaturas_pop?.rq || procedure.assinaturas_pop?.cq
+  const isFullySigned = Boolean((rtAssinatura || reAssinatura) && rqAssinatura)
 
   const handlePrint = () => {
     window.print()
   }
 
-  const handleRegisterSignature = async (targetRole: 'RT' | 'RE') => {
+  const handleRegisterSignature = async (targetRole: 'RT' | 'RE' | 'RQ') => {
     if (!canSignPop) {
       toast({
         title: 'Ação não permitida',
-        description:
-          'Apenas o RT (Responsável Técnico) ou RE (Responsável pelo Estabelecimento) podem assinar o POP.',
+        description: 'Apenas o RT, RE ou RQ têm permissão para assinar este documento regulatório.',
         variant: 'destructive',
       })
       return
@@ -83,14 +89,19 @@ export function PopDocumentPdfModal({
 
     setSavingSig(true)
     try {
-      const respNome =
-        targetRole === 'RT'
-          ? company?.rt_nome || user?.name || 'Responsável Técnico'
-          : company?.re_nome || user?.name || 'Responsável pelo Estabelecimento'
-      const respId =
-        targetRole === 'RT'
-          ? company?.rt_registro_conselho || user?.conselho_classe || 'CRMV-SP'
-          : company?.re_cpf || user?.cpf || 'CPF RE'
+      let respNome = user?.name || 'Responsável'
+      let respId = user?.cpf || ''
+
+      if (targetRole === 'RT') {
+        respNome = company?.rt_nome || user?.name || 'Responsável Técnico'
+        respId = company?.rt_registro_conselho || user?.conselho_classe || 'CRMV-SP'
+      } else if (targetRole === 'RE') {
+        respNome = company?.re_nome || user?.name || 'Responsável pelo Estabelecimento'
+        respId = company?.re_cpf || user?.cpf || 'CPF RE'
+      } else if (targetRole === 'RQ') {
+        respNome = company?.rq_nome || user?.name || 'Responsável pela Qualidade'
+        respId = company?.rq_cpf || user?.cpf || 'CRQ/CRMV RQ'
+      }
 
       await registerDigitalSignature({
         tipo_alvo: 'procedure',

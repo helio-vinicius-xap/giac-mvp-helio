@@ -200,9 +200,12 @@ export type RecordShift = 'Manhã' | 'Tarde' | 'Noite'
 export type RecordStatus = 'Conforme' | 'Não Conforme'
 export type RecordSignatureStatus =
   | 'Pendente Assinatura'
+  | 'Pendente Assinatura RQ'
+  | 'Pendente Assinatura RT/RE'
   | 'Assinado Parcial (RQ)'
   | 'Assinado Parcial (RE)'
   | 'Comprovado (Assinado RQ/RE)'
+  | 'Comprovado (Assinado RT/RE + RQ)'
 
 export type RecordOrigem =
   | 'sistema_automatico'

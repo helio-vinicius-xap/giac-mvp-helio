@@ -70,7 +70,7 @@ import {
   type POPFormDefinition,
   type POPExecutionCustomFields,
 } from '@/types/popFormsCatalog'
-import { FileCheck, ShieldAlert, KeyRound, Award, Sliders } from 'lucide-react'
+import { FileCheck, ShieldAlert, KeyRound, Award, Sliders, Layers, Trash2 } from 'lucide-react'
 
 export default function ProcedureDetail() {
   const { id } = useParams<{ id: string }>()
