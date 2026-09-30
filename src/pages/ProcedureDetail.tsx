@@ -48,6 +48,14 @@ import {
 import type { Procedure, MonitoringRecord, RecordShift, RecordStatus, Company } from '@/types/agro'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import {
+  canManagePopForms,
+  canEditPopStructure,
+  canSignAsRT,
+  canSignAsRE,
+  canSignAsRQ,
+  canDeleteRecord,
+} from '@/lib/permissions'
 import { useRealtime } from '@/hooks/use-realtime'
 import { PopDocumentPdfModal } from '@/components/PopDocumentPdfModal'
 import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
@@ -832,17 +840,19 @@ export default function ProcedureDetail() {
                 </p>
               </div>
 
-              <Button
-                size="sm"
-                onClick={() => {
-                  setFormToEdit(null)
-                  setOpenBuilderModal(true)
-                }}
-                className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
-              >
-                <PlusCircle className="h-4 w-4 text-[#D9A404]" />
-                Criar Novo Formulário
-              </Button>
+              {canManagePopForms(user?.role) && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setFormToEdit(null)
+                    setOpenBuilderModal(true)
+                  }}
+                  className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs gap-1.5 shadow-sm h-9"
+                >
+                  <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+                  Criar Novo Formulário
+                </Button>
+              )}
             </div>
 
             {/* Listagem dos formulários existentes (Padrões do Sistema + Customizados) */}
@@ -932,42 +942,46 @@ export default function ProcedureDetail() {
                         Preencher
                       </Button>
 
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setFormToEdit(cf)
-                          setOpenBuilderModal(true)
-                        }}
-                        className="h-8 w-8 p-0 text-stone-600 hover:text-stone-900"
-                        title="Editar estrutura"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                      </Button>
+                      {canEditPopStructure(user?.role) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setFormToEdit(cf)
+                            setOpenBuilderModal(true)
+                          }}
+                          className="h-8 w-8 p-0 text-stone-600 hover:text-stone-900"
+                          title="Editar estrutura"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
 
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={async () => {
-                          if (confirm(`Deseja excluir o formulário ${cf.codigo}?`)) {
-                            try {
-                              await deletePopCustomForm(cf.id)
-                              toast({ title: 'Formulário excluído' })
-                              loadAll()
-                            } catch (err: any) {
-                              toast({
-                                title: 'Erro ao excluir',
-                                description: err.message,
-                                variant: 'destructive',
-                              })
+                      {canEditPopStructure(user?.role) && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            if (confirm(`Deseja excluir o formulário ${cf.codigo}?`)) {
+                              try {
+                                await deletePopCustomForm(cf.id)
+                                toast({ title: 'Formulário excluído' })
+                                loadAll()
+                              } catch (err: any) {
+                                toast({
+                                  title: 'Erro ao excluir',
+                                  description: err.message,
+                                  variant: 'destructive',
+                                })
+                              }
                             }
-                          }
-                        }}
-                        className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                        title="Excluir formulário"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                          }}
+                          className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                          title="Excluir formulário"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 

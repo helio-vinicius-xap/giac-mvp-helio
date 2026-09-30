@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { registerDigitalSignature } from '@/services/agroService'
+import { canSignAsRT, canSignAsRE, canSignAsRQ, canDeleteRecord } from '@/lib/permissions'
 import type { MonitoringRecord, Company, Procedure, DigitalSignatureRecord } from '@/types/agro'
 
 interface RecordDocumentPdfModalProps {
@@ -56,6 +57,10 @@ export function RecordDocumentPdfModal({
   const reAssinatura: DigitalSignatureRecord | undefined = assinaturas.re
   const isFullySigned = Boolean(rqAssinatura && reAssinatura)
   const userRole = user?.role || 'operador'
+  const canSign = canSignAsRT(user?.role) || canSignAsRQ(user?.role)
+  const canRT = canSignAsRT(user?.role)
+  const canRE = canSignAsRE(user?.role)
+  const canRQ = canSignAsRQ(user?.role)
 
   const handlePrint = () => {
     window.print()
@@ -231,30 +236,24 @@ export function RecordDocumentPdfModal({
                 <div className="pt-3 border-t border-stone-200 flex flex-col sm:flex-row gap-2 justify-end flex-wrap">
                   {/* HIERARQUIA GIAC: RE > RT > RQ > usuários por setor */}
                   {/* Assinatura 1: RT ou RE */}
-                  {(userRole === 'RT' ||
-                    userRole === 'RE' ||
-                    userRole === 'super_admin' ||
-                    userRole === 'admin_cliente') && (
+                  {canRT && (
                     <Button
                       type="button"
                       disabled={savingSig}
-                      onClick={() => handleRegisterSignature(userRole === 'RE' ? 'RE' : 'RT')}
+                      onClick={() => handleRegisterSignature(canRE ? 'RE' : 'RT')}
                       className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5 font-semibold"
                     >
                       <CheckCircle2 className="h-4 w-4 text-[#D9A404]" />
                       {savingSig
                         ? 'Salvando...'
-                        : userRole === 'RE'
+                        : canRE
                           ? 'Assinar como RE (Substituição Legal RT)'
                           : 'Assinar como RT (Assinatura 1: Técnica)'}
                     </Button>
                   )}
 
                   {/* Assinatura 2: RQ ou RE */}
-                  {(userRole === 'RQ' ||
-                    userRole === 'RE' ||
-                    userRole === 'super_admin' ||
-                    userRole === 'admin_cliente') && (
+                  {canRQ && (
                     <Button
                       type="button"
                       disabled={savingSig}
@@ -267,7 +266,7 @@ export function RecordDocumentPdfModal({
                   )}
 
                   {/* RE pode assinar especificamente como Responsável pelo Estabelecimento */}
-                  {(userRole === 'RE' || userRole === 'super_admin') && (
+                  {canRE && (
                     <Button
                       type="button"
                       disabled={savingSig}
@@ -282,7 +281,7 @@ export function RecordDocumentPdfModal({
                   {user?.assinatura_imagem && (
                     <div className="w-full p-2 bg-emerald-50 rounded-md border border-emerald-200 text-[11px] text-[#2D6A4F] flex items-center justify-between">
                       <span className="font-semibold">
-                        Sua rubrica gráfica vinculada ({userRole}):
+                        Sua rubrica gráfica vinculada ({user?.role || 'operador'}):
                       </span>
                       <img
                         src={user.assinatura_imagem}

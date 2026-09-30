@@ -29,6 +29,7 @@ import { registerDigitalSignature } from '@/services/agroService'
 import type { Procedure, MonitoringRecord, Company } from '@/types/agro'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { canSignAsRT, canSignAsRE, canSignAsRQ } from '@/lib/permissions'
 
 interface PopDocumentPdfModalProps {
   open: boolean
@@ -57,16 +58,10 @@ export function PopDocumentPdfModal({
   const [observacao, setObservacao] = useState('')
   const [savingSig, setSavingSig] = useState(false)
 
-  const userRole = user?.role || 'RT'
-  const canSignPop =
-    userRole === 'RT' ||
-    userRole === 'RE' ||
-    userRole === 'RQ' ||
-    userRole === 'admin' ||
-    userRole === 'admin_cliente' ||
-    userRole === 'super_admin'
-  const isRT = userRole === 'RT'
-  const isRE = userRole === 'RE'
+  const canSignPop = canSignAsRT(user?.role) || canSignAsRQ(user?.role)
+  const canRT = canSignAsRT(user?.role)
+  const canRE = canSignAsRE(user?.role)
+  const canRQ = canSignAsRQ(user?.role)
 
   const rtAssinatura = procedure.assinaturas_pop?.rt
   const reAssinatura = procedure.assinaturas_pop?.re
@@ -322,30 +317,24 @@ export function PopDocumentPdfModal({
                   <div className="pt-4 border-t border-stone-200 flex flex-col sm:flex-row gap-2 justify-end flex-wrap">
                     {/* HIERARQUIA GIAC: RE > RT > RQ */}
                     {/* Assinatura 1: RT ou RE */}
-                    {(userRole === 'RT' ||
-                      userRole === 'RE' ||
-                      userRole === 'super_admin' ||
-                      userRole === 'admin_cliente') && (
+                    {canRT && (
                       <Button
                         type="button"
                         disabled={savingSig}
-                        onClick={() => handleRegisterSignature(userRole === 'RE' ? 'RE' : 'RT')}
+                        onClick={() => handleRegisterSignature(canRE ? 'RE' : 'RT')}
                         className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs gap-1.5 font-semibold"
                       >
                         <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
                         {savingSig
                           ? 'Registrando...'
-                          : userRole === 'RE'
+                          : canRE
                             ? 'Assinar como RE (Substituição Legal RT)'
                             : 'Assinar como RT (Assinatura 1: Técnica)'}
                       </Button>
                     )}
 
                     {/* Assinatura 2: RQ ou RE */}
-                    {(userRole === 'RQ' ||
-                      userRole === 'RE' ||
-                      userRole === 'super_admin' ||
-                      userRole === 'admin_cliente') && (
+                    {canRQ && (
                       <Button
                         type="button"
                         disabled={savingSig}
@@ -360,7 +349,7 @@ export function PopDocumentPdfModal({
                     )}
 
                     {/* RE pode assinar formalmente como autoridade máxima do estabelecimento */}
-                    {(userRole === 'RE' || userRole === 'super_admin') && (
+                    {canRE && (
                       <Button
                         type="button"
                         disabled={savingSig}

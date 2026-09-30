@@ -58,6 +58,13 @@ import type {
   FR01RNCData,
 } from '@/types/pop01Forms'
 import { calcularDiasAteVencimento } from '@/lib/pop01Validators'
+import {
+  canManagePopForms,
+  canSignAsRT,
+  canSignAsRE,
+  canSignAsRQ,
+  canDeleteRecord,
+} from '@/lib/permissions'
 
 interface Pop01FormsManagerProps {
   procedure: Procedure
@@ -188,13 +195,14 @@ export function Pop01FormsManager({
   // Permissões de Acesso por papel - HIERARQUIA GIAC: RE > RT > RQ > usuários por setor
   // RE tem todos os poderes do RT em todos os formulários e registros.
   // admin_cliente é gestor da própria organização (mesmos poderes dentro da org).
-  const userRole = (user?.role || 'operador').toUpperCase()
-  const isSuperAdmin = userRole === 'SUPER_ADMIN'
-  const isAdminCliente = userRole === 'ADMIN_CLIENTE' || userRole === 'ADMIN'
-  const isRE = userRole === 'RE' || isSuperAdmin || isAdminCliente
-  const isRT = userRole === 'RT' || isRE
-  const isRQ = userRole === 'RQ' || isRE
-  const canManageAll = isRT || isRQ || isRE || isAdminCliente || isSuperAdmin
+  const isSuperAdmin = canSignAsRE(user?.role) && (user?.role || '').toLowerCase() === 'super_admin'
+  const isAdminCliente =
+    (user?.role || '').toLowerCase() === 'admin_cliente' ||
+    (user?.role || '').toLowerCase() === 'admin'
+  const isRE = canSignAsRE(user?.role)
+  const isRT = canSignAsRT(user?.role)
+  const isRQ = canSignAsRQ(user?.role)
+  const canManageAll = canManagePopForms(user?.role)
 
   // Extrair recebimentos pendentes de amostragem
   const recebimentosPendentes = useMemo(() => {
