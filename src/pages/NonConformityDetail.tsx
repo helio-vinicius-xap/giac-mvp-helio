@@ -438,7 +438,7 @@ export default function NonConformityDetail() {
                 onChange={(e) =>
                   setPlanoForm({ ...planoForm, medidas_preventivas: e.target.value })
                 }
-                placeholder="Alteração no POP, treinamento da equipe ou melhoria no layout..."
+                placeholder="Alteração no Auto Controle, treinamento da equipe ou melhoria no layout..."
                 className="text-xs resize-none"
               />
             </div>
@@ -719,7 +719,9 @@ export default function NonConformityDetail() {
             </div>
 
             <div className="space-y-1">
-              <Label className="font-semibold text-stone-700">2. Método (POPs / Instruções)</Label>
+              <Label className="font-semibold text-stone-700">
+                2. Método (Auto Controles / Instruções)
+              </Label>
               <Textarea
                 rows={2}
                 value={ishikawa.metodo}

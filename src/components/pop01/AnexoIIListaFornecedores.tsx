@@ -209,7 +209,7 @@ export function AnexoIIListaFornecedores({
       await onDesqualificar(desqItem, desqMotivo)
       toast({
         title: 'Fornecedor desqualificado',
-        description: 'Status atualizado no cadastro do POP 01.',
+        description: 'Status atualizado no cadastro do Auto Controle 01.',
       })
       setDesqItem(null)
       setDesqMotivo('')

@@ -87,7 +87,7 @@ export function AnexoVIIAcaoCorretivaModal({
     responsavel: currentUser?.name || 'Responsável Qualidade',
     status: 'Abertura do Processo',
     observacoes:
-      'Instauração da Ação Corretiva conforme POP 01 e notificação da diretoria técnica.',
+      'Instauração da Ação Corretiva conforme Auto Controle 01 e notificação da diretoria técnica.',
   }
 
   const defaultState: AnexoVIIAcaoCorretivaData = {
@@ -141,7 +141,8 @@ export function AnexoVIIAcaoCorretivaModal({
       'Fornecedor advertido para reforçar protocolo de auditoria e inspeção de transporte.',
     ncs_anteriores_contagem: 1,
 
-    observacoes_gerais: 'Registro arquivado na pasta de rastreabilidade do POP 01 por 24 meses.',
+    observacoes_gerais:
+      'Registro arquivado na pasta de rastreabilidade do Auto Controle 01 por 24 meses.',
     licoes_aprendidas:
       'Auditar previamente o transportador subcontratado pelo fornecedor antes de novas emissões de OC.',
 
@@ -312,7 +313,7 @@ export function AnexoVIIAcaoCorretivaModal({
                   ANEXO VII
                 </span>
                 <span className="text-xs text-stone-500 font-semibold">
-                  POP 01 (FR 01/RNC) • IN 04/2007
+                  Auto Controle 01 (FR 01/RNC) • IN 04/2007
                 </span>
               </div>
               <DialogTitle className="text-base sm:text-lg font-bold text-[#1B4332] font-['Sora']">

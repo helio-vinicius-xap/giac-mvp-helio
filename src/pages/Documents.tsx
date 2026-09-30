@@ -148,19 +148,20 @@ export default function Documents() {
     },
     {
       key: 'pops',
-      title: 'Procedimentos Operacionais Padrão (POPs 1 a 9)',
+      title: 'Auto Controles Oficiais (Auto Controles 01 a 09)',
       categoria: 'POP',
-      description: 'Os 9 POPs obrigatórios da alimentação animal rigorosamente documentados.',
+      description:
+        'Os 9 programas de autocontrole obrigatórios da alimentação animal rigorosamente documentados.',
       subitems: [
-        'POP-001 Qualificação de Fornecedores e Matérias-Primas.pdf',
-        'POP-002 Limpeza e Higienização de Linhas e Equipamentos.pdf',
-        'POP-003 Higiene e Saúde do Pessoal Operacional.pdf',
-        'POP-004 Potabilidade da Água e Higienização de Reservatórios.pdf',
-        'POP-005 Prevenção de Contaminação Cruzada e Sequenciamento.pdf',
-        'POP-006 Manutenção Preventiva e Calibração Metrológica.pdf',
-        'POP-007 Controle Integrado de Pragas e Vetores Urbanos.pdf',
-        'POP-008 Controle de Resíduos Sólidos e Efluentes.pdf',
-        'POP-009 Rastreabilidade e Procedimento de Recolhimento (Recall).pdf',
+        'Auto Controle 01 – Qualificação de Fornecedores e Matérias-Primas.pdf',
+        'Auto Controle 02 – Limpeza e Higienização de Linhas e Equipamentos.pdf',
+        'Auto Controle 03 – Higiene e Saúde do Pessoal Operacional.pdf',
+        'Auto Controle 04 – Potabilidade da Água e Higienização de Reservatórios.pdf',
+        'Auto Controle 05 – Prevenção de Contaminação Cruzada e Sequenciamento.pdf',
+        'Auto Controle 06 – Manutenção Preventiva e Calibração Metrológica.pdf',
+        'Auto Controle 07 – Controle Integrado de Pragas e Vetores Urbanos.pdf',
+        'Auto Controle 08 – Controle de Resíduos Sólidos e Efluentes.pdf',
+        'Auto Controle 09 – Rastreabilidade e Procedimento de Recolhimento (Recall).pdf',
       ],
     },
     {
@@ -169,9 +170,9 @@ export default function Documents() {
       categoria: 'Registro',
       description: 'Checklists diários agrupados por procedimento operacional e PCC.',
       subitems: [
-        'Registros Consolidados de Higienização de Linha (POP-002).pdf',
-        'Registros Contínuos de Tratamento Térmico (POP-005).pdf',
-        'Planilhas Mensais de Cloração e Potabilidade da Água (POP-004).pdf',
+        'Registros Consolidados de Higienização de Linha (Auto Controle 02).pdf',
+        'Registros Contínuos de Tratamento Térmico (Auto Controle 05).pdf',
+        'Planilhas Mensais de Cloração e Potabilidade da Água (Auto Controle 04).pdf',
       ],
     },
     {
@@ -369,7 +370,7 @@ export default function Documents() {
                 <SelectContent>
                   <SelectItem value="Plano APPCC">Plano APPCC</SelectItem>
                   <SelectItem value="Manual BPF">Manual BPF</SelectItem>
-                  <SelectItem value="POP">Procedimento (POP)</SelectItem>
+                  <SelectItem value="POP">Auto Controle</SelectItem>
                   <SelectItem value="Registro">Registro de Monitoramento</SelectItem>
                   <SelectItem value="Ação Corretiva">Ação Corretiva</SelectItem>
                   <SelectItem value="Verificação">Verificação & Auditoria</SelectItem>
@@ -389,21 +390,31 @@ export default function Documents() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-stone-700">Referência ao POP</Label>
+              <Label className="text-xs font-semibold text-stone-700">
+                Referência ao Auto Controle
+              </Label>
               <Select value={refPop} onValueChange={setRefPop}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="POP-001">POP-001 Fornecedores</SelectItem>
-                  <SelectItem value="POP-002">POP-002 Higienização</SelectItem>
-                  <SelectItem value="POP-003">POP-003 Higiene Pessoal</SelectItem>
-                  <SelectItem value="POP-004">POP-004 Água</SelectItem>
-                  <SelectItem value="POP-005">POP-005 Contaminação Cruzada</SelectItem>
-                  <SelectItem value="POP-006">POP-006 Calibração</SelectItem>
-                  <SelectItem value="POP-007">POP-007 Pragas</SelectItem>
-                  <SelectItem value="POP-008">POP-008 Resíduos</SelectItem>
-                  <SelectItem value="POP-009">POP-009 Rastreabilidade</SelectItem>
+                  <SelectItem value="POP-001">
+                    Auto Controle 01 – Qualificação de Fornecedores
+                  </SelectItem>
+                  <SelectItem value="POP-002">Auto Controle 02 – Limpeza e Higienização</SelectItem>
+                  <SelectItem value="POP-003">
+                    Auto Controle 03 – Higiene e Saúde do Pessoal
+                  </SelectItem>
+                  <SelectItem value="POP-004">Auto Controle 04 – Potabilidade da Água</SelectItem>
+                  <SelectItem value="POP-005">Auto Controle 05 – Contaminação Cruzada</SelectItem>
+                  <SelectItem value="POP-006">
+                    Auto Controle 06 – Manutenção e Calibração
+                  </SelectItem>
+                  <SelectItem value="POP-007">Auto Controle 07 – Controle de Pragas</SelectItem>
+                  <SelectItem value="POP-008">Auto Controle 08 – Controle de Resíduos</SelectItem>
+                  <SelectItem value="POP-009">
+                    Auto Controle 09 – Rastreabilidade e Recolhimento
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

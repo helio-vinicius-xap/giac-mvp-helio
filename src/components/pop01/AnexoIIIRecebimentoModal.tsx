@@ -269,7 +269,7 @@ export function AnexoIIIRecebimentoModal({
                   ANEXO III
                 </span>
                 <span className="text-xs text-stone-500 font-semibold">
-                  POP 01 (FR 08) • IN 04/2007
+                  Auto Controle 01 (FR 08) • IN 04/2007
                 </span>
               </div>
               <DialogTitle className="text-base sm:text-lg font-bold text-[#1B4332] font-['Sora']">

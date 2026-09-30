@@ -25,6 +25,7 @@ import {
   type PendenciaItem,
   type RecordChainItem,
 } from '@/lib/recordFlow'
+import { formatProcedureCode } from '@/lib/procedureNaming'
 
 interface PopPendingPanelProps {
   procedure: Procedure
@@ -70,12 +71,12 @@ export function PopPendingPanel({
                 FLUXO DE REGISTROS OBRIGATÓRIOS
               </span>
               <h2 className="text-lg font-bold font-['Sora'] text-[#1B4332]">
-                Cadeia de Comprovação e Pendências ({procedure.codigo})
+                Cadeia de Comprovação e Pendências ({formatProcedureCode(procedure.codigo)})
               </h2>
             </div>
             <p className="text-xs text-stone-600 mt-1">
               Mapeamento do encadeamento obrigatório (Recebimento → Amostra → Laudo →
-              Destinação/Ação Corretiva). O POP só é considerado{' '}
+              Destinação/Ação Corretiva). O Auto Controle só é considerado{' '}
               <strong className="text-emerald-800">Comprovado</strong> quando todos os elos abertos
               estão preenchidos.
             </p>

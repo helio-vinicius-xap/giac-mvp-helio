@@ -449,7 +449,7 @@ export default function Traceability() {
               <div className="space-y-2">
                 <div className="p-2.5 rounded-lg border border-[#E2DCCF] bg-[#FAF7EF] text-xs">
                   <span className="font-bold text-[#2D6A4F] block">
-                    POP-002: Limpeza e Higienização de Linhas
+                    Auto Controle 02 – Limpeza e Higienização
                   </span>
                   <p className="text-stone-600 text-[11px] mt-0.5">
                     Realizada às 08:30 • pH residual 6,5 • Conforme
@@ -457,7 +457,7 @@ export default function Traceability() {
                 </div>
                 <div className="p-2.5 rounded-lg border border-[#E2DCCF] bg-[#FAF7EF] text-xs">
                   <span className="font-bold text-[#2D6A4F] block">
-                    POP-005: Tratamento Térmico e Peletização
+                    Auto Controle 05 – Contaminação Cruzada
                   </span>
                   <p className="text-stone-600 text-[11px] mt-0.5">
                     Temperatura 78,5°C • Umidade 11,2% • Conforme limites APPCC

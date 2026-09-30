@@ -411,8 +411,8 @@ export default function CompanySettings() {
                 <strong className="text-[#2D6A4F] font-bold block mb-0.5">
                   Estrutura de Responsabilidade Técnica e Legal (IN 04/2007)
                 </strong>
-                Conforme exigência do MAPA, as emissões de POP são impressas e geradas pelo{' '}
-                <strong>Responsável Técnico (RT)</strong> e pelo{' '}
+                Conforme exigência do MAPA, as emissões de Auto Controle são impressas e geradas
+                pelo <strong>Responsável Técnico (RT)</strong> e pelo{' '}
                 <strong>Responsável pelo Estabelecimento (RE)</strong> registrado no SIPEAGRO. Os
                 registros de monitoramento são formalmente comprovados quando assinados pelo{' '}
                 <strong>Responsável pela Qualidade (RQ)</strong> e pelo <strong>RE</strong>.
@@ -429,11 +429,13 @@ export default function CompanySettings() {
                   <div>
                     <h3 className="text-sm font-bold text-[#2D6A4F]">Responsável Técnico (RT)</h3>
                     <p className="text-[11px] text-stone-500">
-                      Gera e imprime os POPs com anotação no conselho de classe
+                      Gera e imprime os Auto Controles com anotação no conselho de classe
                     </p>
                   </div>
                 </div>
-                <Badge className="bg-[#2D6A4F] text-white text-[10px]">Habilitado POP / PDF</Badge>
+                <Badge className="bg-[#2D6A4F] text-white text-[10px]">
+                  Habilitado Auto Controle / PDF
+                </Badge>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -536,7 +538,7 @@ export default function CompanySettings() {
                   </div>
                 </div>
                 <Badge className="bg-[#D9A404] text-[#1B4332] text-[10px] font-bold">
-                  Assina POP & Registros
+                  Assina Auto Controles & Registros
                 </Badge>
               </div>
 

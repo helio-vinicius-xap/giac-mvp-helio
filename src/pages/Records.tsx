@@ -44,6 +44,7 @@ import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
 import { IntegrityBadge } from '@/components/IntegrityBadge'
 import { TargetHistoryModal } from '@/components/TargetHistoryModal'
 import { canViewAuditHistory } from '@/lib/permissions'
+import { formatProcedureCode, formatProcedureDisplayName } from '@/lib/procedureNaming'
 import { useAuth } from '@/contexts/AuthContext'
 import { Clock, KeyRound, ShieldCheck, History } from 'lucide-react'
 
@@ -165,7 +166,7 @@ export default function Records() {
       'Data',
       'Turno',
       'Lote',
-      'Procedimento',
+      'Auto Controle',
       'Valor Medido',
       'Status',
       'Responsavel',
@@ -175,7 +176,7 @@ export default function Records() {
       new Date(r.data).toLocaleDateString('pt-BR'),
       r.turno || '',
       r.lote || '',
-      r.expand?.procedure ? `${r.expand.procedure.codigo} - ${r.expand.procedure.nome}` : '',
+      r.expand?.procedure ? formatProcedureDisplayName(r.expand.procedure) : '',
       `"${(r.valor_medido || '').replace(/"/g, '""')}"`,
       r.status,
       r.responsavel || '',
@@ -259,16 +260,16 @@ export default function Records() {
           <div>
             <Select value={selectedProcedure} onValueChange={setSelectedProcedure}>
               <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Procedimento" />
+                <SelectValue placeholder="Auto Controle" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os Procedimentos</SelectItem>
+                <SelectItem value="all">Todos os Auto Controles</SelectItem>
                 {procedures.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.codigo} - {p.nome.slice(0, 24)}...
+                    {formatProcedureDisplayName(p)}
                   </SelectItem>
                 ))}
-              </SelectContent>
+              </SelectContent>{' '}
             </Select>
           </div>
 
@@ -346,7 +347,7 @@ export default function Records() {
               <tr className="agro-table-header">
                 <th className="py-3 px-3">Data</th>
                 <th className="py-3 px-3">Turno</th>
-                <th className="py-3 px-3">Procedimento (POP)</th>
+                <th className="py-3 px-3">Auto Controle</th>
                 <th className="py-3 px-3">Lote</th>
                 <th className="py-3 px-3">Parâmetro / Valor Medido</th>
                 <th className="py-3 px-3">Status</th>
@@ -391,7 +392,7 @@ export default function Records() {
                             onClick={(e) => e.stopPropagation()}
                             className="font-bold text-[#2D6A4F] hover:underline"
                           >
-                            {proc.codigo} - {proc.nome.slice(0, 30)}
+                            {formatProcedureDisplayName(proc)}
                           </Link>
                         ) : (
                           <span className="text-stone-400">Desconhecido</span>
@@ -576,11 +577,12 @@ export default function Records() {
 
               <div>
                 <span className="text-stone-400 block font-semibold uppercase text-[10px]">
-                  Procedimento Vinculado
+                  Auto Controle Vinculado
                 </span>
                 <span className="font-bold text-[#2D6A4F] text-sm">
-                  {selectedRecord.expand?.procedure?.codigo} -{' '}
-                  {selectedRecord.expand?.procedure?.nome}
+                  {selectedRecord.expand?.procedure
+                    ? formatProcedureDisplayName(selectedRecord.expand.procedure)
+                    : '—'}
                 </span>
               </div>
 

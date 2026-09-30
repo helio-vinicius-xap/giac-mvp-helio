@@ -35,6 +35,7 @@ import {
 } from '@/services/agroService'
 import type { Procedure, Company, ProcedureRevision } from '@/types/agro'
 import { POP01_NORMATIVE_DATA } from '@/types/pop01NormativeContent'
+import { formatProcedureCode, formatProcedureDisplayName } from '@/lib/procedureNaming'
 
 interface PopNormativeEditorProps {
   procedure: Procedure
@@ -132,7 +133,7 @@ export function PopNormativeEditor({
 
     setSaving(true)
     try {
-      const fullText = `=== POP ${procedure.codigo} - ${procedure.nome} ===\n\n1. OBJETIVO:\n${sections.objetivo}\n\n2. CAMPO DE APLICAÇÃO:\n${sections.campo_aplicacao}\n\n3. REFERÊNCIAS NORMATIVAS:\n${sections.referencias_normativas}\n\n4. DEFINIÇÕES:\n${sections.definicoes}\n\n5. DESCRIÇÃO DETALHADA:\n${sections.descricao_detalhada}\n\n6. AÇÕES CORRETIVAS:\n${sections.acoes_corretivas}`
+      const fullText = `=== ${formatProcedureDisplayName(procedure)} (${procedure.codigo}) ===\n\n1. OBJETIVO:\n${sections.objetivo}\n\n2. CAMPO DE APLICAÇÃO:\n${sections.campo_aplicacao}\n\n3. REFERÊNCIAS NORMATIVAS:\n${sections.referencias_normativas}\n\n4. DEFINIÇÕES:\n${sections.definicoes}\n\n5. DESCRIÇÃO DETALHADA:\n${sections.descricao_detalhada}\n\n6. AÇÕES CORRETIVAS:\n${sections.acoes_corretivas}`
 
       const res: any = await saveProcedureRevision(procedure.id, {
         admin_password: adminPassword,
@@ -205,7 +206,7 @@ export function PopNormativeEditor({
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-[#2D6A4F] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              Editor Normativo de POP
+              Editor Normativo de Auto Controle
             </span>
             <Badge className="bg-[#1B4332] text-white text-[11px] font-mono">
               Versão Vigente: {procedure.versao || '1.0'}
@@ -343,15 +344,17 @@ export function PopNormativeEditor({
               <Label className="text-xs font-bold uppercase tracking-wider text-[#2D6A4F]">
                 5. Descrição Detalhada do Procedimento (Passo a Passo Operacional)
               </Label>
-              <span className="text-[10px] text-stone-400">Texto normativo completo do POP</span>
+              <span className="text-[10px] text-stone-400">
+                Texto normativo completo do Auto Controle
+              </span>
             </div>
             <Textarea
               rows={12}
               value={sections.descricao_detalhada}
               onChange={(e) => setSections({ ...sections, descricao_detalhada: e.target.value })}
-              placeholder="Insira o texto normativo completo do POP, rotinas operacionais, critérios de aceitação, etc."
+              placeholder="Insira o texto normativo completo do Auto Controle, rotinas operacionais, critérios de aceitação, etc."
               className="text-xs font-mono leading-relaxed"
-            />
+            />{' '}
           </div>
 
           {/* Seção 6: Ações Corretivas */}
@@ -377,7 +380,8 @@ export function PopNormativeEditor({
                 Histórico de Revisões Normativas
               </h3>
               <p className="text-[11px] text-stone-500">
-                Trilha auditável de todas as versões do POP, autor, data e descrição da alteração.
+                Trilha auditável de todas as versões do Auto Controle, autor, data e descrição da
+                alteração.
               </p>
             </div>
             <Badge variant="outline" className="text-xs font-mono">
@@ -471,8 +475,8 @@ export function PopNormativeEditor({
             </DialogTitle>
             <DialogDescription className="text-xs text-stone-600">
               Conforme as diretrizes regulatórias e de segurança do GIAC, a alteração de textos
-              normativos dos POPs exige a validação formal da senha do Administrador da Organização
-              Cliente.
+              normativos dos Auto Controles exige a validação formal da senha do Administrador da
+              Organização Cliente.
             </DialogDescription>
           </DialogHeader>
 
@@ -618,7 +622,7 @@ export function PopNormativeEditor({
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-amber-800 font-['Sora'] flex items-center gap-2">
               <RotateCcw className="h-5 w-5 text-amber-600" />
-              Restaurar Versão do POP
+              Restaurar Versão do Auto Controle
             </DialogTitle>
             <DialogDescription className="text-xs text-stone-600">
               Você está prestes a restaurar a revisão <strong>

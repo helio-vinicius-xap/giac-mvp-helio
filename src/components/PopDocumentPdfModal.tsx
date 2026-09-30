@@ -30,6 +30,7 @@ import type { Procedure, MonitoringRecord, Company } from '@/types/agro'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { canSignAsRT, canSignAsRE, canSignAsRQ } from '@/lib/permissions'
+import { formatProcedureCode, formatProcedureDisplayName } from '@/lib/procedureNaming'
 
 interface PopDocumentPdfModalProps {
   open: boolean
@@ -113,7 +114,7 @@ export function PopDocumentPdfModal({
       })
 
       toast({
-        title: `POP Assinado como ${targetRole}`,
+        title: `${formatProcedureCode(procedure.codigo)} Assinado como ${targetRole}`,
         description: `Autenticação registrada com sucesso via ${
           signatureMethod === 'gov_br' ? 'Gov.br' : 'ICP-Brasil (PFX)'
         }.`,
@@ -142,7 +143,7 @@ export function PopDocumentPdfModal({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge className="bg-[#2D6A4F] text-white text-[11px] font-bold">
-                  {procedure.codigo}
+                  {formatProcedureCode(procedure.codigo)}
                 </Badge>
                 <Badge
                   variant="outline"
@@ -164,7 +165,7 @@ export function PopDocumentPdfModal({
                 )}
               </div>
               <DialogTitle className="text-base sm:text-lg font-bold font-['Sora'] text-[#2D6A4F]">
-                {procedure.nome}
+                {formatProcedureDisplayName(procedure)}
               </DialogTitle>
               <DialogDescription className="text-xs text-stone-600">
                 Documento Oficial de Autocontrole para Impressão e Assinatura Eletrônica (RT / RE)
@@ -203,7 +204,7 @@ export function PopDocumentPdfModal({
                   Assinatura Eletrônica Formal do Procedimento
                 </h3>
                 <p className="text-xs text-stone-600 mb-4">
-                  O POP deve ser formalizado com a assinatura do{' '}
+                  O Auto Controle deve ser formalizado com a assinatura do{' '}
                   <strong>Responsável Técnico (RT)</strong> e do{' '}
                   <strong>Responsável pelo Estabelecimento (RE)</strong> registrado no MAPA
                   (SIPEAGRO).
@@ -291,7 +292,7 @@ export function PopDocumentPdfModal({
                         Instruções para Assinador PFX / Token ICP-Brasil:
                       </p>
                       <p className="text-amber-800 text-[11px]">
-                        1. Imprima ou salve este POP como PDF.
+                        1. Imprima ou salve este Auto Controle como PDF.
                         <br />
                         2. Assine o PDF com seu software assinador local (Adobe Acrobat, Assinador
                         SERPRO, ou Token A1/A3).
@@ -398,8 +399,8 @@ export function PopDocumentPdfModal({
                   <p className="text-xs font-bold text-[#2D6A4F]">
                     PROGRAMA DE AUTOCONTROLE (APPCC)
                   </p>
-                  <p className="text-[11px] font-semibold text-stone-800">
-                    PROCEDIMENTO OPERACIONAL PADRÃO
+                  <p className="text-[11px] font-semibold text-stone-800 uppercase">
+                    {formatProcedureCode(procedure.codigo)}
                   </p>
                   <p className="text-xs font-mono font-bold text-red-700">{procedure.codigo}</p>
                   <p className="text-[10px] text-stone-500">
@@ -414,9 +415,11 @@ export function PopDocumentPdfModal({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-stone-500 block">
-                      Título do POP
+                      Título do Auto Controle
                     </span>
-                    <strong className="text-xs text-stone-900">{procedure.nome}</strong>
+                    <strong className="text-xs text-stone-900">
+                      {formatProcedureDisplayName(procedure)}
+                    </strong>
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-stone-500 block">
@@ -574,8 +577,8 @@ export function PopDocumentPdfModal({
                   3. Formulários Normativos de Comprovação (IN 04/2007 - Item 07)
                 </h4>
                 <p className="text-[11px] text-stone-600">
-                  Para ser formalmente comprovada a execução deste POP perante a fiscalização do
-                  MAPA, os seguintes registros devem ser gerados e assinados pelo{' '}
+                  Para ser formalmente comprovada a execução deste Auto Controle perante a
+                  fiscalização do MAPA, os seguintes registros devem ser gerados e assinados pelo{' '}
                   <strong>Responsável pela Qualidade (RQ)</strong> e pelo{' '}
                   <strong>Responsável pelo Estabelecimento (RE)</strong>:
                 </p>
@@ -615,9 +618,9 @@ export function PopDocumentPdfModal({
                     12.031/2024)
                   </h4>
                   <p className="text-[10px] text-stone-600 max-w-2xl mx-auto">
-                    O presente Procedimento Operacional Padrão ({procedure.codigo}) foi revisado,
-                    aprovado tecnicamente e homologado para aplicação compulsória em todas as
-                    unidades fabris do estabelecimento{' '}
+                    O presente Auto Controle ({formatProcedureCode(procedure.codigo)} •{' '}
+                    {procedure.codigo}) foi revisado, aprovado tecnicamente e homologado para
+                    aplicação compulsória em todas as unidades fabris do estabelecimento{' '}
                     {company?.razao_social || 'NutriAgro Nutrição Animal e Premixes Ltda.'}.
                   </p>
                 </div>

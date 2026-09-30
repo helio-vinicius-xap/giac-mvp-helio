@@ -272,7 +272,7 @@ export function AnexoVIDestinacaoModal({
                   ANEXO VI
                 </span>
                 <span className="text-xs text-stone-500 font-semibold">
-                  POP 01 (FR 18) • IN 04/2007
+                  Auto Controle 01 (FR 18) • IN 04/2007
                 </span>
               </div>
               <DialogTitle className="text-base sm:text-lg font-bold text-[#1B4332] font-['Sora']">

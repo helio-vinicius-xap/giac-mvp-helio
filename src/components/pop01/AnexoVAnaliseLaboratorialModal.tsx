@@ -298,7 +298,9 @@ export function AnexoVAnaliseLaboratorialModal({
                 <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
                   ANEXO V
                 </span>
-                <span className="text-xs text-stone-500 font-semibold">POP 01 (IN 04/2007)</span>
+                <span className="text-xs text-stone-500 font-semibold">
+                  Auto Controle 01 (IN 04/2007)
+                </span>
               </div>
               <DialogTitle className="text-base sm:text-lg font-bold text-[#1B4332] font-['Sora']">
                 Relatório de Análise Laboratorial

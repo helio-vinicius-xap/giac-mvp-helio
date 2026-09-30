@@ -533,7 +533,7 @@ export function Pop01FormsManager({
 
     toast({
       title: isDraft ? 'Rascunho de Ação Corretiva salvo' : 'Ação Corretiva instaurada com sucesso',
-      description: `Processo nº ${dados.numero_acao_corretiva} aberto e integrado à cadeia do POP.`,
+      description: `Processo nº ${dados.numero_acao_corretiva} aberto e integrado à cadeia do Auto Controle.`,
     })
 
     if (onRecordCreated) onRecordCreated()
@@ -641,7 +641,7 @@ export function Pop01FormsManager({
     setPrintData({
       codigoAnexo,
       titulo,
-      subtitulo: 'NutriAgro SaaS • POP 01 – Qualificação e Recebimento de Insumos',
+      subtitulo: 'NutriAgro SaaS • Auto Controle 01 – Qualificação de Fornecedores',
       dados,
     })
     setPrintModalOpen(true)
@@ -655,7 +655,7 @@ export function Pop01FormsManager({
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />
             <h4 className="font-bold text-xs font-['Sora'] text-amber-900 uppercase tracking-wide">
-              Alertas Automáticos do POP 01 ({alertasAtivos.length})
+              Alertas Automáticos do Auto Controle 01 ({alertasAtivos.length})
             </h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
@@ -686,7 +686,8 @@ export function Pop01FormsManager({
           </span>
           <p className="text-stone-600 text-[11px]">
             Os registros geram automaticamente as próximas etapas vinculadas. Consulte a aba{' '}
-            <strong>Cadeia & Pendências</strong> para acompanhar a comprovação integral do POP.
+            <strong>Cadeia & Pendências</strong> para acompanhar a comprovação integral do Auto
+            Controle.
           </p>
         </div>
         <Badge className="bg-[#1B4332] text-white shrink-0 self-start sm:self-center text-[10px]">

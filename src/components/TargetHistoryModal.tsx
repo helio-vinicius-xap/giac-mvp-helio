@@ -136,10 +136,8 @@ export function TargetHistoryModal({
                   Histórico & Integridade da Trilha
                 </DialogTitle>
                 <DialogDescription className="text-xs text-emerald-100">
-                  {targetType === 'record'
-                    ? 'Registro de Monitoramento'
-                    : 'Procedimento Padrão (POP)'}{' '}
-                  • Anti-falsificação & IN MAPA 04/2007
+                  {targetType === 'record' ? 'Registro de Monitoramento' : 'Auto Controle'} •
+                  Anti-falsificação & IN MAPA 04/2007
                 </DialogDescription>
               </div>
             </div>

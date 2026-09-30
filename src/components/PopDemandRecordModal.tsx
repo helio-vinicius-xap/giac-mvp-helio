@@ -114,7 +114,7 @@ export function PopDemandRecordModal({
         title: 'Registro por Demanda Criado!',
         description:
           tipoDemanda === 'anexo_cliente'
-            ? 'Documento/Planilha anexado com sucesso e integrado à cadeia do POP.'
+            ? 'Documento/Planilha anexado com sucesso e integrado à cadeia do Auto Controle.'
             : 'Registro iniciado no sistema. A pendência já está visível para a equipe.',
       })
 
@@ -155,7 +155,7 @@ export function PopDemandRecordModal({
           </div>
           <DialogDescription className="text-xs text-stone-600">
             Adicione um registro obrigatório avulso ou anexado pelo cliente, integrando-o
-            imediatamente à cadeia de comprovação do POP.
+            imediatamente à cadeia de comprovação do Auto Controle.
           </DialogDescription>
         </DialogHeader>
 
@@ -213,7 +213,9 @@ export function PopDemandRecordModal({
           {/* 2. Seleção do Módulo / Anexo da Cadeia */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-stone-700">Anexo / Etapa do POP</Label>
+              <Label className="text-xs font-semibold text-stone-700">
+                Anexo / Etapa do Auto Controle
+              </Label>
               <select
                 value={formularioCodigo}
                 onChange={(e) => setFormularioCodigo(e.target.value)}
@@ -397,8 +399,8 @@ export function PopDemandRecordModal({
               </div>
             ) : (
               <p className="text-[11px] text-stone-600">
-                O aviso será formulado com base nas regras normativas do POP (prazo padrão da cadeia
-                e criticidade regulamentar).
+                O aviso será formulado com base nas regras normativas do Auto Controle (prazo padrão
+                da cadeia e criticidade regulamentar).
               </p>
             )}
           </div>

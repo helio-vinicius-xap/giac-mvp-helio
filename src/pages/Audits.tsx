@@ -416,7 +416,9 @@ export default function Audits() {
               <ul className="list-disc list-inside space-y-0.5 text-[11px]">
                 <li>Item 48: Programa de auditoria interna documentado e aprovado pela direção.</li>
                 <li>Item 49: Equipe de auditores internos qualificada e independente das áreas.</li>
-                <li>Item 50: Cronograma anual com cobertura de 100% dos PCCs e POPs 1 a 9.</li>
+                <li>
+                  Item 50: Cronograma anual com cobertura de 100% dos PCCs e Auto Controles 01 a 09.
+                </li>
               </ul>
             </div>
           </div>

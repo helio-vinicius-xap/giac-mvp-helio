@@ -233,7 +233,9 @@ export function PopFormBuilderModal({
                 </Badge>
               </div>
               <DialogTitle className="text-base sm:text-lg font-bold font-['Sora'] text-[#1B4332]">
-                {formToEdit ? 'Editar Formulário do POP' : 'Novo Formulário Personalizado'}
+                {formToEdit
+                  ? 'Editar Formulário do Auto Controle'
+                  : 'Novo Formulário Personalizado'}
               </DialogTitle>
               <DialogDescription className="text-xs text-stone-600">
                 Crie fichas digitais que entram automaticamente na{' '}
@@ -323,13 +325,14 @@ export function PopFormBuilderModal({
                   className="rounded text-[#2D6A4F] focus:ring-[#2D6A4F]"
                 />
                 <div>
-                  <strong className="block text-stone-900">
-                    Entrar na Cadeia Obrigatória do POP
-                  </strong>
-                  <span className="text-[10px] text-stone-500">
-                    O POP só atinge comprovação quando este formulário for preenchido no ciclo.
-                  </span>
-                </div>
+                  <Label className="text-xs font-bold text-stone-800">
+                    Entrar na Cadeia Obrigatória do Auto Controle
+                  </Label>
+                  <p className="text-[11px] text-stone-500">
+                    O Auto Controle só atinge comprovação quando este formulário for preenchido no
+                    ciclo.
+                  </p>
+                </div>{' '}
               </label>
 
               <label className="flex items-center gap-2 text-xs text-stone-700 cursor-pointer p-2 rounded bg-[#FAF7EF] border border-[#E2DCCF]">
@@ -344,7 +347,7 @@ export function PopFormBuilderModal({
                     Gerar Alerta no Painel de Pendências
                   </strong>
                   <span className="text-[10px] text-stone-500">
-                    Ficará visível com badge e prazo no painel de pendências do POP.
+                    Ficará visível com badge e prazo no painel de pendências do Auto Controle.
                   </span>
                 </div>
               </label>
@@ -639,7 +642,7 @@ export function PopFormBuilderModal({
             className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-bold gap-1.5"
           >
             <Save className="h-3.5 w-3.5" />
-            {saving ? 'Gravando Formulário...' : 'Salvar Formulário no POP'}
+            {saving ? 'Gravando Formulário...' : 'Salvar Formulário no Auto Controle'}
           </Button>
         </DialogFooter>
       </DialogContent>

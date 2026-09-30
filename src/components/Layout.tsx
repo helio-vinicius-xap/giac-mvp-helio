@@ -216,7 +216,7 @@ export default function Layout() {
   const getPageTitle = () => {
     const p = location.pathname
     if (p === '/') return 'Visão Geral do Autocontrole'
-    if (p.startsWith('/procedimentos')) return 'Gestão de Procedimentos (POPs)'
+    if (p.startsWith('/procedimentos')) return 'Gestão de Auto Controles'
     if (p.startsWith('/registros')) return 'Registros de Monitoramento'
     if (p.startsWith('/auditorias')) return 'Auditorias Internas (MAPA)'
     if (p.startsWith('/rastreabilidade')) return 'Painel de Rastreabilidade e Recall'

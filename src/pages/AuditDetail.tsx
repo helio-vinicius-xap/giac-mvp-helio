@@ -181,19 +181,19 @@ export default function AuditDetail() {
     },
     {
       code: 'F',
-      title: 'F. AVALIAÇÃO DOS ELEMENTOS DE CONTROLE (POPs 1-9)',
+      title: 'F. AVALIAÇÃO DOS ELEMENTOS DE CONTROLE (Auto Controles 01 a 09)',
       itens: [
         {
           num: '18',
-          desc: 'Dispõe de programa de autocontrole estruturado em manuais e procedimentos escritos (POPs).',
+          desc: 'Dispõe de programa de autocontrole estruturado em manuais e procedimentos escritos (Auto Controles).',
         },
         {
           num: '19',
-          desc: 'POP-001 define critérios e procedimentos para qualificação de fornecedores e autocorreção (RR).',
+          desc: 'Auto Controle 01 define critérios e procedimentos para qualificação de fornecedores e autocorreção (RR).',
         },
         {
           num: '20',
-          desc: 'POP-001 define parâmetros para recebimento de matérias-primas e embalagens (RR).',
+          desc: 'Auto Controle 01 define parâmetros para recebimento de matérias-primas e embalagens (RR).',
         },
         {
           num: '21',
@@ -205,7 +205,7 @@ export default function AuditDetail() {
         },
         {
           num: '23',
-          desc: 'POP-002 relaciona todas as áreas, instalações, equipamentos e utensílios para higienização.',
+          desc: 'Auto Controle 02 relaciona todas as áreas, instalações, equipamentos e utensílios para higienização.',
         },
         {
           num: '24',
@@ -213,23 +213,23 @@ export default function AuditDetail() {
         },
         {
           num: '25',
-          desc: 'POP-003 especifica condutas de higiene pessoal, uniformes e saúde ocupacional.',
+          desc: 'Auto Controle 03 especifica condutas de higiene pessoal, uniformes e saúde ocupacional.',
         },
         {
           num: '26',
-          desc: 'POP-004 descreve todas as etapas desde a captação até o destino da água utilizada.',
+          desc: 'Auto Controle 04 descreve todas as etapas desde a captação até o destino da água utilizada.',
         },
         {
           num: '27',
-          desc: 'POP-004 especifica padrão de potabilidade da água conforme Portaria GM/MS 888/2021.',
+          desc: 'Auto Controle 04 especifica padrão de potabilidade da água conforme Portaria GM/MS 888/2021.',
         },
         {
           num: '28',
-          desc: 'POP-004 especifica procedimentos de limpeza e higienização semestral de reservatórios.',
+          desc: 'Auto Controle 04 especifica procedimentos de limpeza e higienização semestral de reservatórios.',
         },
         {
           num: '29',
-          desc: 'POP-005 identifica perigos em cada etapa e estabelece medidas preventivas de contaminação cruzada.',
+          desc: 'Auto Controle 05 identifica perigos em cada etapa e estabelece medidas preventivas de contaminação cruzada.',
         },
         {
           num: '30',
@@ -261,7 +261,7 @@ export default function AuditDetail() {
         },
         {
           num: '37',
-          desc: 'POP-006 relaciona todas as balanças e equipamentos sujeitos a manutenção e calibração.',
+          desc: 'Auto Controle 06 relaciona todas as balanças e equipamentos sujeitos a manutenção e calibração.',
         },
         {
           num: '38',
@@ -269,11 +269,11 @@ export default function AuditDetail() {
         },
         {
           num: '39',
-          desc: 'POP-007 especifica controle integrado de pragas com armadilhas monitoradas (RR).',
+          desc: 'Auto Controle 07 especifica controle integrado de pragas com armadilhas monitoradas (RR).',
         },
         {
           num: '40',
-          desc: 'POP-008 especifica controle de resíduos sólidos e destinação adequada de efluentes industriais.',
+          desc: 'Auto Controle 08 especifica controle de resíduos sólidos e destinação adequada de efluentes industriais.',
         },
         {
           num: '41',

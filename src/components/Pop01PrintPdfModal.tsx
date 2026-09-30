@@ -65,7 +65,7 @@ export function Pop01PrintPdfModal({
                   variant="outline"
                   className="border-[#2D6A4F] text-[#2D6A4F] bg-emerald-50 text-[10px]"
                 >
-                  POP 01 • IN 04/2007 MAPA
+                  Auto Controle 01 • IN 04/2007 MAPA
                 </Badge>
               </div>
               <DialogTitle className="text-base font-bold font-['Sora'] text-[#1B4332]">
@@ -142,8 +142,8 @@ export function Pop01PrintPdfModal({
                 {titulo}
               </h1>
               <p className="text-[10px] text-stone-600 mt-0.5">
-                POP 01 – Qualificação de Fornecedores e Controle de Matérias-Primas, Ingredientes e
-                Embalagens
+                Auto Controle 01 – Qualificação de Fornecedores e Controle de Matérias-Primas,
+                Ingredientes e Embalagens
               </p>
             </div>
 

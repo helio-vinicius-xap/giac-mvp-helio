@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { registerDigitalSignature } from '@/services/agroService'
 import { canSignAsRT, canSignAsRE, canSignAsRQ, canDeleteRecord } from '@/lib/permissions'
 import type { MonitoringRecord, Company, Procedure, DigitalSignatureRecord } from '@/types/agro'
+import { formatProcedureCode, formatProcedureDisplayName } from '@/lib/procedureNaming'
 
 interface RecordDocumentPdfModalProps {
   open: boolean
@@ -142,7 +143,8 @@ export function RecordDocumentPdfModal({
                 )}
               </div>
               <DialogTitle className="text-base font-bold font-['Sora'] text-[#2D6A4F]">
-                Registro de Monitoramento • {procedure?.codigo || 'POP'}
+                Registro de Monitoramento •{' '}
+                {procedure ? formatProcedureDisplayName(procedure) : 'Auto Controle'}
               </DialogTitle>
               <DialogDescription className="text-xs text-stone-600">
                 Data: {new Date(record.data).toLocaleDateString('pt-BR')} • Turno:{' '}
@@ -180,11 +182,11 @@ export function RecordDocumentPdfModal({
                 <div>
                   <h3 className="text-sm font-bold text-[#2D6A4F] flex items-center gap-1.5">
                     <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
-                    Comprovação Formal de Execução do POP
+                    Comprovação Formal de Execução do Auto Controle
                   </h3>
                   <p className="text-xs text-stone-600 mt-1">
-                    Segundo a IN 04/2007 do MAPA, o POP é considerado comprovadamente executado
-                    quando o registro recebe a validação do{' '}
+                    Segundo a IN 04/2007 do MAPA, o Auto Controle é considerado comprovadamente
+                    executado quando o registro recebe a validação do{' '}
                     <strong>Responsável Técnico (RT)</strong>,{' '}
                     <strong>Responsável pela Qualidade (RQ)</strong> ou do{' '}
                     <strong>Responsável pelo Estabelecimento (RE)</strong>.
@@ -352,8 +354,8 @@ export function RecordDocumentPdfModal({
               {procedure && (
                 <div className="p-2.5 rounded bg-emerald-50/50 border border-emerald-200">
                   <p className="text-[11px] text-stone-700">
-                    <strong>Procedimento Vinculado:</strong> [{procedure.codigo}] {procedure.nome} (
-                    {procedure.area_etapa || 'Fábrica'})
+                    <strong>Auto Controle Vinculado:</strong> [{procedure.codigo}]{' '}
+                    {formatProcedureDisplayName(procedure)} ({procedure.area_etapa || 'Fábrica'})
                   </p>
                 </div>
               )}

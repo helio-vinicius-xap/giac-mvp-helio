@@ -312,7 +312,7 @@ export function AuditTrailGlobal({
               <SelectContent>
                 <SelectItem value="all">Todas as Coleções</SelectItem>
                 <SelectItem value="records">records (Monitoramentos)</SelectItem>
-                <SelectItem value="procedures">procedures (POPs)</SelectItem>
+                <SelectItem value="procedures">procedures (Auto Controles)</SelectItem>
                 <SelectItem value="audits">audits (Auditorias)</SelectItem>
                 <SelectItem value="non_conformities">non_conformities (RNC)</SelectItem>
                 <SelectItem value="pop_custom_forms">pop_custom_forms</SelectItem>

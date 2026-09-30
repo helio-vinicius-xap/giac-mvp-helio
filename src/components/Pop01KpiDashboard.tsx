@@ -114,13 +114,13 @@ export function Pop01KpiDashboard({ summary, onOpenFormTab }: Pop01KpiDashboardP
         </div>
       </div>
 
-      {/* Tabela dos Indicadores Oficiais de Gestão do Autocontrole (Seção 14 do POP 01) */}
+      {/* Tabela dos Indicadores Oficiais de Gestão do Autocontrole (Seção 14 do Auto Controle 01) */}
       <div className="p-5 rounded-2xl border border-[#E2DCCF] bg-white shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E2DCCF]">
           <div>
             <h3 className="text-sm font-bold font-['Sora'] text-[#2D6A4F] flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-[#D9A404]" />
-              Painel de Indicadores — Seção 14 do POP 01
+              Painel de Indicadores — Seção 14 do Auto Controle 01
             </h3>
             <p className="text-xs text-stone-500">
               Métricas calculadas automaticamente em tempo real a partir dos formulários digitais
@@ -139,7 +139,7 @@ export function Pop01KpiDashboard({ summary, onOpenFormTab }: Pop01KpiDashboardP
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-[#E2DCCF] text-stone-500 uppercase tracking-wider text-[10px] bg-[#FAF7EF]">
-                <th className="py-2.5 px-3">Indicador (POP 01)</th>
+                <th className="py-2.5 px-3">Indicador (Auto Controle 01)</th>
                 <th className="py-2.5 px-3">Fórmula / Métrica</th>
                 <th className="py-2.5 px-3 text-center">Periodicidade</th>
                 <th className="py-2.5 px-3 text-center">Meta Estabelecida</th>
@@ -187,7 +187,7 @@ export function Pop01KpiDashboard({ summary, onOpenFormTab }: Pop01KpiDashboardP
           <CheckCircle2 className="h-4 w-4 text-[#2D6A4F] shrink-0 mt-0.5" />
           <span>
             Os indicadores acima são gerados com base estrita nos dados cadastrados nas abas dos
-            formulários do POP 01. Os registros digitais devem permanecer permanentemente
+            formulários do Auto Controle 01. Os registros digitais devem permanecer permanentemente
             disponíveis à fiscalização federal agropecuária (item 20 do Manual de Fiscalização de
             Autocontroles – MAPA/SDA).
           </span>

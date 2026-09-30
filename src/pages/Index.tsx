@@ -233,7 +233,9 @@ export default function Index() {
             <p className="text-3xl font-bold text-[#2D6A4F] mt-1">
               {data.indicators?.active_procedures || 9}
             </p>
-            <span className="text-[11px] text-stone-500 mt-1 block">POPs documentados</span>
+            <span className="text-[11px] text-stone-500 mt-1 block">
+              Auto Controles documentados
+            </span>
           </div>
           <div className="h-12 w-12 rounded-xl bg-emerald-100/70 text-[#2D6A4F] flex items-center justify-center">
             <FileCheck2 className="h-6 w-6 stroke-[2.2]" />
@@ -310,11 +312,11 @@ export default function Index() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-[#2D6A4F] border border-emerald-200">
-              POP 01 • Autocontrole
+              Auto Controle 01 • Autocontrole
             </span>
             <h3 className="text-xs sm:text-sm font-bold text-stone-900">
-              Indicadores Oficiais do POP 01 — Qualificação e Recebimento (Seção 14 / Decreto
-              12.031/2024)
+              Indicadores Oficiais do Auto Controle 01 — Qualificação e Recebimento (Seção 14 /
+              Decreto 12.031/2024)
             </h3>
           </div>
           <Button
@@ -323,7 +325,7 @@ export default function Index() {
             onClick={() => navigate('/procedimentos')}
             className="text-xs text-[#2D6A4F] hover:text-[#1B4332] p-1 h-auto"
           >
-            Acessar POP 01 <ArrowRight className="h-3 w-3 ml-1" />
+            Acessar Auto Controle 01 <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         </div>
 
@@ -395,7 +397,7 @@ export default function Index() {
           <div className="flex items-center justify-between pb-4 border-b border-[#E2DCCF]">
             <div>
               <h2 className="text-base font-bold font-['Sora'] text-[#2D6A4F]">
-                Registros por Procedimento (Últimos 30 dias)
+                Registros por Auto Controle (Últimos 30 dias)
               </h2>
               <p className="text-xs text-[#6B6B6B]">
                 Monitoramento sistemático de parâmetros operacionais
@@ -429,7 +431,9 @@ export default function Index() {
                   <div key={item.codigo} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-stone-800 truncate max-w-[70%]">
-                        <span className="text-[#2D6A4F] font-bold mr-1.5">{item.codigo}</span>
+                        <span className="text-[#2D6A4F] font-bold mr-1.5">
+                          {item.codigo?.replace(/^POP[-_\s]*/i, 'Auto Controle ')}
+                        </span>
                         {item.nome}
                       </span>
                       <span className="font-bold text-stone-700">{item.total || 0} registros</span>

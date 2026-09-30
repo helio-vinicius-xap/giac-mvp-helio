@@ -481,7 +481,7 @@ export default function ProcedureDetail() {
       setProcedure(updated)
       toast({
         title: 'Instruções de Execução Salvas',
-        description: 'Os parâmetros foram atualizados e serão exibidos no PDF do POP.',
+        description: 'Os parâmetros foram atualizados e serão exibidos no PDF do Auto Controle.',
       })
     } catch (err: any) {
       toast({
@@ -626,9 +626,9 @@ export default function ProcedureDetail() {
                 size="md"
                 onClick={() => {
                   setTargetForHistory({
-                    target: rec,
-                    type: 'record',
-                    title: `${rec.codigo_registro} - ${rec.formulario_nome || formatProcedureCode(procedure.codigo)}`,
+                    target: procedure,
+                    type: 'procedure',
+                    title: `${procedure.codigo} - ${procedure.nome}`,
                   })
                   setOpenHistoryModal(true)
                 }}
@@ -655,7 +655,7 @@ export default function ProcedureDetail() {
                   setOpenHistoryModal(true)
                 }}
                 className="border-amber-300 bg-amber-50/60 text-amber-900 hover:bg-amber-100 text-xs gap-1.5 font-semibold"
-                title="Histórico & Integridade do POP"
+                title="Histórico & Integridade do Auto Controle"
               >
                 <History className="h-4 w-4 text-[#D9A404]" />
                 Histórico & Integridade
@@ -1432,7 +1432,8 @@ export default function ProcedureDetail() {
                   Formulários Normativos de Registro (Item 07 da IN 04/2007)
                 </h2>
                 <p className="text-xs text-[#6B6B6B]">
-                  Modelos exigidos pelo MAPA para comprovação da execução deste POP no autocontrole.
+                  Modelos exigidos pelo MAPA para comprovação da execução deste Auto Controle no
+                  autocontrole.
                 </p>
               </div>
             </div>
@@ -1520,8 +1521,8 @@ export default function ProcedureDetail() {
                   </Badge>
                 </div>
                 <p className="text-xs text-[#6B6B6B] mt-0.5">
-                  Conforme a norma, o POP só é considerado comprovado quando os registros são
-                  assinados pelo RQ e pelo RE.
+                  Conforme a norma, o Auto Controle só é considerado comprovado quando os registros
+                  são assinados pelo RQ e pelo RE.
                 </p>
               </div>
 

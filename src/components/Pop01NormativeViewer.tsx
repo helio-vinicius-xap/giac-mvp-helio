@@ -66,11 +66,11 @@ export function Pop01NormativeViewer({ procedure, company }: Pop01NormativeViewe
               SISTEMA DE GESTÃO DO AUTOCONTROLE — PROGRAMA DE BOAS PRÁTICAS DE FABRICAÇÃO
             </span>
             <h2 className="text-lg font-bold font-['Sora'] text-[#2D6A4F] mt-1.5">
-              Identificação do Documento Normativo: POP 01
+              Identificação do Documento Normativo: Auto Controle 01
             </h2>
           </div>
           <Badge className="bg-[#2D6A4F] text-white self-start sm:self-auto font-mono">
-            Código: POP-01
+            Código: Auto Controle 01 (POP-01)
           </Badge>
         </div>
 
@@ -148,19 +148,19 @@ export function Pop01NormativeViewer({ procedure, company }: Pop01NormativeViewe
             1. Objetivo e 2. Campo de Aplicação
           </h3>
           <p className="text-xs text-stone-700 leading-relaxed mt-2 text-justify">
-            {norm.titulo}: O presente Procedimento Operacional Padrão (POP) tem por finalidade
-            estabelecer e padronizar a metodologia executiva para a qualificação, homologação,
-            monitoramento contínuo, verificação periódica e desqualificação de fabricantes,
-            armazenadores e fornecedores comerciais de matérias-primas, macro e micro-ingredientes,
-            aditivos, premixes, núcleos, concentrados, produtos com medicamentos e materiais de
-            embalagem primária e secundária. O procedimento disciplina ainda as etapas de recepção,
-            conferência documental, inspeção física e higiênico-sanitária dos veículos
-            transportadores, amostragem representativa, ensaios laboratoriais de liberação,
-            armazenamento segregado e destinação de itens não conformes, garantindo a
-            rastreabilidade total, integridade, conformidade regulatória e inocuidade dos produtos
-            acabados, atendendo estritamente ao disposto no item 7.1, alínea &quot;a&quot;, e item
-            7.5 da Instrução Normativa MAPA nº 04/2007 e aos preceitos de autocontrole,
-            rastreabilidade e responsabilidade técnica estabelecidos no Decreto nº 12.031/2024.
+            {norm.titulo}: O presente Auto Controle tem por finalidade estabelecer e padronizar a
+            metodologia executiva para a qualificação, homologação, monitoramento contínuo,
+            verificação periódica e desqualificação de fabricantes, armazenadores e fornecedores
+            comerciais de matérias-primas, macro e micro-ingredientes, aditivos, premixes, núcleos,
+            concentrados, produtos com medicamentos e materiais de embalagem primária e secundária.
+            O procedimento disciplina ainda as etapas de recepção, conferência documental, inspeção
+            física e higiênico-sanitária dos veículos transportadores, amostragem representativa,
+            ensaios laboratoriais de liberação, armazenamento segregado e destinação de itens não
+            conformes, garantindo a rastreabilidade total, integridade, conformidade regulatória e
+            inocuidade dos produtos acabados, atendendo estritamente ao disposto no item 7.1, alínea
+            &quot;a&quot;, e item 7.5 da Instrução Normativa MAPA nº 04/2007 e aos preceitos de
+            autocontrole, rastreabilidade e responsabilidade técnica estabelecidos no Decreto nº
+            12.031/2024.
           </p>
           <div className="p-3 bg-[#FAF7EF] rounded-xl border border-[#E2DCCF] text-xs text-stone-700 mt-3 leading-relaxed">
             <strong>Campo de Aplicação:</strong> Aplica-se integralmente a todas as matérias-primas
@@ -341,10 +341,11 @@ export function Pop01NormativeViewer({ procedure, company }: Pop01NormativeViewe
             </h4>
           </div>
           <p className="text-xs text-stone-700 leading-relaxed">
-            Cada registro técnico gerado no POP 01 possui <strong>subcampos de encadeamento</strong>{' '}
-            (registro anterior e próximos exigidos). Ao salvar um registro, o sistema engatilha
-            automaticamente os próximos passos obrigatórios vinculados (Recebimento → Amostra →
-            Laudo → Destinação/Ação Corretiva em caso de reprovação). O POP só atinge o status de{' '}
+            Cada registro técnico gerado no Auto Controle 01 possui{' '}
+            <strong>subcampos de encadeamento</strong> (registro anterior e próximos exigidos). Ao
+            salvar um registro, o sistema engatilha automaticamente os próximos passos obrigatórios
+            vinculados (Recebimento → Amostra → Laudo → Destinação/Ação Corretiva em caso de
+            reprovação). O Auto Controle só atinge o status de{' '}
             <strong className="text-emerald-900">Comprovado</strong> quando todos os elos abertos da
             cadeia estiverem devidamente instruídos e sem pendências.
           </p>
@@ -682,11 +683,11 @@ export function Pop01NormativeViewer({ procedure, company }: Pop01NormativeViewe
             Aprovação e Homologação Compulsória
           </span>
           <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
-            Aprovação Formal do Procedimento Operacional Padrão (POP 01)
+            Aprovação Formal do Auto Controle (Auto Controle 01)
           </h3>
           <p className="text-xs text-stone-600 max-w-2xl mx-auto">
-            O presente POP 01 foi revisado, aprovado tecnicamente e homologado para aplicação
-            compulsória em todas as unidades fabris do estabelecimento{' '}
+            O presente Auto Controle 01 foi revisado, aprovado tecnicamente e homologado para
+            aplicação compulsória em todas as unidades fabris do estabelecimento{' '}
             {replacePlaceholders('{{EMPRESA}}')}, em estrito cumprimento ao item 7.2 da Instrução
             Normativa MAPA nº 04/2007 e ao Decreto nº 12.031/2024.
           </p>

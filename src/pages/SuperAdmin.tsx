@@ -1433,10 +1433,10 @@ export default function SuperAdmin() {
                   Empresa alvo: {orgToPurge.razao_social} (CNPJ: {orgToPurge.cnpj})
                 </p>
                 <p className="text-[11px] text-red-800 leading-relaxed">
-                  <strong>O que será apagado:</strong> POPs, registros de monitoramento, auditorias,
-                  evidências, não conformidades, testes de rastreabilidade/recall, treinamentos,
-                  documentos, dados PAASO (sipeagro, fornecedores, qualificações, devoluções, NCs de
-                  fornecedor) e formulários customizados vinculados a este CNPJ.
+                  <strong>O que será apagado:</strong> Auto Controles, registros de monitoramento,
+                  auditorias, evidências, não conformidades, testes de rastreabilidade/recall,
+                  treinamentos, documentos, dados PAASO (sipeagro, fornecedores, qualificações,
+                  devoluções, NCs de fornecedor) e formulários customizados vinculados a este CNPJ.
                 </p>
                 <p className="text-[11px] text-emerald-900 font-semibold bg-emerald-50/80 p-2 rounded border border-emerald-200">
                   <strong>O que será PRESERVADO:</strong> A organização cadastral, contas de
