@@ -23,9 +23,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getCompany, createCompany, updateCompany } from '@/services/agroService'
 import type { Company } from '@/types/agro'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function CompanySettings() {
   const { toast } = useToast()
+  const { currentOrg } = useAuth()
 
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
@@ -65,6 +67,16 @@ export default function CompanySettings() {
       if (data) {
         setCompany(data)
         setForm(data)
+      } else if (currentOrg) {
+        // Se ainda não tem cadastro SIPEAGRO criado, herdar dados da organização do SaaS
+        setForm((prev) => ({
+          ...prev,
+          razao_social: currentOrg.razao_social || '',
+          nome_fantasia: currentOrg.nome_fantasia || '',
+          cnpj: currentOrg.cnpj || '',
+          telefone: currentOrg.billing_phone || '',
+          email: currentOrg.billing_email || '',
+        }))
       }
     } catch (err: any) {
       toast({
@@ -136,6 +148,11 @@ export default function CompanySettings() {
               <Badge variant="outline" className="border-emerald-300 text-[#2D6A4F] bg-emerald-50">
                 Alimentação Animal (IN 04/2007)
               </Badge>
+              {currentOrg && (
+                <span className="text-xs font-semibold text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded">
+                  Organização SaaS: {currentOrg.razao_social}
+                </span>
+              )}
               {company?.numero_registro_mapa && (
                 <span className="text-xs font-bold text-[#2D6A4F] bg-stone-100 px-2 py-0.5 rounded">
                   Registro: {company.numero_registro_mapa}
@@ -143,7 +160,9 @@ export default function CompanySettings() {
               )}
             </div>
             <h1 className="text-xl sm:text-2xl font-bold font-['Sora'] text-[#2D6A4F]">
-              {company?.razao_social || 'Cadastro da Empresa Fabricante'}
+              {company?.razao_social ||
+                currentOrg?.razao_social ||
+                'Cadastro da Empresa Fabricante'}
             </h1>
             <p className="text-xs text-[#6B6B6B] mt-0.5">
               Dados oficiais do estabelecimento e dos responsáveis formais (RT, RQ e RE) para

@@ -18,6 +18,11 @@ import {
   X,
   Wheat,
   UserCheck,
+  Crown,
+  CreditCard,
+  ShieldAlert,
+  ArrowLeftRight,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,7 +50,17 @@ import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const {
+    user,
+    logout,
+    currentOrg,
+    impersonatedOrg,
+    stopImpersonation,
+    isSuperAdmin,
+    isBlocked,
+    blockReason,
+    trialDaysLeft,
+  } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
@@ -155,6 +170,17 @@ export default function Layout() {
     { label: 'Treinamentos', path: '/treinamentos', icon: GraduationCap },
     { label: 'Documentos', path: '/documentos', icon: FolderTree },
     { label: 'Empresa (SIPEAGRO)', path: '/empresa', icon: Building2 },
+    { label: 'Assinatura / Faturamento', path: '/assinatura', icon: CreditCard },
+    ...(isSuperAdmin
+      ? [
+          {
+            label: 'Painel Super Admin',
+            path: '/admin',
+            icon: Crown,
+            isMaster: true,
+          },
+        ]
+      : []),
   ]
 
   const [hasCompanyRegistered, setHasCompanyRegistered] = useState(true)
@@ -187,6 +213,8 @@ export default function Layout() {
     if (p.startsWith('/treinamentos')) return 'Capacitação e Treinamentos'
     if (p.startsWith('/documentos')) return 'Repositório de Documentos'
     if (p.startsWith('/empresa')) return 'Cadastro da Empresa Fabricante (SIPEAGRO/MAPA)'
+    if (p.startsWith('/assinatura')) return 'Gestão da Assinatura e Faturamento (Asaas)'
+    if (p.startsWith('/admin')) return 'Painel Super Admin Master'
     return 'Gestão Agro APPCC'
   }
 
@@ -210,9 +238,37 @@ export default function Layout() {
             </div>
           </div>
 
+          {/* Organização Atual Info */}
+          {currentOrg && (
+            <div className="mx-4 mt-3 p-3 bg-black/20 rounded-xl border border-emerald-700/50">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold tracking-wider uppercase text-emerald-300">
+                  Organização
+                </span>
+                <span
+                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
+                    currentOrg.status === 'ativa'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : currentOrg.status === 'trial'
+                        ? 'bg-amber-500/20 text-[#D9A404]'
+                        : 'bg-red-500/20 text-red-300'
+                  }`}
+                >
+                  {currentOrg.status}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-white truncate mt-0.5">
+                {currentOrg.razao_social}
+              </p>
+              <p className="text-[10px] text-emerald-200/70 font-mono truncate">
+                CNPJ: {currentOrg.cnpj}
+              </p>
+            </div>
+          )}
+
           {/* Navigation Links */}
           <nav className="p-4 space-y-1">
-            {navItems.map((item) => {
+            {navItems.map((item: any) => {
               const Icon = item.icon
               const isActive =
                 item.path === '/'
@@ -225,13 +281,25 @@ export default function Layout() {
                   to={item.path}
                   className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-[#D9A404] text-[#1B4332] font-semibold shadow-md'
-                      : 'text-emerald-50 hover:bg-white/10 hover:text-white'
+                      ? item.isMaster
+                        ? 'bg-amber-400 text-stone-900 font-bold shadow-md'
+                        : 'bg-[#D9A404] text-[#1B4332] font-semibold shadow-md'
+                      : item.isMaster
+                        ? 'text-amber-300 hover:bg-amber-500/20 hover:text-amber-200 font-semibold'
+                        : 'text-emerald-50 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon
-                      className={`h-4 w-4 ${isActive ? 'text-[#1B4332]' : 'text-emerald-200'}`}
+                      className={`h-4 w-4 ${
+                        isActive
+                          ? item.isMaster
+                            ? 'text-stone-900'
+                            : 'text-[#1B4332]'
+                          : item.isMaster
+                            ? 'text-amber-300'
+                            : 'text-emerald-200'
+                      }`}
                     />
                     <span>{item.label}</span>
                   </div>
@@ -244,6 +312,11 @@ export default function Layout() {
                       }`}
                     >
                       {item.badge}
+                    </span>
+                  )}
+                  {item.isMaster && (
+                    <span className="text-[9px] font-black uppercase px-1 rounded bg-[#D9A404] text-[#1B4332]">
+                      Master
                     </span>
                   )}
                 </NavLink>
@@ -264,18 +337,26 @@ export default function Layout() {
                   <p className="text-xs font-semibold text-white truncate">
                     {user?.name || 'Hélio'}
                   </p>
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#D9A404] text-[#1B4332]">
-                    {user?.role || 'RT'}
+                  <span
+                    className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                      user?.role === 'super_admin'
+                        ? 'bg-amber-400 text-stone-900 font-black'
+                        : 'bg-[#D9A404] text-[#1B4332]'
+                    }`}
+                  >
+                    {user?.role === 'super_admin' ? 'MASTER' : user?.role || 'RT'}
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-200/80 truncate">
-                  {user?.role === 'RT' && user?.conselho_classe
-                    ? user.conselho_classe
-                    : user?.role === 'RE'
-                      ? 'RE - Resp. Estabelecimento'
-                      : user?.role === 'RQ'
-                        ? 'RQ - Resp. Qualidade'
-                        : user?.cargo || 'Responsável Técnico'}
+                  {user?.role === 'super_admin'
+                    ? 'Super Administrador'
+                    : user?.role === 'RT' && user?.conselho_classe
+                      ? user.conselho_classe
+                      : user?.role === 'RE'
+                        ? 'RE - Resp. Estabelecimento'
+                        : user?.role === 'RQ'
+                          ? 'RQ - Resp. Qualidade'
+                          : user?.cargo || 'Responsável Técnico'}
                 </p>
               </div>
             </div>
@@ -465,6 +546,74 @@ export default function Layout() {
         {/* CONTENT AREA */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#F5F1E8]">
           <div className="max-w-7xl mx-auto space-y-6">
+            {/* Faixa Modo Suporte Ativo para o Super Admin */}
+            {impersonatedOrg && (
+              <div className="p-3 px-4 rounded-xl bg-amber-500 text-stone-900 font-bold flex items-center justify-between shadow-md border-2 border-amber-600">
+                <div className="flex items-center gap-2 text-xs">
+                  <ArrowLeftRight className="h-4 w-4" />
+                  <span>
+                    MODO SUPORTE ATIVO: Operando como{' '}
+                    <strong>{impersonatedOrg.razao_social}</strong> (CNPJ {impersonatedOrg.cnpj}).
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={stopImpersonation}
+                  className="bg-stone-900 hover:bg-black text-white text-xs h-7 font-bold"
+                >
+                  Sair do Modo Suporte
+                </Button>
+              </div>
+            )}
+
+            {/* Tela / Banner de Bloqueio por Inadimplência ou Trial Expirado */}
+            {isBlocked && location.pathname !== '/assinatura' && (
+              <div className="p-5 rounded-2xl bg-red-50 border-2 border-red-300 text-red-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md">
+                <div className="flex items-start gap-3.5">
+                  <div className="h-12 w-12 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0">
+                    <ShieldAlert className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-red-900">Acesso Bloqueado ou Suspenso</h3>
+                    <p className="text-xs text-red-800 mt-0.5">{blockReason}</p>
+                    <p className="text-[11px] text-red-700 mt-1">
+                      A regularização é automática assim que a fatura Asaas (Boleto/PIX/Cartão) for
+                      confirmada.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => navigate('/assinatura')}
+                  className="bg-red-700 hover:bg-red-800 text-white font-bold text-xs h-9 shrink-0 gap-1.5"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  Ir para Pagamento da Assinatura
+                </Button>
+              </div>
+            )}
+
+            {/* Alerta de Trial com Dias Restantes */}
+            {!isBlocked && currentOrg?.status === 'trial' && trialDaysLeft !== null && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-[#D9A404]" />
+                  <span>
+                    Você está utilizando o <strong>Trial de 14 dias</strong>. Restam{' '}
+                    <strong>{trialDaysLeft} dias</strong> para término da avaliação gratuita.
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate('/assinatura')}
+                  className="border-amber-400 text-amber-900 hover:bg-amber-100 text-xs h-8 font-semibold shrink-0"
+                >
+                  Ativar Assinatura
+                </Button>
+              </div>
+            )}
+
             {!hasCompanyRegistered && location.pathname !== '/empresa' && (
               <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
                 <div className="flex items-center gap-3">

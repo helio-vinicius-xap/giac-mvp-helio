@@ -13,7 +13,89 @@ export type ProcedureFrequency = 'Contínuo' | 'Diário' | 'Semanal' | 'Mensal' 
 
 export type ProcedureStatus = 'Ativo' | 'Revisão' | 'Arquivado'
 
-export type UserRole = 'RT' | 'RQ' | 'RE' | 'admin' | 'operador' | 'auditor'
+export type UserRole =
+  | 'super_admin'
+  | 'admin_cliente'
+  | 'RT'
+  | 'RQ'
+  | 'RE'
+  | 'admin'
+  | 'operador'
+  | 'auditor'
+
+export type OrganizationStatus = 'trial' | 'ativa' | 'suspensa' | 'cancelada'
+export type InvoiceStatus = 'PENDING' | 'RECEIVED' | 'CONFIRMED' | 'OVERDUE' | 'CANCELLED'
+export type BillingType = 'BOLETO' | 'CREDIT_CARD' | 'PIX' | 'UNDEFINED'
+
+export interface Plan {
+  id: string
+  name: string
+  code: string
+  description?: string
+  monthly_price: number
+  interval: 'mensal' | 'anual'
+  is_active: boolean
+  features?: string[]
+  created: string
+  updated: string
+}
+
+export interface Organization {
+  id: string
+  razao_social: string
+  nome_fantasia?: string
+  cnpj: string
+  status: OrganizationStatus
+  plan?: string
+  expand?: {
+    plan?: Plan
+  }
+  trial_ends_at?: string
+  subscription_due_date?: string
+  asaas_customer_id?: string
+  asaas_subscription_id?: string
+  billing_email?: string
+  billing_phone?: string
+  billing_name?: string
+  payment_method_preference?: BillingType
+  custom_monthly_price?: number
+  suspension_reason?: string
+  notes?: string
+  created: string
+  updated: string
+}
+
+export interface Invoice {
+  id: string
+  organization: string
+  expand?: {
+    organization?: Organization
+  }
+  amount: number
+  status: InvoiceStatus
+  due_date: string
+  payment_date?: string
+  billing_type: BillingType
+  description?: string
+  asaas_payment_id?: string
+  invoice_url?: string
+  bank_slip_url?: string
+  pix_qr_code?: string
+  credit_card_details?: any
+  created: string
+  updated: string
+}
+
+export interface AuditLog {
+  id: string
+  user?: string
+  user_email?: string
+  organization?: string
+  action: string
+  target?: string
+  details?: any
+  created: string
+}
 
 export interface DigitalSignatureRecord {
   papel: 'RT' | 'RQ' | 'RE' | string
@@ -309,4 +391,8 @@ export interface UserProfile {
   telefone?: string
   avatar?: string
   assinatura_imagem?: string // Arquivo de imagem da assinatura digitalizada do RT (JPG/PNG)
+  organization?: string
+  expand?: {
+    organization?: Organization
+  }
 }

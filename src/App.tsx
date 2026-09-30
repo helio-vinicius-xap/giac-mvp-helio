@@ -19,6 +19,8 @@ import NonConformityDetail from '@/pages/NonConformityDetail'
 import Trainings from '@/pages/Trainings'
 import Documents from '@/pages/Documents'
 import CompanySettings from '@/pages/CompanySettings'
+import SuperAdmin from '@/pages/SuperAdmin'
+import SubscriptionBilling from '@/pages/SubscriptionBilling'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -51,6 +53,8 @@ export default function App() {
             <Route path="/treinamentos" element={<Trainings />} />
             <Route path="/documentos" element={<Documents />} />
             <Route path="/empresa" element={<CompanySettings />} />
+            <Route path="/assinatura" element={<SubscriptionBilling />} />
+            <Route path="/admin" element={<SuperAdmin />} />
           </Route>
 
           {/* 404 */}

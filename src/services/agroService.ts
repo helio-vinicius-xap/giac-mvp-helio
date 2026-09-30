@@ -229,3 +229,87 @@ export const getFileUrl = (record: any, fileName: string) => {
   if (!record || !fileName) return ''
   return pb.files.getURL(record, fileName)
 }
+
+// -------------------------------------------------------------
+// MULTI-TENANCY, ASINATURAS, PLANOS E SUPER ADMIN
+// -------------------------------------------------------------
+
+// Obter organização pelo ID ou da sessão atual
+export const getOrganization = async (id: string) => {
+  return await pb.collection('organizations').getOne(id, { expand: 'plan' })
+}
+
+export const getOrganizationsList = async (filter?: string, sort = '-created') => {
+  return await pb.collection('organizations').getFullList({
+    filter,
+    sort,
+    expand: 'plan',
+  })
+}
+
+export const updateOrganization = async (id: string, data: any) => {
+  return await pb.collection('organizations').update(id, data)
+}
+
+export const createOrganization = async (data: any) => {
+  return await pb.collection('organizations').create(data)
+}
+
+// Planos
+export const getPlans = async (filter?: string, sort = 'monthly_price') => {
+  return await pb.collection('plans').getFullList({
+    filter,
+    sort,
+  })
+}
+
+export const updatePlan = async (id: string, data: any) => {
+  return await pb.collection('plans').update(id, data)
+}
+
+export const createPlan = async (data: any) => {
+  return await pb.collection('plans').create(data)
+}
+
+// Faturas
+export const getInvoices = async (filter?: string, sort = '-created') => {
+  return await pb.collection('invoices').getFullList({
+    filter,
+    sort,
+    expand: 'organization',
+  })
+}
+
+export const createBillingInvoice = async (payload: {
+  organization_id?: string
+  billing_type?: string
+  due_date?: string
+}) => {
+  return await pb.send('/backend/v1/billing/create-invoice', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export const simulateInvoicePayment = async (invoiceId: string) => {
+  return await pb.send('/backend/v1/billing/simulate-payment', {
+    method: 'POST',
+    body: { invoice_id: invoiceId },
+  })
+}
+
+// Super Admin Dashboard Stats
+export const getSuperAdminStats = async () => {
+  return await pb.send('/backend/v1/admin/dashboard-stats', {
+    method: 'GET',
+  })
+}
+
+// Audit Logs
+export const getAuditLogs = async (filter?: string, sort = '-created') => {
+  return await pb.collection('audit_logs').getFullList({
+    filter,
+    sort,
+    expand: 'user,organization',
+  })
+}
