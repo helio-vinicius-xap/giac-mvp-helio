@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T00:54:02.870Z",
+  "generatedAt": "2026-09-30T01:09:08.735Z",
   "collections": [
     {
       "name": "users",
@@ -1698,6 +1698,578 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_settings_key ON system_settings (key)"]
+    },
+    {
+      "name": "sipeagro",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "razao_social",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "registro_sipeagro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "situacao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "uf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "municipio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["fabricante", "fracionador", "importador", "armazenador"]
+        },
+        {
+          "name": "tipos_produto",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "arquivo_origem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "importado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_exemplo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_sipeagro_org ON sipeagro (organization)",
+        "CREATE INDEX idx_sipeagro_cnpj ON sipeagro (cnpj)",
+        "CREATE INDEX idx_sipeagro_uf ON sipeagro (uf)",
+        "CREATE INDEX idx_sipeagro_cat ON sipeagro (categoria)"
+      ]
+    },
+    {
+      "name": "fornecedores",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "razao_social",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "contato_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "uf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "municipio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criado_em",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_exemplo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_fornecedores_org ON fornecedores (organization)",
+        "CREATE INDEX idx_fornecedores_cnpj ON fornecedores (cnpj)",
+        "CREATE INDEX idx_fornecedores_razao ON fornecedores (razao_social)"
+      ]
+    },
+    {
+      "name": "qualificacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "fornecedor_cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_formulario",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "dados_declarados",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resultado",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["APROVADO", "APROVADO_COM_RESSALVA", "REPROVADO", "PENDENTE_REVISAO"]
+        },
+        {
+          "name": "score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "divergencias",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "validade",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_vigencia",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["VIGENTE", "VENCIDA"]
+        },
+        {
+          "name": "is_exemplo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_qualificacoes_org ON qualificacoes (organization)",
+        "CREATE INDEX idx_qualificacoes_cnpj ON qualificacoes (fornecedor_cnpj)",
+        "CREATE INDEX idx_qualificacoes_status ON qualificacoes (status_vigencia)",
+        "CREATE INDEX idx_qualificacoes_resultado ON qualificacoes (resultado)"
+      ]
+    },
+    {
+      "name": "devolucoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fornecedor_cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "produto",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "lote",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "motivo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "quantidade",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_exemplo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_devolucoes_org ON devolucoes (organization)",
+        "CREATE INDEX idx_devolucoes_cnpj ON devolucoes (fornecedor_cnpj)",
+        "CREATE INDEX idx_devolucoes_data ON devolucoes (data)"
+      ]
+    },
+    {
+      "name": "nao_conformidades_fornecedor",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fornecedor_cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "severidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["BAIXA", "MEDIA", "ALTA", "CRITICA"]
+        },
+        {
+          "name": "acao_corretiva",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prazo",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ABERTA", "EM_TRATAMENTO", "ENCERRADA"]
+        },
+        {
+          "name": "is_exemplo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_nc_forn_org ON nao_conformidades_fornecedor (organization)",
+        "CREATE INDEX idx_nc_forn_cnpj ON nao_conformidades_fornecedor (fornecedor_cnpj)",
+        "CREATE INDEX idx_nc_forn_status ON nao_conformidades_fornecedor (status)",
+        "CREATE INDEX idx_nc_forn_prazo ON nao_conformidades_fornecedor (prazo)"
+      ]
+    },
+    {
+      "name": "auditoria_importacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "data_hora",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "arquivo_origem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_linhas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_ativos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "novos_cnpj",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "inativados_cnpj",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["SUCESSO", "ERRO"]
+        },
+        {
+          "name": "mensagem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_audit_imp_org ON auditoria_importacoes (organization)",
+        "CREATE INDEX idx_audit_imp_data ON auditoria_importacoes (data_hora)"
+      ]
     }
   ]
 }

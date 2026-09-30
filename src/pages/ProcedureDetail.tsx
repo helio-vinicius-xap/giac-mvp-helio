@@ -54,6 +54,7 @@ import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
 import { Pop01NormativeViewer } from '@/components/Pop01NormativeViewer'
 import { Pop01FormsManager } from '@/components/Pop01FormsManager'
 import { Pop01KpiDashboard } from '@/components/Pop01KpiDashboard'
+import { PaasoContainer } from '@/components/paaso/PaasoContainer'
 import { RtSignatureUpload } from '@/components/RtSignatureUpload'
 import { PopPendingPanel } from '@/components/PopPendingPanel'
 import { PopDemandRecordModal } from '@/components/PopDemandRecordModal'
@@ -678,6 +679,14 @@ export default function ProcedureDetail() {
               Painel de Indicadores (Seção 14)
             </TabsTrigger>
           )}
+          {isPop01 && (
+            <TabsTrigger
+              value="pop01_paaso"
+              className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg bg-amber-500/10 border border-[#D9A404]/40"
+            >
+              PAASO • Qualificação & SIPEAGRO
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="visao_geral"
             className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
@@ -782,6 +791,13 @@ export default function ProcedureDetail() {
         {isPop01 && (
           <TabsContent value="pop01_painel" className="space-y-6 mt-4">
             <Pop01KpiDashboard summary={calculatePop01Summary()} />
+          </TabsContent>
+        )}
+
+        {/* ABA EXCLUSIVA POP 01: PAASO NÚCLEO COMPLETO ITERAÇÃO 1 */}
+        {isPop01 && (
+          <TabsContent value="pop01_paaso" className="space-y-6 mt-4">
+            <PaasoContainer />
           </TabsContent>
         )}
 

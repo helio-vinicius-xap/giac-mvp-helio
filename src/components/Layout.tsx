@@ -158,6 +158,7 @@ export default function Layout() {
   const navItems = [
     { label: 'Visão Geral', path: '/', icon: LayoutDashboard },
     { label: 'Procedimentos', path: '/procedimentos', icon: FileCheck2 },
+    { label: 'PAASO (Fornecedores)', path: '/paaso', icon: ShieldCheck },
     { label: 'Registros', path: '/registros', icon: ClipboardList },
     { label: 'Auditorias', path: '/auditorias', icon: ShieldCheck },
     { label: 'Rastreabilidade', path: '/rastreabilidade', icon: GitFork },
@@ -212,6 +213,7 @@ export default function Layout() {
     if (p.startsWith('/nao-conformidades')) return 'Gestão de Não Conformidades'
     if (p.startsWith('/treinamentos')) return 'Capacitação e Treinamentos'
     if (p.startsWith('/documentos')) return 'Repositório de Documentos'
+    if (p.startsWith('/paaso')) return 'PAASO — Qualificação de Fornecedores & SIPEAGRO'
     if (p.startsWith('/empresa')) return 'Cadastro da Empresa Fabricante (SIPEAGRO/MAPA)'
     if (p.startsWith('/assinatura')) return 'Gestão da Assinatura e Faturamento (Asaas)'
     if (p.startsWith('/admin')) return 'Painel Super Admin Master'
