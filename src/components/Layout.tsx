@@ -158,7 +158,7 @@ export default function Layout() {
 
   const navItems = [
     { label: 'Visão Geral', path: '/', icon: LayoutDashboard },
-    { label: 'Procedimentos', path: '/procedimentos', icon: FileCheck2 },
+    { label: 'Auto Controles', path: '/procedimentos', icon: FileCheck2 },
     { label: 'Qualificação de Fornecedores', path: '/paaso', icon: ShieldCheck },
     { label: 'Registros', path: '/registros', icon: ClipboardList },
     { label: 'Auditorias', path: '/auditorias', icon: ShieldCheck },
