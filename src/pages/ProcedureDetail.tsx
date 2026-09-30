@@ -16,6 +16,7 @@ import {
   UploadCloud,
   FileText,
   Download,
+  History,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,6 +61,9 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { PopDocumentPdfModal } from '@/components/PopDocumentPdfModal'
 import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
 import { Pop01NormativeViewer } from '@/components/Pop01NormativeViewer'
+import { IntegrityBadge } from '@/components/IntegrityBadge'
+import { TargetHistoryModal } from '@/components/TargetHistoryModal'
+import { canViewAuditHistory } from '@/lib/permissions'
 import { Pop01FormsManager } from '@/components/Pop01FormsManager'
 import { Pop01KpiDashboard } from '@/components/Pop01KpiDashboard'
 import { PaasoContainer } from '@/components/paaso/PaasoContainer'
@@ -96,6 +100,12 @@ export default function ProcedureDetail() {
   const [selectedRecordForPdf, setSelectedRecordForPdf] = useState<MonitoringRecord | null>(null)
   const [openRecordPdfModal, setOpenRecordPdfModal] = useState(false)
   const [openDemandRecordModal, setOpenDemandRecordModal] = useState(false)
+  const [openHistoryModal, setOpenHistoryModal] = useState(false)
+  const [targetForHistory, setTargetForHistory] = useState<{
+    target: MonitoringRecord | Procedure | null
+    type: 'record' | 'procedure'
+    title?: string
+  }>({ target: null, type: 'procedure' })
 
   // Custom Forms (Parte c)
   const [customForms, setCustomForms] = useState<PopCustomForm[]>([])
@@ -597,12 +607,45 @@ export default function ProcedureDetail() {
               </span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-bold font-['Sora'] text-[#2D6A4F]">
-              {procedure.nome}
-            </h1>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold font-['Sora'] text-[#2D6A4F]">
+                {procedure.nome}
+              </h1>
+              <IntegrityBadge
+                target={procedure}
+                size="md"
+                onClick={() => {
+                  setTargetForHistory({
+                    target: procedure,
+                    type: 'procedure',
+                    title: `${procedure.codigo} - ${procedure.nome}`,
+                  })
+                  setOpenHistoryModal(true)
+                }}
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap no-print">
+            {canViewAuditHistory(user?.role) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setTargetForHistory({
+                    target: procedure,
+                    type: 'procedure',
+                    title: `${procedure.codigo} - ${procedure.nome}`,
+                  })
+                  setOpenHistoryModal(true)
+                }}
+                className="border-amber-300 bg-amber-50/60 text-amber-900 hover:bg-amber-100 text-xs gap-1.5 font-semibold"
+                title="Histórico & Integridade do POP"
+              >
+                <History className="h-4 w-4 text-[#D9A404]" />
+                Histórico & Integridade
+              </Button>
+            )}
             {isEditing ? (
               <Button
                 size="sm"
@@ -1494,6 +1537,7 @@ export default function ProcedureDetail() {
                     <th className="py-2.5 px-3">Lote</th>
                     <th className="py-2.5 px-3">Valor Medido</th>
                     <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Integridade</th>
                     <th className="py-2.5 px-3">Comprovação RQ/RE</th>
                     <th className="py-2.5 px-3 text-right">Ação</th>
                   </tr>
@@ -1540,6 +1584,20 @@ export default function ProcedureDetail() {
                             </Badge>
                           </td>
                           <td className="py-2.5 px-3 whitespace-nowrap">
+                            <IntegrityBadge
+                              target={r}
+                              size="sm"
+                              onClick={() => {
+                                setTargetForHistory({
+                                  target: r,
+                                  type: 'record',
+                                  title: `Registro ${r.lote || r.id} (${r.formulario_codigo || procedure.codigo})`,
+                                })
+                                setOpenHistoryModal(true)
+                              }}
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
                             {isComprovado ? (
                               <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
                                 <CheckCircle2 className="h-3 w-3" /> Comprovado RQ/RE
@@ -1555,19 +1613,39 @@ export default function ProcedureDetail() {
                             )}
                           </td>
                           <td className="py-2.5 px-3 text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedRecordForPdf(r)
-                                setOpenRecordPdfModal(true)
-                              }}
-                              className="h-7 text-[11px] border-stone-300 text-stone-700 hover:bg-stone-50 gap-1"
-                            >
-                              <FileCheck className="h-3 w-3 text-[#2D6A4F]" />
-                              PDF / Assinar
-                            </Button>
-                          </td>
+                            <div className="flex items-center justify-end gap-1">
+                              {canViewAuditHistory(user?.role) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setTargetForHistory({
+                                      target: r,
+                                      type: 'record',
+                                      title: `Registro ${r.lote || r.id} (${r.formulario_codigo || procedure.codigo})`,
+                                    })
+                                    setOpenHistoryModal(true)
+                                  }}
+                                  className="h-7 text-[11px] text-stone-600 hover:bg-amber-50 hover:text-amber-900 gap-1"
+                                  title="Histórico & Integridade"
+                                >
+                                  <History className="h-3 w-3 text-[#D9A404]" />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedRecordForPdf(r)
+                                  setOpenRecordPdfModal(true)
+                                }}
+                                className="h-7 text-[11px] border-stone-300 text-stone-700 hover:bg-stone-50 gap-1"
+                              >
+                                <FileCheck className="h-3 w-3 text-[#2D6A4F]" />
+                                PDF / Assinar
+                              </Button>
+                            </div>
+                          </td>{' '}
                         </tr>
                       )
                     })
@@ -1940,6 +2018,15 @@ export default function ProcedureDetail() {
           onRecordCreated={loadAll}
         />
       )}
+
+      {/* 8. MODAL: HISTÓRICO & INTEGRIDADE DO ALVO (POP OU REGISTRO) */}
+      <TargetHistoryModal
+        open={openHistoryModal}
+        onOpenChange={setOpenHistoryModal}
+        target={targetForHistory.target}
+        targetType={targetForHistory.type}
+        targetTitle={targetForHistory.title}
+      />
     </div>
   )
 }

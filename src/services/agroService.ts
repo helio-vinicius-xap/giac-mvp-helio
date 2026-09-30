@@ -314,6 +314,28 @@ export const getAuditLogs = async (filter?: string, sort = '-created') => {
   })
 }
 
+export const getAuditLogsList = async (
+  page = 1,
+  perPage = 30,
+  filter?: string,
+  sort = '-created',
+) => {
+  return await pb.collection('audit_logs').getList(page, perPage, {
+    filter,
+    sort,
+    expand: 'user,organization',
+  })
+}
+
+export const getAuditLogsByTarget = async (targetId: string, limit = 50) => {
+  if (!targetId) return []
+  return await pb.collection('audit_logs').getFullList({
+    filter: `target_id = "${targetId}"`,
+    sort: '-created',
+    expand: 'user,organization',
+  })
+}
+
 // Zerar dados de negócio de uma organização (Super Admin)
 export const purgeOrganizationData = async (payload: {
   organization_id: string

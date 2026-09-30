@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-30T13:35:21.459Z",
+  "generatedAt": "2026-09-30T13:48:38.004Z",
   "collections": [
     {
       "name": "users",
@@ -1674,7 +1674,10 @@
       ],
       "indexes": [
         "CREATE INDEX idx_audit_logs_action ON audit_logs (action)",
-        "CREATE INDEX idx_audit_logs_org ON audit_logs (organization)"
+        "CREATE INDEX idx_audit_logs_org ON audit_logs (organization)",
+        "CREATE INDEX `idx_audit_logs_target_id` ON `audit_logs` (target_id)",
+        "CREATE INDEX `idx_audit_logs_org_target` ON `audit_logs` (organization, target_id)",
+        "CREATE INDEX `idx_audit_logs_target_created` ON `audit_logs` (target_id, created)"
       ]
     },
     {

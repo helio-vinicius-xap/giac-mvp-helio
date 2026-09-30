@@ -21,6 +21,7 @@ import Documents from '@/pages/Documents'
 import CompanySettings from '@/pages/CompanySettings'
 import SuperAdmin from '@/pages/SuperAdmin'
 import SubscriptionBilling from '@/pages/SubscriptionBilling'
+import AuditTrailPage from '@/pages/AuditTrailPage'
 import { Paaso } from '@/pages/Paaso'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/toaster'
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/documentos" element={<Documents />} />
             <Route path="/empresa" element={<CompanySettings />} />
             <Route path="/assinatura" element={<SubscriptionBilling />} />
+            <Route path="/trilha-auditoria" element={<AuditTrailPage />} />
             <Route path="/admin" element={<SuperAdmin />} />
             <Route path="/paaso" element={<Paaso />} />
           </Route>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { canViewAuditHistory } from '@/lib/permissions'
 import {
   LayoutDashboard,
   FileCheck2,
@@ -170,6 +171,15 @@ export default function Layout() {
     },
     { label: 'Treinamentos', path: '/treinamentos', icon: GraduationCap },
     { label: 'Documentos', path: '/documentos', icon: FolderTree },
+    ...(canViewAuditHistory(user?.role)
+      ? [
+          {
+            label: 'Trilha de Auditoria',
+            path: '/trilha-auditoria',
+            icon: ShieldCheck,
+          },
+        ]
+      : []),
     { label: 'Empresa (SIPEAGRO)', path: '/empresa', icon: Building2 },
     { label: 'Assinatura / Faturamento', path: '/assinatura', icon: CreditCard },
     ...(isSuperAdmin
@@ -213,6 +223,7 @@ export default function Layout() {
     if (p.startsWith('/nao-conformidades')) return 'Gestão de Não Conformidades'
     if (p.startsWith('/treinamentos')) return 'Capacitação e Treinamentos'
     if (p.startsWith('/documentos')) return 'Repositório de Documentos'
+    if (p.startsWith('/trilha-auditoria')) return 'Trilha de Auditoria & Integridade'
     if (p.startsWith('/paaso')) return 'PAASO — Qualificação de Fornecedores & SIPEAGRO'
     if (p.startsWith('/empresa')) return 'Cadastro da Empresa Fabricante (SIPEAGRO/MAPA)'
     if (p.startsWith('/assinatura')) return 'Gestão da Assinatura e Faturamento (Asaas)'

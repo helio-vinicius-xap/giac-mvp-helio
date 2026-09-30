@@ -54,6 +54,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { AuditTrailGlobal } from '@/components/AuditTrailGlobal'
 import {
   getSuperAdminStats,
   getOrganizationsList,
@@ -1179,50 +1180,12 @@ export default function SuperAdmin() {
           </DialogContent>
         </Dialog>
 
-        {/* TAB 5: AUDITORIA DE SUPORTE */}
+        {/* TAB 5: AUDITORIA GLOBAL MASTER */}
         <TabsContent value="auditoria" className="space-y-4">
-          <div className="agro-card p-6 space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-[#1B4332] font-['Sora'] flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
-                Trilha de Auditoria de Ações Master
-              </h3>
-              <p className="text-xs text-stone-600">
-                Registro imutável de todas as intervenções do Super Admin em contas de clientes e
-                simulações de faturamento.
-              </p>
-            </div>
-
-            <div className="divide-y divide-[#E2DCCF] border border-[#E2DCCF] rounded-xl overflow-hidden">
-              {auditLogs.length === 0 ? (
-                <div className="p-6 text-center text-xs text-stone-500">
-                  Nenhuma intervenção registrada até o momento.
-                </div>
-              ) : (
-                auditLogs.map((log) => (
-                  <div key={log.id} className="p-3.5 bg-white hover:bg-stone-50 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#1B4332]">{log.action}</span>
-                      <span className="text-[10px] text-stone-400">
-                        {new Date(log.created).toLocaleString('pt-BR')}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-3 text-stone-600 text-[11px]">
-                      <span>Executor: {log.user_email || 'Super Admin'}</span>
-                      {log.target && <span>Alvo: {log.target}</span>}
-                    </div>
-                    {log.details && (
-                      <pre className="mt-1.5 p-2 bg-stone-100 rounded text-[10px] text-stone-700 overflow-x-auto">
-                        {typeof log.details === 'string'
-                          ? log.details
-                          : JSON.stringify(log.details, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <AuditTrailGlobal
+            title="Trilha de Auditoria Geral (Todas as Organizações)"
+            subtitle="Visão Master consolidada da coleção audit_logs com filtros por organização, coleção, ação, período, busca por target_id e inspeção JSON antes→depois."
+          />
         </TabsContent>
       </Tabs>
 

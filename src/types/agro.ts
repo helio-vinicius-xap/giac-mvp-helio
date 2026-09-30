@@ -90,11 +90,20 @@ export interface AuditLog {
   id: string
   user?: string
   user_email?: string
+  user_name?: string
+  user_role?: string
   organization?: string
   action: string
   target?: string
+  target_id?: string
+  ip?: string
   details?: any
   created: string
+  updated?: string
+  expand?: {
+    user?: UserProfile
+    organization?: Organization
+  }
 }
 
 export interface DigitalSignatureRecord {

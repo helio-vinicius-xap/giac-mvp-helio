@@ -41,9 +41,14 @@ import type { MonitoringRecord, Procedure, Company } from '@/types/agro'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
-import { Clock, KeyRound } from 'lucide-react'
+import { IntegrityBadge } from '@/components/IntegrityBadge'
+import { TargetHistoryModal } from '@/components/TargetHistoryModal'
+import { canViewAuditHistory } from '@/lib/permissions'
+import { useAuth } from '@/contexts/AuthContext'
+import { Clock, KeyRound, ShieldCheck, History } from 'lucide-react'
 
 export default function Records() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -65,6 +70,8 @@ export default function Records() {
   const [selectedRecord, setSelectedRecord] = useState<MonitoringRecord | null>(null)
   const [openPdfModal, setOpenPdfModal] = useState(false)
   const [recordForPdf, setRecordForPdf] = useState<MonitoringRecord | null>(null)
+  const [recordForHistory, setRecordForHistory] = useState<MonitoringRecord | null>(null)
+  const [openHistoryModal, setOpenHistoryModal] = useState(false)
 
   const categories = [
     'Todos',
@@ -343,6 +350,7 @@ export default function Records() {
                 <th className="py-3 px-3">Lote</th>
                 <th className="py-3 px-3">Parâmetro / Valor Medido</th>
                 <th className="py-3 px-3">Status</th>
+                <th className="py-3 px-3">Integridade</th>
                 <th className="py-3 px-3">Comprovação RQ/RE</th>
                 <th className="py-3 px-3">Responsável</th>
                 <th className="py-3 px-3 text-right">Ação / PDF</th>
@@ -417,9 +425,20 @@ export default function Records() {
                         </Badge>
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
-                        {r.assinaturas_registro?.rq && r.assinaturas_registro?.re ? (
+                        <IntegrityBadge
+                          target={r}
+                          size="sm"
+                          onClick={() => {
+                            setRecordForHistory(r)
+                            setOpenHistoryModal(true)
+                          }}
+                        />
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {r.assinaturas_registro?.rq &&
+                        (r.assinaturas_registro?.re || r.assinaturas_registro?.rt) ? (
                           <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> Comprovado RQ/RE
+                            <CheckCircle2 className="h-3 w-3" /> Comprovado
                           </Badge>
                         ) : (
                           <Badge
@@ -428,10 +447,10 @@ export default function Records() {
                           >
                             <Clock className="h-3 w-3" />
                             {r.assinaturas_registro?.rq
-                              ? 'Falta RE'
-                              : r.assinaturas_registro?.re
+                              ? 'Falta RT/RE'
+                              : r.assinaturas_registro?.re || r.assinaturas_registro?.rt
                                 ? 'Falta RQ'
-                                : 'Pendente RQ/RE'}
+                                : 'Pendente RT/RE + RQ'}
                           </Badge>
                         )}
                       </td>
@@ -440,6 +459,21 @@ export default function Records() {
                       </td>
                       <td className="py-3 px-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
+                          {canViewAuditHistory(user?.role) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setRecordForHistory(r)
+                                setOpenHistoryModal(true)
+                              }}
+                              className="text-stone-700 border-amber-300/80 bg-amber-50/50 hover:bg-amber-100 h-8 px-2 text-xs font-semibold gap-1"
+                              title="Histórico & Integridade"
+                            >
+                              <History className="h-3.5 w-3.5 text-[#D9A404]" /> Histórico
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -492,6 +526,35 @@ export default function Records() {
 
           {selectedRecord && (
             <div className="space-y-4 pt-2 text-xs">
+              {/* Selo de Integridade no detalhe do registro */}
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                    Integridade & Trilha Anti-adulteração
+                  </span>
+                  <p className="text-[11px] text-stone-700 mt-0.5">
+                    Livro imutável de auditoria sob IN 04/2007.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <IntegrityBadge target={selectedRecord} size="md" />
+                  {canViewAuditHistory(user?.role) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setRecordForHistory(selectedRecord)
+                        setOpenHistoryModal(true)
+                      }}
+                      className="h-8 text-xs font-semibold border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 gap-1"
+                    >
+                      <History className="h-3.5 w-3.5 text-[#D9A404]" />
+                      Ver Trilha Completa
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3 p-3 bg-[#FAF7EF] rounded-xl border border-[#E2DCCF]">
                 <div>
                   <span className="text-stone-400 block font-semibold uppercase text-[10px]">
@@ -610,6 +673,15 @@ export default function Records() {
         procedure={recordForPdf?.expand?.procedure}
         company={company}
         onSignatureSaved={loadAll}
+      />
+
+      {/* MODAL HISTÓRICO & INTEGRIDADE */}
+      <TargetHistoryModal
+        open={openHistoryModal}
+        onOpenChange={setOpenHistoryModal}
+        target={recordForHistory}
+        targetType="record"
+        targetTitle={`Registro de Monitoramento • ${recordForHistory?.lote ? `Lote ${recordForHistory.lote}` : `Data ${recordForHistory?.data ? new Date(recordForHistory.data).toLocaleDateString('pt-BR') : ''}`}`}
       />
     </div>
   )
