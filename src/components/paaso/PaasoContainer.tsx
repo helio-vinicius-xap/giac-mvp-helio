@@ -29,6 +29,8 @@ import { QualificacaoView } from './QualificacaoView'
 import { DevolucoesView } from './DevolucoesView'
 import { NaoConformidadesView } from './NaoConformidadesView'
 import { PainelIndicadoresView } from './PainelIndicadoresView'
+import { FornecedoresValidadosView } from './FornecedoresValidadosView'
+import { Globe2 } from 'lucide-react'
 import type {
   SipeagroItem,
   FornecedorItem,
@@ -36,6 +38,7 @@ import type {
   DevolucaoItem,
   NaoConformidadeFornecedorItem,
   AuditoriaImportacaoItem,
+  FornecedorValidadoItem,
 } from '@/types/paaso'
 
 export function PaasoContainer() {
@@ -60,17 +63,23 @@ export function PaasoContainer() {
   const [executandoSeed, setExecutandoSeed] = useState(false)
   const [seedTexto, setSeedTexto] = useState('')
 
+  // Banco global compartilhado de Fornecedores Validados
+  const [validados, setValidados] = useState<FornecedorValidadoItem[]>([])
+
   // Carrega todas as coleções
   const carregarDados = async () => {
     setLoading(true)
     try {
-      const [sipes, forns, quals, devs, ncsList, audits] = await Promise.all([
+      const [sipes, forns, quals, devs, ncsList, audits, valids] = await Promise.all([
         getSipeagroList(),
         getFornecedoresList(),
         getQualificacoesList(),
         getDevolucoesList(),
         getNcFornecedorList(),
         getAuditoriasImportacao(),
+        import('@/services/paasoService')
+          .then((m) => m.getFornecedoresValidadosList())
+          .catch(() => []),
       ])
 
       setEstabelecimentos(sipes)
@@ -79,6 +88,7 @@ export function PaasoContainer() {
       setDevolucoes(devs)
       setNcs(ncsList)
       setAuditorias(audits)
+      setValidados(valids)
     } catch (err: any) {
       console.error('Erro ao carregar dados do PAASO:', err)
       toast({
@@ -237,6 +247,14 @@ export function PaasoContainer() {
           </TabsTrigger>
 
           <TabsTrigger
+            value="validados"
+            className="text-xs data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white font-semibold py-2 px-3 gap-1.5 rounded-lg transition"
+          >
+            <Globe2 className="h-3.5 w-3.5 text-[#D9A404]" />
+            Fornecedores Validados ({validados.length})
+          </TabsTrigger>
+
+          <TabsTrigger
             value="sipeagro"
             className="text-xs data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white font-semibold py-2 px-3 gap-1.5 rounded-lg transition"
           >
@@ -284,10 +302,22 @@ export function PaasoContainer() {
             qualificacoes={qualificacoes}
             devolucoes={devolucoes}
             ncs={ncs}
+            validados={validados}
+            onAbrirRevalidacao={handleAbrirQualificacaoFornecedor}
           />
         </TabsContent>
 
-        {/* 2. Base SIPEAGRO */}
+        {/* 2. Fornecedores Validados (Banco Compartilhado) */}
+        <TabsContent value="validados" className="m-0 focus-visible:outline-none">
+          <FornecedoresValidadosView
+            validados={validados}
+            fornecedoresLocais={fornecedores}
+            onDataChanged={carregarDados}
+            onAbrirQualificacao={handleAbrirQualificacaoFornecedor}
+          />
+        </TabsContent>
+
+        {/* 3. Base SIPEAGRO */}
         <TabsContent value="sipeagro" className="m-0 focus-visible:outline-none">
           <SipeagroBaseView
             estabelecimentos={estabelecimentos}
@@ -302,6 +332,7 @@ export function PaasoContainer() {
             fornecedores={fornecedores}
             onDataChanged={carregarDados}
             onAbrirQualificacao={handleAbrirQualificacaoFornecedor}
+            onAbrirBancoValidados={() => setActiveTab('validados')}
           />
         </TabsContent>
 

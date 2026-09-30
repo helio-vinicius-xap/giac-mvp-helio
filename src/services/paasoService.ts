@@ -7,6 +7,8 @@ import type {
   DevolucaoItem,
   NaoConformidadeFornecedorItem,
   AuditoriaImportacaoItem,
+  FornecedorValidadoItem,
+  StatusFornecedorValidado,
 } from '@/types/paaso'
 import { normalizarCNPJ, verificarStatusVigencia } from '@/lib/cruzamentoEngine'
 
@@ -387,6 +389,14 @@ export async function salvarQualificacao(
   if (orgId) payload.organization = orgId
 
   const record = await pb.collection('qualificacoes').create(payload)
+
+  // Sincronizar com o banco global fornecedores_validados se APROVADO ou APROVADO_COM_RESSALVA
+  try {
+    await sincronizarFornecedorValidadoAposQualificacao(record)
+  } catch (syncErr) {
+    console.warn('Erro ao sincronizar fornecedor validado no frontend:', syncErr)
+  }
+
   return {
     id: record.id,
     organization: record.organization,
@@ -568,6 +578,211 @@ export async function excluirNcFornecedor(id: string): Promise<boolean> {
 // ---------------------------------------------------------------------------
 // 6. AUDITORIA DE IMPORTAÇÃO
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// 7. BANCO COMPARTILHADO: FORNECEDORES VALIDADOS (GLOBAL)
+// ---------------------------------------------------------------------------
+
+/**
+ * Calcula a categoria de risco proporcional aos tipos de produtos
+ */
+export function calcularCategoriaRiscoProdutos(tipos: string[]): string {
+  if (!tipos || tipos.length === 0) return 'Médio Risco (Geral)'
+  const tiposNorm = tipos.map((t) => t.toLowerCase())
+  if (
+    tiposNorm.some((t) => t.includes('aditivo') || t.includes('premix') || t.includes('núcleo'))
+  ) {
+    return 'Alto Risco (Microingredientes/Aditivos)'
+  }
+  if (
+    tiposNorm.some(
+      (t) => t.includes('concentrado') || t.includes('ração') || t.includes('suplemento'),
+    )
+  ) {
+    return 'Médio Risco (Compostos/Rações)'
+  }
+  return 'Baixo Risco (Matérias-primas/Armazenagem)'
+}
+
+/**
+ * Sincroniza um fornecedor no banco global quando qualificado
+ */
+export async function sincronizarFornecedorValidadoAposQualificacao(
+  qualifRecord: any,
+): Promise<void> {
+  const cnpjNorm = normalizarCNPJ(qualifRecord.fornecedor_cnpj)
+  if (!cnpjNorm) return
+
+  const resultado = qualifRecord.resultado
+  const isAprovado = resultado === 'APROVADO' || resultado === 'APROVADO_COM_RESSALVA'
+
+  // Buscar registro da organização para obter o nome
+  let orgNome = ''
+  if (qualifRecord.organization) {
+    try {
+      const org = await pb.collection('organizations').getOne(qualifRecord.organization)
+      orgNome = org.nome_fantasia || org.razao_social || ''
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
+  const dadosDeclarados = qualifRecord.dados_declarados || {}
+  const tiposProduto = Array.isArray(dadosDeclarados.tipos_produto)
+    ? dadosDeclarados.tipos_produto
+    : []
+
+  // Calcular validade de 1 ano
+  const dataAprov = qualifRecord.data_formulario || new Date().toISOString().split('T')[0]
+  const dataObj = new Date(dataAprov)
+  dataObj.setFullYear(dataObj.getFullYear() + 1)
+  const validade1Ano = dataObj.toISOString().split('T')[0]
+
+  const statusValidade: StatusFornecedorValidado = isAprovado ? 'VALIDADO' : 'EXPIRADO'
+  const categoriaRisco = calcularCategoriaRiscoProdutos(tiposProduto)
+
+  const payload: any = {
+    cnpj: cnpjNorm,
+    razao_social: dadosDeclarados.razao_social || 'Fornecedor Homologado',
+    registro_sipeagro: dadosDeclarados.registro_sipeagro || '',
+    situacao: 'ATIVO',
+    uf: dadosDeclarados.uf || '',
+    municipio: dadosDeclarados.municipio || '',
+    categoria: dadosDeclarados.categoria || undefined,
+    tipos_produto: tiposProduto,
+    categoria_de_risco: categoriaRisco,
+    status: statusValidade,
+    data_aprovacao: isAprovado ? dataAprov : undefined,
+    validade_aprovacao: isAprovado ? validade1Ano : undefined,
+    score_aprovacao: qualifRecord.score || 0,
+    origem_organizacao: qualifRecord.organization || undefined,
+    origem_organizacao_nome: orgNome,
+    origem_qualificacao: qualifRecord.id,
+  }
+
+  try {
+    const existing = await pb
+      .collection('fornecedores_validados')
+      .getFirstListItem<any>(`cnpj = '${cnpjNorm}'`)
+
+    // Se já existe e foi aprovado, renova data e validade; se reprovado, marca como EXPIRADO
+    await pb.collection('fornecedores_validados').update(existing.id, {
+      ...payload,
+      total_utilizacoes: existing.total_utilizacoes || 1,
+    })
+  } catch {
+    // Se não existe, cria apenas se for aprovado
+    if (isAprovado) {
+      await pb.collection('fornecedores_validados').create({
+        ...payload,
+        total_utilizacoes: 1,
+      })
+    }
+  }
+}
+
+/**
+ * Lista todos os fornecedores validados do banco compartilhado do sistema
+ */
+export async function getFornecedoresValidadosList(
+  filter?: string,
+  sort = '-validade_aprovacao',
+): Promise<FornecedorValidadoItem[]> {
+  try {
+    const list = await pb.collection('fornecedores_validados').getFullList<any>({
+      filter,
+      sort,
+    })
+
+    const hoje = new Date().toISOString().split('T')[0]
+
+    return list.map((item) => {
+      let diasRestantes = 0
+      let statusReal: StatusFornecedorValidado = item.status || 'VALIDADO'
+
+      if (item.validade_aprovacao) {
+        const valOnly = item.validade_aprovacao.split('T')[0]
+        const diffMs = new Date(valOnly).getTime() - new Date(hoje).getTime()
+        diasRestantes = Math.round(diffMs / (1000 * 60 * 60 * 24))
+        if (diasRestantes <= 0) {
+          statusReal = 'EXPIRADO'
+        }
+      }
+
+      return {
+        id: item.id,
+        cnpj: normalizarCNPJ(item.cnpj),
+        razao_social: item.razao_social,
+        registro_sipeagro: item.registro_sipeagro,
+        situacao: item.situacao || 'ATIVO',
+        uf: item.uf,
+        municipio: item.municipio,
+        categoria: item.categoria,
+        tipos_produto: Array.isArray(item.tipos_produto) ? item.tipos_produto : [],
+        categoria_de_risco: item.categoria_de_risco,
+        status: statusReal,
+        data_aprovacao: item.data_aprovacao,
+        validade_aprovacao: item.validade_aprovacao,
+        score_aprovacao: item.score_aprovacao || 0,
+        origem_organizacao: item.origem_organizacao,
+        origem_organizacao_nome: item.origem_organizacao_nome,
+        origem_qualificacao: item.origem_qualificacao,
+        total_utilizacoes: item.total_utilizacoes || 0,
+        created: item.created,
+        updated: item.updated,
+        dias_restantes: diasRestantes,
+      }
+    })
+  } catch (err) {
+    console.warn('Erro ao listar fornecedores validados:', err)
+    return []
+  }
+}
+
+/**
+ * Ação "Usar este fornecedor": copia/associa o fornecedor validado para a organização atual
+ */
+export async function importarFornecedorValidadoParaOrganizacao(
+  validado: FornecedorValidadoItem,
+): Promise<FornecedorItem> {
+  const forn = await criarOuAtualizarFornecedor({
+    cnpj: validado.cnpj,
+    razao_social: validado.razao_social,
+    uf: validado.uf,
+    municipio: validado.municipio,
+    observacoes: `Importado do banco compartilhado de fornecedores validados do sistema. Score de homologação: ${validado.score_aprovacao || 0} pts.`,
+  })
+
+  // Incrementar contador de utilizações no banco compartilhado
+  if (validado.id) {
+    try {
+      await pb.collection('fornecedores_validados').update(validado.id, {
+        total_utilizacoes: (validado.total_utilizacoes || 0) + 1,
+      })
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
+  return forn
+}
+
+/**
+ * Super Admin: atualizar manualmente status ou validade de um fornecedor validado
+ */
+export async function superAdminAtualizarFornecedorValidado(
+  id: string,
+  data: Partial<FornecedorValidadoItem>,
+): Promise<void> {
+  await pb.collection('fornecedores_validados').update(id, data)
+}
+
+/**
+ * Super Admin: excluir fornecedor validado
+ */
+export async function superAdminExcluirFornecedorValidado(id: string): Promise<void> {
+  await pb.collection('fornecedores_validados').delete(id)
+}
 
 export async function getAuditoriasImportacao(): Promise<AuditoriaImportacaoItem[]> {
   try {

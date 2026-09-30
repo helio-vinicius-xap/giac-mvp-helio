@@ -599,6 +599,14 @@ export async function removerDadosExemploPaaso(onProgress?: (pct: number, msg: s
     filter: 'is_exemplo = true',
   })
   for (const q of quals) {
+    try {
+      const val = await pb
+        .collection('fornecedores_validados')
+        .getFirstListItem<any>(`origem_qualificacao = '${q.id}'`)
+      await pb.collection('fornecedores_validados').delete(val.id)
+    } catch {
+      /* intentionally ignored */
+    }
     await pb.collection('qualificacoes').delete(q.id)
   }
 

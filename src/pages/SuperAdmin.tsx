@@ -22,7 +22,16 @@ import {
   Edit2,
   Save,
   RotateCcw,
+  Globe2,
+  Trash2,
 } from 'lucide-react'
+import {
+  getFornecedoresValidadosList,
+  superAdminAtualizarFornecedorValidado,
+  superAdminExcluirFornecedorValidado,
+} from '@/services/paasoService'
+import type { FornecedorValidadoItem } from '@/types/paaso'
+import { formatarCNPJ } from '@/lib/pop01Validators'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -70,7 +79,22 @@ export default function SuperAdmin() {
   const [plans, setPlans] = useState<any[]>([])
   const [invoices, setInvoices] = useState<any[]>([])
   const [auditLogs, setAuditLogs] = useState<any[]>([])
+  const [validados, setValidados] = useState<FornecedorValidadoItem[]>([])
   const [searchOrg, setSearchOrg] = useState('')
+  const [searchValidado, setSearchValidado] = useState('')
+
+  // Modal Edição Fornecedor Validado
+  const [openEditValidadoModal, setOpenEditValidadoModal] = useState(false)
+  const [selectedValidado, setSelectedValidado] = useState<FornecedorValidadoItem | null>(null)
+  const [validadoEditForm, setValidadoEditForm] = useState<{
+    status: 'VALIDADO' | 'EXPIRADO'
+    validade_aprovacao: string
+    categoria_de_risco: string
+  }>({
+    status: 'VALIDADO',
+    validade_aprovacao: '',
+    categoria_de_risco: '',
+  })
 
   // Modais
   const [openNewOrgModal, setOpenNewOrgModal] = useState(false)
@@ -104,12 +128,13 @@ export default function SuperAdmin() {
   const loadAllData = async () => {
     try {
       setLoading(true)
-      const [statsRes, orgsRes, plansRes, invoicesRes, logsRes] = await Promise.all([
+      const [statsRes, orgsRes, plansRes, invoicesRes, logsRes, validsRes] = await Promise.all([
         getSuperAdminStats().catch(() => null),
         getOrganizationsList().catch(() => []),
         getPlans().catch(() => []),
         getInvoices().catch(() => []),
         getAuditLogs().catch(() => []),
+        getFornecedoresValidadosList().catch(() => []),
       ])
 
       setStats(statsRes)
@@ -117,6 +142,7 @@ export default function SuperAdmin() {
       setPlans(plansRes)
       setInvoices(invoicesRes)
       setAuditLogs(logsRes)
+      setValidados(validsRes)
     } catch (err: any) {
       toast({
         title: 'Erro ao carregar dados do painel master',
@@ -410,6 +436,13 @@ export default function SuperAdmin() {
           >
             <CreditCard className="h-4 w-4" />
             Faturamento Global ({invoices.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="validados"
+            className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg gap-1.5"
+          >
+            <Globe2 className="h-4 w-4 text-[#D9A404]" />
+            Banco Global Fornecedor Validado ({validados.length})
           </TabsTrigger>
           <TabsTrigger
             value="auditoria"
@@ -773,7 +806,352 @@ export default function SuperAdmin() {
           </div>
         </TabsContent>
 
-        {/* TAB 4: AUDITORIA DE SUPORTE */}
+        {/* TAB 4: BANCO GLOBAL FORNECEDOR VALIDADO (SUPER ADMIN) */}
+        <TabsContent value="validados" className="space-y-4">
+          {/* Métricas do Banco Global */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="agro-card p-4 border-l-4 border-l-[#2D6A4F]">
+              <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                Total Homologados
+              </span>
+              <p className="text-2xl font-black font-['Sora'] text-[#1B4332] mt-1">
+                {validados.length}
+              </p>
+              <span className="text-[10px] text-stone-500">Base compartilhada</span>
+            </div>
+
+            <div className="agro-card p-4 border-l-4 border-l-emerald-600">
+              <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                Validados Ativos
+              </span>
+              <p className="text-2xl font-black font-['Sora'] text-emerald-800 mt-1">
+                {validados.filter((v) => v.status === 'VALIDADO').length}
+              </p>
+              <span className="text-[10px] text-stone-500">Dentro do prazo de 1 ano</span>
+            </div>
+
+            <div className="agro-card p-4 border-l-4 border-l-red-600">
+              <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                Expirados
+              </span>
+              <p className="text-2xl font-black font-['Sora'] text-red-700 mt-1">
+                {validados.filter((v) => v.status === 'EXPIRADO').length}
+              </p>
+              <span className="text-[10px] text-stone-500">Aguardando revalidação</span>
+            </div>
+
+            <div className="agro-card p-4 border-l-4 border-l-[#D9A404]">
+              <span className="text-[10px] font-bold text-stone-500 uppercase block">
+                Total de Adoções
+              </span>
+              <p className="text-2xl font-black font-['Sora'] text-stone-900 mt-1">
+                {validados.reduce((acc, v) => acc + (v.total_utilizacoes || 0), 0)}
+              </p>
+              <span className="text-[10px] text-stone-500">Uso entre organizações</span>
+            </div>
+          </div>
+
+          {/* Distribuição por Categoria e Risco */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="agro-card p-4 space-y-2">
+              <h4 className="text-xs font-bold text-[#1B4332] uppercase tracking-wider font-['Sora']">
+                Por Categoria SIPEAGRO
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {['fabricante', 'fracionador', 'importador', 'armazenador'].map((cat) => {
+                  const count = validados.filter((v) => v.categoria === cat).length
+                  return (
+                    <div
+                      key={cat}
+                      className="p-2 rounded-lg bg-stone-50 border border-stone-200 flex justify-between"
+                    >
+                      <span className="capitalize text-stone-700">{cat}</span>
+                      <span className="font-bold text-[#1B4332]">{count}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="agro-card p-4 space-y-2">
+              <h4 className="text-xs font-bold text-[#1B4332] uppercase tracking-wider font-['Sora']">
+                Por Classificação Proporcional de Risco
+              </h4>
+              <div className="grid grid-cols-1 gap-1.5 text-xs">
+                {[
+                  { label: 'Alto Risco (Aditivos/Premix/Núcleo)', pattern: 'Alto' },
+                  { label: 'Médio Risco (Rações/Concentrados/Suplementos)', pattern: 'Médio' },
+                  { label: 'Baixo Risco (Matérias-primas/Armazenagem)', pattern: 'Baixo' },
+                ].map(({ label, pattern }) => {
+                  const count = validados.filter((v) =>
+                    v.categoria_de_risco?.includes(pattern),
+                  ).length
+                  return (
+                    <div
+                      key={pattern}
+                      className="p-2 rounded-lg bg-stone-50 border border-stone-200 flex justify-between items-center"
+                    >
+                      <span className="text-stone-700 text-[11px]">{label}</span>
+                      <span className="font-bold text-[#1B4332]">{count}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Busca e Tabela do Banco Global */}
+          <div className="agro-card overflow-hidden">
+            <div className="p-4 bg-stone-50 border-b border-[#E2DCCF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  Listagem Global de Fornecedores Validados
+                </h3>
+                <p className="text-[11px] text-stone-500">
+                  Gerencie status, validade de 1 ano e remova registros se necessário.
+                </p>
+              </div>
+
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                <Input
+                  value={searchValidado}
+                  onChange={(e) => setSearchValidado(e.target.value)}
+                  placeholder="Filtrar por Razão ou CNPJ..."
+                  className="pl-9 h-8 text-xs bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-stone-50 border-b border-[#E2DCCF] text-stone-600 font-semibold">
+                    <th className="p-3">Fornecedor / CNPJ</th>
+                    <th className="p-3">Categoria / Risco</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Validade (1 Ano)</th>
+                    <th className="p-3">Origem</th>
+                    <th className="p-3 text-right">Ações Super Admin</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2DCCF]">
+                  {validados
+                    .filter((v) => {
+                      const q = searchValidado.toLowerCase()
+                      return (
+                        v.razao_social.toLowerCase().includes(q) ||
+                        v.cnpj.includes(q) ||
+                        formatarCNPJ(v.cnpj).includes(q)
+                      )
+                    })
+                    .map((item) => (
+                      <tr key={item.cnpj} className="hover:bg-amber-50/30">
+                        <td className="p-3">
+                          <p className="font-bold text-[#1B4332]">{item.razao_social}</p>
+                          <p className="text-[11px] text-stone-500 font-mono">
+                            {formatarCNPJ(item.cnpj)} • {item.registro_sipeagro || 'S/ Registro'}
+                          </p>
+                        </td>
+                        <td className="p-3">
+                          <span className="capitalize font-semibold text-stone-800">
+                            {item.categoria || 'fabricante'}
+                          </span>
+                          {item.categoria_de_risco && (
+                            <span className="block text-[10px] text-stone-500">
+                              {item.categoria_de_risco}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <Badge
+                            className={
+                              item.status === 'VALIDADO'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-red-100 text-red-800'
+                            }
+                          >
+                            {item.status}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-stone-600">
+                          {item.validade_aprovacao ? (
+                            <span>
+                              {new Date(item.validade_aprovacao).toLocaleDateString('pt-BR')}
+                            </span>
+                          ) : (
+                            <span className="text-stone-400">—</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-[11px] text-stone-600">
+                          {item.origem_organizacao_nome || 'Rede GIAC'}
+                        </td>
+                        <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedValidado(item)
+                              setValidadoEditForm({
+                                status: item.status,
+                                validade_aprovacao: item.validade_aprovacao
+                                  ? item.validade_aprovacao.split('T')[0]
+                                  : '',
+                                categoria_de_risco: item.categoria_de_risco || '',
+                              })
+                              setOpenEditValidadoModal(true)
+                            }}
+                            className="h-7 text-[11px] border-stone-300 gap-1"
+                          >
+                            <Edit2 className="h-3 w-3" /> Editar
+                          </Button>
+
+                          {item.id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                if (confirm(`Remover ${item.razao_social} do banco global?`)) {
+                                  try {
+                                    await superAdminExcluirFornecedorValidado(item.id!)
+                                    toast({ title: 'Fornecedor removido do banco compartilhado' })
+                                    loadAllData()
+                                  } catch (err: any) {
+                                    toast({
+                                      title: 'Erro ao excluir',
+                                      description: err.message,
+                                      variant: 'destructive',
+                                    })
+                                  }
+                                }
+                              }}
+                              className="h-7 text-[11px] border-red-200 text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* MODAL: EDIÇÃO MANUAL DE FORNECEDOR VALIDADO (SUPER ADMIN) */}
+        <Dialog open={openEditValidadoModal} onOpenChange={setOpenEditValidadoModal}>
+          <DialogContent className="sm:max-w-[440px] bg-white border-[#E2DCCF]">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-[#1B4332] font-['Sora'] flex items-center gap-2">
+                <Globe2 className="h-5 w-5 text-[#D9A404]" />
+                Editar Fornecedor no Banco Global
+              </DialogTitle>
+              <DialogDescription className="text-xs text-stone-600">
+                {selectedValidado?.razao_social} ({formatarCNPJ(selectedValidado?.cnpj || '')})
+              </DialogDescription>
+            </DialogHeader>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (!selectedValidado?.id) return
+                try {
+                  await superAdminAtualizarFornecedorValidado(selectedValidado.id, {
+                    status: validadoEditForm.status,
+                    validade_aprovacao: validadoEditForm.validade_aprovacao || undefined,
+                    categoria_de_risco: validadoEditForm.categoria_de_risco,
+                  })
+                  toast({
+                    title: 'Fornecedor validado atualizado',
+                    description: 'Status e validade alterados com sucesso.',
+                  })
+                  setOpenEditValidadoModal(false)
+                  loadAllData()
+                } catch (err: any) {
+                  toast({
+                    title: 'Erro ao salvar',
+                    description: err.message,
+                    variant: 'destructive',
+                  })
+                }
+              }}
+              className="space-y-3 pt-2"
+            >
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">Status de Validação</Label>
+                <select
+                  value={validadoEditForm.status}
+                  onChange={(e) =>
+                    setValidadoEditForm({
+                      ...validadoEditForm,
+                      status: e.target.value as 'VALIDADO' | 'EXPIRADO',
+                    })
+                  }
+                  className="w-full h-9 text-xs px-2.5 rounded-md border border-stone-300 bg-white"
+                >
+                  <option value="VALIDADO">VALIDADO (Vigente)</option>
+                  <option value="EXPIRADO">EXPIRADO (Vencido/Revalidação Necessária)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Data Limite de Validade (1 Ano)
+                </Label>
+                <Input
+                  type="date"
+                  value={validadoEditForm.validade_aprovacao}
+                  onChange={(e) =>
+                    setValidadoEditForm({
+                      ...validadoEditForm,
+                      validade_aprovacao: e.target.value,
+                    })
+                  }
+                  required
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Classificação Proporcional de Risco
+                </Label>
+                <Input
+                  value={validadoEditForm.categoria_de_risco}
+                  onChange={(e) =>
+                    setValidadoEditForm({
+                      ...validadoEditForm,
+                      categoria_de_risco: e.target.value,
+                    })
+                  }
+                  placeholder="Ex: Alto Risco (Aditivos/Premix)"
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOpenEditValidadoModal(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold"
+                >
+                  Salvar Alterações
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* TAB 5: AUDITORIA DE SUPORTE */}
         <TabsContent value="auditoria" className="space-y-4">
           <div className="agro-card p-6 space-y-4">
             <div>

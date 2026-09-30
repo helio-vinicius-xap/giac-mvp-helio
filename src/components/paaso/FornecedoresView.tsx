@@ -34,12 +34,14 @@ interface FornecedoresViewProps {
   fornecedores: FornecedorItem[]
   onDataChanged: () => void
   onAbrirQualificacao: (fornecedor: FornecedorItem) => void
+  onAbrirBancoValidados?: () => void
 }
 
 export function FornecedoresView({
   fornecedores,
   onDataChanged,
   onAbrirQualificacao,
+  onAbrirBancoValidados,
 }: FornecedoresViewProps) {
   const { toast } = useToast()
 
@@ -60,6 +62,31 @@ export function FornecedoresView({
     municipio: '',
     observacoes: '',
   })
+
+  // Cálculos de Revalidação em 1 ano (≤ 60 dias e expirados)
+  const hoje = new Date().toISOString().split('T')[0]
+  const fornecedoresParaRevalidar = React.useMemo(() => {
+    return fornecedores
+      .filter((f) => {
+        if (!f.qualificacao_vigente?.validade) return false
+        const valOnly = f.qualificacao_vigente.validade.split('T')[0]
+        const diffMs = new Date(valOnly).getTime() - new Date(hoje).getTime()
+        const dias = Math.round(diffMs / (1000 * 60 * 60 * 24))
+        // Vencidas (< 0) ou a vencer em até 60 dias
+        return dias <= 60
+      })
+      .map((f) => {
+        const valOnly = f.qualificacao_vigente!.validade.split('T')[0]
+        const diffMs = new Date(valOnly).getTime() - new Date(hoje).getTime()
+        const dias = Math.round(diffMs / (1000 * 60 * 60 * 24))
+        return {
+          fornecedor: f,
+          diasRestantes: dias,
+          isExpirado: dias <= 0 || f.qualificacao_vigente?.status_vigencia === 'VENCIDA',
+        }
+      })
+      .sort((a, b) => a.diasRestantes - b.diasRestantes)
+  }, [fornecedores, hoje])
 
   // Lista única de UFs para o filtro
   const ufsDisponiveis = Array.from(new Set(fornecedores.map((f) => f.uf).filter(Boolean))).sort()
@@ -220,26 +247,115 @@ export function FornecedoresView({
           </p>
         </div>
 
-        <Button
-          onClick={() => {
-            setFormFornecedor({
-              cnpj: '',
-              razao_social: '',
-              contato_nome: '',
-              email: '',
-              telefone: '',
-              uf: '',
-              municipio: '',
-              observacoes: '',
-            })
-            setModalOpen(true)
-          }}
-          className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs h-9 gap-2 shadow-sm shrink-0"
-        >
-          <PlusCircle className="h-4 w-4 text-[#D9A404]" />
-          Cadastrar Fornecedor
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {onAbrirBancoValidados && (
+            <Button
+              variant="outline"
+              onClick={onAbrirBancoValidados}
+              className="border-[#D9A404] text-[#1B4332] hover:bg-[#FAF7EF] font-semibold text-xs h-9 gap-2 shrink-0"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-[#D9A404]" />
+              Banco Fornecedor Validado
+            </Button>
+          )}
+
+          <Button
+            onClick={() => {
+              setFormFornecedor({
+                cnpj: '',
+                razao_social: '',
+                contato_nome: '',
+                email: '',
+                telefone: '',
+                uf: '',
+                municipio: '',
+                observacoes: '',
+              })
+              setModalOpen(true)
+            }}
+            className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs h-9 gap-2 shadow-sm shrink-0"
+          >
+            <PlusCircle className="h-4 w-4 text-[#D9A404]" />
+            Cadastrar Fornecedor
+          </Button>
+        </div>
       </div>
+
+      {/* SEÇÃO / ALERTA: FORNECEDORES A REVALIDAR (VENCIDOS OU VENCENDO EM ≤ 60 DIAS) */}
+      {fornecedoresParaRevalidar.length > 0 && (
+        <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-5 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-amber-900">
+              <AlertTriangle className="h-5 w-5 text-[#D9A404] shrink-0" />
+              <div>
+                <h3 className="text-sm font-bold font-['Sora'] text-[#1B4332]">
+                  Fornecedores a Revalidar (Prazo de 1 Ano Expirado ou Próximo)
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Todo fornecedor deve ser revalidado em 1 ano. Abaixo constam fornecedores que
+                  expiram em ≤ 60 dias ou já expirados.
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full w-fit">
+              {fornecedoresParaRevalidar.length} pendência
+              {fornecedoresParaRevalidar.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+            {fornecedoresParaRevalidar.map(({ fornecedor, diasRestantes, isExpirado }) => (
+              <div
+                key={fornecedor.cnpj}
+                className={`p-3 rounded-xl border flex flex-col justify-between gap-2 bg-white ${
+                  isExpirado ? 'border-red-300 shadow-xs' : 'border-amber-300 shadow-xs'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="font-bold text-xs text-[#1B4332] truncate"
+                      title={fornecedor.razao_social}
+                    >
+                      {fornecedor.razao_social}
+                    </span>
+                    {isExpirado ? (
+                      <Badge className="bg-red-700 text-white text-[9px] shrink-0">EXPIRADO</Badge>
+                    ) : (
+                      <Badge className="bg-amber-600 text-white text-[9px] shrink-0">
+                        {diasRestantes} DIAS
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="font-mono text-[10px] text-stone-500 mt-0.5">
+                    {formatarCNPJ(fornecedor.cnpj)} • {fornecedor.uf || 'UF'}
+                  </p>
+                  <p className="text-[11px] text-stone-600 mt-1">
+                    Validade:{' '}
+                    {new Date(fornecedor.qualificacao_vigente!.validade).toLocaleDateString(
+                      'pt-BR',
+                    )}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+                  <span className="text-[10px] text-stone-500">
+                    Score atual: {fornecedor.qualificacao_vigente?.score || 0} pts
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={() => onAbrirQualificacao(fornecedor)}
+                    className="h-7 text-[11px] bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold gap-1"
+                  >
+                    <FileCheck className="h-3 w-3 text-[#D9A404]" />
+                    Revalidar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 2. Filtros e Lista */}
       <div className="bg-white p-6 rounded-2xl border border-[#E2DCCF] shadow-xs space-y-4">
@@ -369,10 +485,10 @@ export function FornecedoresView({
                       <Button
                         size="sm"
                         onClick={() => onAbrirQualificacao(f)}
-                        className="h-7 text-[11px] bg-[#2D6A4F] hover:bg-[#1B4332] text-white gap-1"
+                        className="h-7 text-[11px] bg-[#2D6A4F] hover:bg-[#1B4332] text-white gap-1 font-semibold"
                       >
                         <FileCheck className="h-3 w-3 text-[#D9A404]" />
-                        Qualificar
+                        {f.qualificacao_vigente ? 'Revalidar' : 'Qualificar'}
                       </Button>
 
                       {f.email && (

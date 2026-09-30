@@ -146,6 +146,34 @@ export interface AuditoriaImportacaoItem {
   created?: string
 }
 
+export type StatusFornecedorValidado = 'VALIDADO' | 'EXPIRADO'
+
+export interface FornecedorValidadoItem {
+  id?: string
+  cnpj: string
+  razao_social: string
+  registro_sipeagro?: string
+  situacao?: string
+  uf?: string
+  municipio?: string
+  categoria?: CategoriaSipeagro
+  tipos_produto: string[]
+  categoria_de_risco?: string
+  status: StatusFornecedorValidado
+  data_aprovacao?: string
+  validade_aprovacao?: string
+  score_aprovacao?: number
+  origem_organizacao?: string
+  origem_organizacao_nome?: string
+  origem_qualificacao?: string
+  total_utilizacoes?: number
+  created?: string
+  updated?: string
+  // Calculados em runtime
+  dias_restantes?: number
+  ja_adicionado_local?: boolean
+}
+
 export interface ResultadoCruzamento {
   resultado: ResultadoQualificacao
   score: number

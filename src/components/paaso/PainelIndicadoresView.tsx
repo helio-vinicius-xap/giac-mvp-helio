@@ -38,11 +38,16 @@ import {
   Legend,
 } from 'recharts'
 
+import { Globe2 } from 'lucide-react'
+import type { FornecedorValidadoItem } from '@/types/paaso'
+
 interface PainelIndicadoresViewProps {
   fornecedores: FornecedorItem[]
   qualificacoes: QualificacaoItem[]
   devolucoes: DevolucaoItem[]
   ncs: NaoConformidadeFornecedorItem[]
+  validados?: FornecedorValidadoItem[]
+  onAbrirRevalidacao?: (fornecedor: FornecedorItem) => void
 }
 
 const CORES_STATUS_QUALIFICACAO = {
@@ -57,6 +62,8 @@ export function PainelIndicadoresView({
   qualificacoes,
   devolucoes,
   ncs,
+  validados = [],
+  onAbrirRevalidacao,
 }: PainelIndicadoresViewProps) {
   // Filtros do Painel
   const [filtroUf, setFiltroUf] = useState('')
@@ -146,6 +153,57 @@ export function PainelIndicadoresView({
     (n) => n.status === 'ABERTA' || n.status === 'EM_TRATAMENTO',
   ).length
   const totalDevolucoesPeriodo = devolucoesFiltradas.length
+
+  // Métricas do Banco Compartilhado de Fornecedores Validados
+  const hojeStr = new Date().toISOString().split('T')[0]
+  const metricasValidados = useMemo(() => {
+    const totalGlobal = validados.length
+    const ativos = validados.filter((v) => v.status === 'VALIDADO').length
+    const expirados = validados.filter((v) => v.status === 'EXPIRADO').length
+
+    // Fornecedores da organização atual que já constam no banco compartilhado
+    const cnpjsValidadosSet = new Set(validados.map((v) => normalizarCNPJ(v.cnpj)))
+    const locaisDoBanco = fornecedores.filter((f) =>
+      cnpjsValidadosSet.has(normalizarCNPJ(f.cnpj)),
+    ).length
+
+    const percLocaisDoBanco =
+      fornecedores.length > 0 ? Math.round((locaisDoBanco / fornecedores.length) * 100) : 0
+
+    return {
+      totalGlobal,
+      ativos,
+      expirados,
+      locaisDoBanco,
+      percLocaisDoBanco,
+    }
+  }, [validados, fornecedores])
+
+  // Fornecedores a revalidar em ≤ 60 dias ou já expirados
+  const fornecedoresParaRevalidar = useMemo(() => {
+    return fornecedores
+      .filter((f) => {
+        const q = ultimasQualificacoes.get(normalizarCNPJ(f.cnpj))
+        if (!q?.validade) return false
+        const valOnly = q.validade.split('T')[0]
+        const diffMs = new Date(valOnly).getTime() - new Date(hojeStr).getTime()
+        const dias = Math.round(diffMs / (1000 * 60 * 60 * 24))
+        return dias <= 60
+      })
+      .map((f) => {
+        const q = ultimasQualificacoes.get(normalizarCNPJ(f.cnpj))!
+        const valOnly = q.validade.split('T')[0]
+        const diffMs = new Date(valOnly).getTime() - new Date(hojeStr).getTime()
+        const dias = Math.round(diffMs / (1000 * 60 * 60 * 24))
+        return {
+          fornecedor: f,
+          qualif: q,
+          diasRestantes: dias,
+          isExpirado: dias <= 0 || q.status_vigencia === 'VENCIDA',
+        }
+      })
+      .sort((a, b) => a.diasRestantes - b.diasRestantes)
+  }, [fornecedores, ultimasQualificacoes, hojeStr])
 
   // 3. Gráfico Donut: Status das Qualificações
   const dadosDonut = useMemo(() => {
@@ -370,6 +428,84 @@ export function PainelIndicadoresView({
         </div>
       </div>
 
+      {/* SEÇÃO / CARDS DE REVALIDAÇÃO OBRIGATÓRIA (≤ 60 DIAS E EXPIRADOS) */}
+      {fornecedoresParaRevalidar.length > 0 && (
+        <div className="bg-amber-50/70 border border-amber-200/90 rounded-2xl p-5 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-amber-900">
+              <Clock className="h-5 w-5 text-[#D9A404] shrink-0" />
+              <div>
+                <h3 className="text-sm font-bold font-['Sora'] text-[#1B4332]">
+                  Fornecedores a Revalidar (Validade Anual em Alerta ou Vencida)
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Todo fornecedor deve ser revalidado em 1 ano. Em amarelo os que vencem em ≤ 60
+                  dias e em vermelho os já expirados.
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full w-fit">
+              {fornecedoresParaRevalidar.length} para revalidação
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+            {fornecedoresParaRevalidar
+              .slice(0, 6)
+              .map(({ fornecedor, qualif, diasRestantes, isExpirado }) => (
+                <div
+                  key={fornecedor.cnpj}
+                  className={`p-3 rounded-xl border flex flex-col justify-between gap-2 bg-white ${
+                    isExpirado ? 'border-red-300 shadow-xs' : 'border-amber-300 shadow-xs'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="font-bold text-xs text-[#1B4332] truncate"
+                        title={fornecedor.razao_social}
+                      >
+                        {fornecedor.razao_social}
+                      </span>
+                      {isExpirado ? (
+                        <Badge className="bg-red-700 text-white text-[9px] shrink-0">
+                          EXPIRADO
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-600 text-white text-[9px] shrink-0">
+                          VENCE EM {diasRestantes}D
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="font-mono text-[10px] text-stone-500 mt-0.5">
+                      {formatarCNPJ(fornecedor.cnpj)} • {fornecedor.uf || 'UF'}
+                    </p>
+                    <p className="text-[11px] text-stone-600 mt-1">
+                      Validade: {new Date(qualif.validade).toLocaleDateString('pt-BR')} • Score:{' '}
+                      {qualif.score} pts
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+                    <span className="text-[10px] text-stone-500">
+                      Status: {qualif.resultado.replace(/_/g, ' ')}
+                    </span>
+                    {onAbrirRevalidacao && (
+                      <button
+                        type="button"
+                        onClick={() => onAbrirRevalidacao(fornecedor)}
+                        className="text-[11px] font-bold text-[#2D6A4F] hover:text-[#1B4332] hover:underline"
+                      >
+                        Revalidar agora →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* 2. Cards de Topo */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white p-4 rounded-xl border border-[#E2DCCF] shadow-xs space-y-1">
@@ -426,6 +562,66 @@ export function PainelIndicadoresView({
             {totalDevolucoesPeriodo}
           </p>
           <span className="text-[10px] text-stone-500 block">No período</span>
+        </div>
+      </div>
+
+      {/* BANNER / CARDS: BANCO COMPARTILHADO DE FORNECEDORES VALIDADOS */}
+      <div className="bg-gradient-to-r from-[#1B4332]/10 via-[#2D6A4F]/10 to-[#FAF7EF] p-5 rounded-2xl border border-[#2D6A4F]/20 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Globe2 className="h-5 w-5 text-[#2D6A4F]" />
+            <div>
+              <h3 className="text-sm font-bold font-['Sora'] text-[#1B4332]">
+                Indicadores do Banco Compartilhado (Fornecedores Validados do Sistema)
+              </h3>
+              <p className="text-xs text-stone-600">
+                Informações agregadas da base global de referência homologada no ecossistema GIAC.
+              </p>
+            </div>
+          </div>
+          <Badge className="bg-[#2D6A4F] text-white text-xs w-fit">Rede Colaborativa</Badge>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+          <div className="bg-white p-3.5 rounded-xl border border-[#E2DCCF]">
+            <span className="text-[10px] font-bold text-stone-500 uppercase block">
+              Validados Ativos (Global)
+            </span>
+            <span className="text-xl font-black font-['Sora'] text-[#2D6A4F] block mt-1">
+              {metricasValidados.ativos}
+            </span>
+            <span className="text-[10px] text-stone-500">Vigência &lt; 1 ano</span>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-[#E2DCCF]">
+            <span className="text-[10px] font-bold text-stone-500 uppercase block">
+              Aprovações Expiradas
+            </span>
+            <span className="text-xl font-black font-['Sora'] text-red-700 block mt-1">
+              {metricasValidados.expirados}
+            </span>
+            <span className="text-[10px] text-stone-500">&gt; 1 ano sem revalidação</span>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-[#E2DCCF]">
+            <span className="text-[10px] font-bold text-stone-500 uppercase block">
+              Adoção Local
+            </span>
+            <span className="text-xl font-black font-['Sora'] text-stone-900 block mt-1">
+              {metricasValidados.locaisDoBanco}
+            </span>
+            <span className="text-[10px] text-stone-500">fornecedores na sua fábrica</span>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-[#E2DCCF]">
+            <span className="text-[10px] font-bold text-stone-500 uppercase block">
+              % Vinda do Banco Global
+            </span>
+            <span className="text-xl font-black font-['Sora'] text-[#D9A404] block mt-1">
+              {metricasValidados.percLocaisDoBanco}%
+            </span>
+            <span className="text-[10px] text-stone-500">do total de fornecedores locais</span>
+          </div>
         </div>
       </div>
 
@@ -606,7 +802,17 @@ export function PainelIndicadoresView({
                         {new Date(qualif.validade).toLocaleDateString('pt-BR')}
                       </td>
                       <td className="py-2 px-2.5 text-right">
-                        <Badge className="bg-red-700 text-white text-[9px]">Requalificar</Badge>
+                        {onAbrirRevalidacao ? (
+                          <button
+                            type="button"
+                            onClick={() => onAbrirRevalidacao(fornecedor)}
+                            className="text-[10px] font-bold text-red-700 hover:underline"
+                          >
+                            Revalidar →
+                          </button>
+                        ) : (
+                          <Badge className="bg-red-700 text-white text-[9px]">Requalificar</Badge>
+                        )}
                       </td>
                     </tr>
                   ))
