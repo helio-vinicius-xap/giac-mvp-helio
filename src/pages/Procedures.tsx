@@ -43,6 +43,7 @@ import type {
   MonitoringRecord,
 } from '@/types/agro'
 import { evaluatePopChain } from '@/lib/recordFlow'
+import { formatProcedureCode, formatProcedureDisplayName } from '@/lib/procedureNaming'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { PopDocumentPdfModal } from '@/components/PopDocumentPdfModal'
@@ -163,7 +164,7 @@ export default function Procedures() {
       })
       toast({
         title: 'Procedimento criado',
-        description: `${created.codigo} cadastrado com sucesso.`,
+        description: `${formatProcedureDisplayName(created)} cadastrado com sucesso.`,
       })
       setOpenNewModal(false)
       navigate(`/procedimentos/${created.id}`)
@@ -198,9 +199,11 @@ export default function Procedures() {
 
   const filteredProcedures = procedures.filter((p) => {
     const matchesCategory = selectedCategory === 'Todos' || p.categoria === selectedCategory
+    const displayName = formatProcedureDisplayName(p).toLowerCase()
     const matchesSearch =
       p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      displayName.includes(searchTerm.toLowerCase()) ||
       (p.responsavel && p.responsavel.toLowerCase().includes(searchTerm.toLowerCase()))
     return matchesCategory && matchesSearch
   })
@@ -256,11 +259,11 @@ export default function Procedures() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold font-['Sora'] text-[#2D6A4F]">
-            Procedimentos Operacionais Padrão (POPs)
+            Procedimentos Operacionais Padrão (Auto Controles)
           </h1>
           <p className="text-xs text-[#6B6B6B] mt-0.5">
-            Gestão dos 9 POPs obrigatórios e requisitos do Sistema APPCC conforme a IN 04/2007 do
-            MAPA
+            Gestão dos 9 Auto Controles obrigatórios e requisitos do Sistema APPCC conforme a IN
+            04/2007 do MAPA
           </p>
         </div>
 
@@ -326,10 +329,10 @@ export default function Procedures() {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="agro-table-header">
-                <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Nome do Procedimento</th>
+                <th className="py-3 px-4">Procedimento / Auto Controle</th>
+                <th className="py-3 px-4">Nome Completo</th>
                 <th className="py-3 px-4">Categoria</th>
-                <th className="py-3 px-4">Registros do POP</th>
+                <th className="py-3 px-4">Registros do Auto Controle</th>
                 <th className="py-3 px-4">Assinatura RT / RE</th>
                 <th className="py-3 px-4">Responsável</th>
                 <th className="py-3 px-4">Status</th>
@@ -353,6 +356,7 @@ export default function Procedures() {
               ) : (
                 filteredProcedures.map((p) => {
                   const chain = evaluatePopChain(p.id, p.codigo, allRecords)
+                  const displayLabel = formatProcedureDisplayName(p)
 
                   return (
                     <tr
@@ -361,7 +365,12 @@ export default function Procedures() {
                       className="hover:bg-[#FAF7EF] cursor-pointer transition"
                     >
                       <td className="py-3 px-4 font-bold text-[#2D6A4F] whitespace-nowrap">
-                        {p.codigo}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-[#1B4332]">{displayLabel}</span>
+                          <span className="text-[10px] font-mono text-stone-400 font-normal">
+                            Código: {p.codigo}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-4 font-medium text-stone-900 max-w-[280px]">
                         {p.nome}
@@ -375,7 +384,7 @@ export default function Procedures() {
                         </Badge>
                       </td>
 
-                      {/* COLUNA: Registros do POP (Status da cadeia de registros) */}
+                      {/* COLUNA: Registros do Auto Controle (Status da cadeia de registros) */}
                       <td className="py-3 px-4 whitespace-nowrap">
                         <div className="flex flex-col gap-1 items-start">
                           <div className="flex items-center gap-1.5">
@@ -501,10 +510,10 @@ export default function Procedures() {
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-[#2D6A4F] font-['Sora'] flex items-center gap-2">
               <FileCheck2 className="h-5 w-5 text-[#D9A404]" />
-              Cadastrar Novo Procedimento (POP)
+              Cadastrar Novo Procedimento (Auto Controle)
             </DialogTitle>
             <DialogDescription className="text-xs text-stone-600">
-              Estruturado conforme os 9 POPs obrigatórios da IN 04/2007 e Boas Práticas
+              Estruturado conforme os 9 Auto Controles obrigatórios da IN 04/2007 e Boas Práticas
               Agroindustriais.
             </DialogDescription>
           </DialogHeader>
@@ -599,7 +608,9 @@ export default function Procedures() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-stone-700">Objetivo do POP</Label>
+              <Label className="text-xs font-semibold text-stone-700">
+                Objetivo do Auto Controle
+              </Label>
               <Textarea
                 rows={2}
                 value={form.objetivo}

@@ -76,6 +76,11 @@ import { getPopCustomForms, deletePopCustomForm } from '@/services/agroService'
 import type { PopCustomForm } from '@/types/agro'
 import { PopDemandRecordModal } from '@/components/PopDemandRecordModal'
 import { evaluatePopChain } from '@/lib/recordFlow'
+import {
+  formatProcedureCode,
+  formatProcedureDisplayName,
+  getProcedureShortTitle,
+} from '@/lib/procedureNaming'
 import type { POP01PainelResumo } from '@/types/pop01Forms'
 import {
   POP_ITEM07_CATALOG,
@@ -576,17 +581,19 @@ export default function ProcedureDetail() {
       <div className="space-y-2">
         <nav className="flex items-center text-xs text-stone-500 gap-1.5 no-print">
           <Link to="/procedimentos" className="hover:text-[#2D6A4F] transition">
-            Procedimentos
+            Procedimentos (Auto Controles)
           </Link>
           <ChevronRight className="h-3 w-3" />
-          <span className="font-semibold text-stone-800">{procedure.codigo}</span>
+          <span className="font-semibold text-stone-800">
+            {formatProcedureCode(procedure.codigo)}
+          </span>
         </nav>
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E2DCCF] shadow-xs">
           <div>
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <span className="text-xs font-bold text-white bg-[#2D6A4F] px-2.5 py-0.5 rounded-full">
-                {procedure.codigo}
+                {formatProcedureCode(procedure.codigo)}
               </span>
               <Badge variant="outline" className="border-emerald-300 text-[#2D6A4F] bg-emerald-50">
                 {procedure.categoria}
@@ -605,25 +612,33 @@ export default function ProcedureDetail() {
               <span className="text-xs text-stone-500 ml-1">
                 Frequência: <strong className="text-stone-700">{procedure.frequencia}</strong>
               </span>
+              <span className="text-[11px] font-mono text-stone-400">
+                (Cód: {procedure.codigo})
+              </span>
             </div>
 
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-bold font-['Sora'] text-[#2D6A4F]">
-                {procedure.nome}
+                {formatProcedureDisplayName(procedure)}
               </h1>
               <IntegrityBadge
                 target={procedure}
                 size="md"
                 onClick={() => {
                   setTargetForHistory({
-                    target: procedure,
-                    type: 'procedure',
-                    title: `${procedure.codigo} - ${procedure.nome}`,
+                    target: rec,
+                    type: 'record',
+                    title: `${rec.codigo_registro} - ${rec.formulario_nome || formatProcedureCode(procedure.codigo)}`,
                   })
                   setOpenHistoryModal(true)
                 }}
               />
             </div>
+            {procedure.nome && (
+              <p className="text-xs text-stone-600 mt-1 max-w-3xl leading-relaxed">
+                {procedure.nome}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap no-print">
@@ -737,13 +752,13 @@ export default function ProcedureDetail() {
             Editor Normativo & Revisões
           </TabsTrigger>
 
-          {/* Aba Construtor de Formulários do POP (Parte c) */}
+          {/* Aba Construtor de Formulários do Auto Controle (Parte c) */}
           <TabsTrigger
             value="formularios_custom"
             className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg gap-1"
           >
             <Layers className="h-3.5 w-3.5 text-[#D9A404]" />
-            Formulários do POP ({customForms.length})
+            Formulários do Auto Controle ({customForms.length})
           </TabsTrigger>
 
           {isPop01 && (
@@ -870,16 +885,16 @@ export default function ProcedureDetail() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-[#1B4332] text-white">
-                    {procedure.codigo}
+                    {formatProcedureCode(procedure.codigo)}
                   </span>
                   <h3 className="text-base font-bold font-['Sora'] text-[#1B4332]">
-                    Formulários Digitais Customizados do POP
+                    Formulários Digitais do Auto Controle
                   </h3>
                 </div>
                 <p className="text-xs text-stone-600 mt-1">
-                  Gerencie fichas operacionais próprias definidas para este POP. Cada formulário
-                  integra a <strong>Cadeia de Registros</strong>, possui avaliação conforme/não
-                  conforme e gera pendências operacionais.
+                  Gerencie fichas operacionais próprias definidas para este Auto Controle. Cada
+                  formulário integra a <strong>Cadeia de Registros</strong>, possui avaliação
+                  conforme/não conforme e gera pendências operacionais.
                 </p>
               </div>
 
