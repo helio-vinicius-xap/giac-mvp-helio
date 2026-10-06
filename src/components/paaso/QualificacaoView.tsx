@@ -17,6 +17,8 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/AuthContext'
+import { canManagePopForms } from '@/lib/permissions'
 import { formatarCNPJ, validarCNPJ } from '@/lib/pop01Validators'
 import { normalizarCNPJ, executarCruzamentoSipeagro } from '@/lib/cruzamentoEngine'
 import {
@@ -33,6 +35,7 @@ import {
   type ResultadoCruzamento,
   type CategoriaSipeagro,
 } from '@/types/paaso'
+import { CENARIOS_TESTE_ADAPTA, type CenarioTesteAdapta } from '@/types/paasoAdaptaData'
 
 interface QualificacaoViewProps {
   fornecedores: FornecedorItem[]
@@ -48,6 +51,8 @@ export function QualificacaoView({
   onDataChanged,
 }: QualificacaoViewProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
+  const podeGerenciar = canManagePopForms(user?.role)
 
   // Histórico de qualificações
   const [historico, setHistorico] = useState<QualificacaoItem[]>([])
@@ -65,6 +70,7 @@ export function QualificacaoView({
   const [email, setEmail] = useState('')
   const [telefone, setTelefone] = useState('')
   const [dataFormulario, setDataFormulario] = useState(new Date().toISOString().split('T')[0])
+  const [cenarioAtivoId, setCenarioAtivoId] = useState<string | null>(null)
 
   // Resultado do cruzamento
   const [processando, setProcessando] = useState(false)
@@ -108,6 +114,46 @@ export function QualificacaoView({
       if (dd.tipos_produto) setTiposDeclarados(dd.tipos_produto)
     }
 
+    setCenarioAtivoId(null)
+    setResultadoCruzamento(null)
+    setEstabelecimentoCorrespondente(null)
+  }
+
+  // Preenchimento Rápido com Cenários de Teste Oficiais do Adapta One 27
+  const aplicarCenarioTeste = (cenario: CenarioTesteAdapta) => {
+    setCnpj(cenario.dados.cnpj)
+    setRazaoSocial(cenario.dados.razao_social)
+    setRegistroSipeagro(cenario.dados.registro_sipeagro)
+    setCategoriaDeclarada(cenario.dados.categoria)
+    setUf(cenario.dados.uf)
+    setMunicipio(cenario.dados.municipio)
+    setEmail(cenario.dados.email)
+    setContatoNome(cenario.dados.contato_nome || '')
+    setTelefone(cenario.dados.telefone || '')
+    setTiposDeclarados(cenario.dados.tipos_produto)
+    setCenarioAtivoId(cenario.id)
+    setResultadoCruzamento(null)
+    setEstabelecimentoCorrespondente(null)
+
+    toast({
+      title: `Cenário carregado: ${cenario.titulo}`,
+      description: `${cenario.descricao} — Clique em "Executar Cruzamento" para validar o motor.`,
+    })
+  }
+
+  // Limpar formulário completo
+  const handleLimparFormulario = () => {
+    setCnpj('')
+    setRazaoSocial('')
+    setRegistroSipeagro('')
+    setCategoriaDeclarada('fabricante')
+    setTiposDeclarados([])
+    setUf('')
+    setMunicipio('')
+    setContatoNome('')
+    setEmail('')
+    setTelefone('')
+    setCenarioAtivoId(null)
     setResultadoCruzamento(null)
     setEstabelecimentoCorrespondente(null)
   }
@@ -149,6 +195,16 @@ export function QualificacaoView({
   // Submissão do formulário com cruzamento das 7 verificações
   const handleRodarCruzamento = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!podeGerenciar) {
+      toast({
+        title: 'Acesso Restrito pelo MAPA (IN 04/2007)',
+        description:
+          'Apenas RE, RT, RQ ou Administrador da organização podem homologar ou submeter qualificações técnicas.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     const rawCnpj = normalizarCNPJ(cnpj)
     if (!rawCnpj || rawCnpj.length !== 14) {
@@ -327,21 +383,90 @@ export function QualificacaoView({
           <div className="flex items-center justify-between border-b border-[#E2DCCF]/60 pb-3">
             <h3 className="text-sm font-bold font-['Sora'] text-[#1B4332] flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
-              Dados Declarados pelo Fornecedor
+              Questionário de Qualificação Prévia do Fornecedor
             </h3>
-            {cnpj && estabelecimentosSipeagro.length > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handlePuxarDadosSipeagro}
-                className="h-7 text-[11px] text-[#2D6A4F] hover:bg-[#2D6A4F]/10 gap-1 font-semibold"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-[#D9A404]" />
-                Puxar do SIPEAGRO
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {cnpj && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLimparFormulario}
+                  className="h-7 text-[11px] text-stone-500 hover:text-stone-800 gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Limpar
+                </Button>
+              )}
+              {cnpj && estabelecimentosSipeagro.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePuxarDadosSipeagro}
+                  className="h-7 text-[11px] text-[#2D6A4F] hover:bg-[#2D6A4F]/10 gap-1 font-semibold"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-[#D9A404]" />
+                  Puxar do SIPEAGRO
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Barra de Preenchimento Rápido (Testes) — Adapta One 27 */}
+          <div className="bg-[#FAF7EF] p-3 rounded-xl border border-[#E2DCCF] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-[#1B4332] uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-[#D9A404]" />
+                Preenchimento Rápido (Testes):
+              </span>
+              <span className="text-[10px] text-stone-500">
+                Padrão Adapta One 27 • 5 Cenários Oficiais
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {CENARIOS_TESTE_ADAPTA.map((cenario) => {
+                const ativo = cenarioAtivoId === cenario.id
+                return (
+                  <button
+                    key={cenario.id}
+                    type="button"
+                    onClick={() => aplicarCenarioTeste(cenario)}
+                    className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
+                      ativo
+                        ? 'bg-[#2D6A4F] text-white border-[#2D6A4F] shadow-xs'
+                        : 'bg-white text-stone-700 border-stone-200 hover:border-[#2D6A4F] hover:bg-stone-50'
+                    }`}
+                    title={cenario.descricao}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        cenario.esperado === 'APROVADO'
+                          ? 'bg-emerald-500'
+                          : cenario.esperado === 'APROVADO_COM_RESSALVA'
+                            ? 'bg-amber-500'
+                            : cenario.esperado === 'REPROVADO'
+                              ? 'bg-red-500'
+                              : 'bg-stone-500'
+                      }`}
+                    />
+                    {cenario.titulo}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {!podeGerenciar && (
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-700" />
+              <span>
+                <strong>Modo Consulta Técnica:</strong> Seu perfil atual não possui autorização
+                técnica (exige RE, RT, RQ ou Administrador) para submeter novas qualificações
+                oficiais.
+              </span>
+            </div>
+          )}
 
           <form onSubmit={handleRodarCruzamento} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -490,16 +615,27 @@ export function QualificacaoView({
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
               <Button
                 type="submit"
-                disabled={processando}
-                className="w-full bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-bold text-xs h-10 gap-2 shadow-sm"
+                disabled={processando || !podeGerenciar}
+                className="flex-1 bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-bold text-xs h-10 gap-2 shadow-sm disabled:opacity-60"
               >
                 <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
                 {processando
                   ? 'Executando 7 verificações...'
-                  : 'Executar Cruzamento & Salvar Qualificação'}
+                  : !podeGerenciar
+                    ? 'Qualificação Restrita (Exige RE / RT / RQ)'
+                    : '⚙️ Submeter e Cruzar com SIPEAGRO'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleLimparFormulario}
+                disabled={processando}
+                className="border-stone-300 text-stone-700 hover:bg-stone-50 text-xs h-10"
+              >
+                Limpar Formulário
               </Button>
             </div>
           </form>

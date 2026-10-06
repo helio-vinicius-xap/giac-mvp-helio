@@ -30,7 +30,8 @@ import { DevolucoesView } from './DevolucoesView'
 import { NaoConformidadesView } from './NaoConformidadesView'
 import { PainelIndicadoresView } from './PainelIndicadoresView'
 import { FornecedoresValidadosView } from './FornecedoresValidadosView'
-import { Globe2 } from 'lucide-react'
+import { AdaptaSnapshotView } from './AdaptaSnapshotView'
+import { Globe2, Layers } from 'lucide-react'
 import type {
   SipeagroItem,
   FornecedorItem,
@@ -293,6 +294,15 @@ export function PaasoContainer() {
             <AlertOctagon className="h-3.5 w-3.5" />
             Não Conformidades ({ncs.length})
           </TabsTrigger>
+
+          <TabsTrigger
+            value="adapta"
+            className="text-xs data-[state=active]:bg-[#D9A404] data-[state=active]:text-stone-900 font-bold py-2 px-3 gap-1.5 rounded-lg transition bg-amber-50/50 border border-amber-200/60"
+            title="Módulo original Adapta One 27"
+          >
+            <Layers className="h-3.5 w-3.5 text-[#D9A404]" />
+            Ferramenta Adapta One 27
+          </TabsTrigger>
         </TabsList>
 
         {/* 1. Painel de Indicadores */}
@@ -362,6 +372,11 @@ export function PaasoContainer() {
             fornecedores={fornecedores}
             onDataChanged={carregarDados}
           />
+        </TabsContent>
+
+        {/* 7. Ferramenta Adapta One 27 (Snapshot Interativo Original) */}
+        <TabsContent value="adapta" className="m-0 focus-visible:outline-none">
+          <AdaptaSnapshotView onIrParaQualificacaoNativa={() => setActiveTab('qualificacao')} />
         </TabsContent>
       </Tabs>
     </div>

@@ -154,4 +154,26 @@ describe('Motor de Cruzamento SIPEAGRO — 7 Verificações', () => {
     expect(verificarStatusVigencia('2024-01-01')).toBe('VENCIDA')
     expect(verificarStatusVigencia('2029-01-01')).toBe('VIGENTE')
   })
+
+  it('deve validar os 5 cenários oficiais de teste da ferramenta Adapta One 27', async () => {
+    const { CENARIOS_TESTE_ADAPTA, ESTABELECIMENTOS_ADAPTA_ONE_24 } =
+      await import('@/types/paasoAdaptaData')
+
+    for (const cenario of CENARIOS_TESTE_ADAPTA) {
+      const rawCnpj = normalizarCNPJ(cenario.dados.cnpj)
+      const estab = (ESTABELECIMENTOS_ADAPTA_ONE_24 as any[]).find(
+        (e: any) => normalizarCNPJ(e.cnpj) === rawCnpj,
+      )
+
+      const resultado = executarCruzamentoSipeagro(
+        cenario.dados as any,
+        rawCnpj,
+        estab || null,
+        false,
+        '2026-03-01',
+      )
+
+      expect(resultado.resultado).toBe(cenario.esperado)
+    }
+  })
 })

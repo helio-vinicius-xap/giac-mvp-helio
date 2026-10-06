@@ -15,14 +15,15 @@ import {
 import pb from '@/lib/pocketbase/client'
 import { normalizarCNPJ } from '@/lib/cruzamentoEngine'
 import type { SipeagroItem } from '@/types/paaso'
+import { ESTABELECIMENTOS_ADAPTA_ONE_24 } from '@/types/paasoAdaptaData'
 
 export async function carregarDadosExemploPaaso(onProgress?: (pct: number, msg: string) => void) {
   const orgId = pb.authStore.record?.organization || undefined
 
   onProgress?.(5, 'Preparando estabelecimentos modelo SIPEAGRO...')
 
-  // 1. 20 estabelecimentos modelo no SIPEAGRO
-  const sipeagroExemplos: Omit<SipeagroItem, 'id'>[] = [
+  // 1. Estabelecimentos modelo no SIPEAGRO (combina base original + 24 do Adapta One 27)
+  const baseOriginal: Omit<SipeagroItem, 'id'>[] = [
     {
       cnpj: '11222333000181',
       razao_social: 'Nutrição Animal do Cerrado Ltda.',
@@ -285,8 +286,21 @@ export async function carregarDadosExemploPaaso(onProgress?: (pct: number, msg: 
     },
   ]
 
-  for (let i = 0; i < sipeagroExemplos.length; i++) {
-    const item = sipeagroExemplos[i]
+  // Mesclar estabelecimentos sem duplicar CNPJs
+  const todosEstabelecimentos: Omit<SipeagroItem, 'id'>[] = [...ESTABELECIMENTOS_ADAPTA_ONE_24]
+  const cnpjsJaAdicionados = new Set(
+    ESTABELECIMENTOS_ADAPTA_ONE_24.map((e) => normalizarCNPJ(e.cnpj)),
+  )
+  for (const b of baseOriginal) {
+    const norm = normalizarCNPJ(b.cnpj)
+    if (!cnpjsJaAdicionados.has(norm)) {
+      todosEstabelecimentos.push(b)
+      cnpjsJaAdicionados.add(norm)
+    }
+  }
+
+  for (let i = 0; i < todosEstabelecimentos.length; i++) {
+    const item = todosEstabelecimentos[i]
     try {
       const payload: any = { ...item }
       if (orgId) payload.organization = orgId
