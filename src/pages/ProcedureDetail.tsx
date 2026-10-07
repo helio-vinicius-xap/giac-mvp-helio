@@ -67,6 +67,8 @@ import { canViewAuditHistory } from '@/lib/permissions'
 import { Pop01FormsManager } from '@/components/Pop01FormsManager'
 import { Pop01KpiDashboard } from '@/components/Pop01KpiDashboard'
 import { PaasoContainer } from '@/components/paaso/PaasoContainer'
+import { PrevencaoContaminacaoCruzadaView } from '@/components/pop05/PrevencaoContaminacaoCruzadaView'
+import { Pop02LimpezaBancoView } from '@/components/pop02/Pop02LimpezaBancoView'
 import { RtSignatureUpload } from '@/components/RtSignatureUpload'
 import { PopPendingPanel } from '@/components/PopPendingPanel'
 import { PopNormativeEditor } from '@/components/PopNormativeEditor'
@@ -216,6 +218,15 @@ export default function ProcedureDetail() {
   })
 
   const isPop01 = procedure?.codigo === 'POP-01' || procedure?.codigo === 'POP-001'
+  const isPop02 =
+    procedure?.codigo === 'POP-02' ||
+    procedure?.codigo === 'POP-002' ||
+    procedure?.nome?.toLowerCase().includes('limpeza') ||
+    procedure?.nome?.toLowerCase().includes('higienização')
+  const isPop05 =
+    procedure?.codigo === 'POP-05' ||
+    procedure?.codigo === 'POP-005' ||
+    procedure?.nome?.toLowerCase().includes('contaminação cruzada')
 
   // Cálculo Dinâmico de Indicadores para o Painel do POP 01 (Seção 14 e PAINEL_Indicadores)
   const calculatePop01Summary = (): POP01PainelResumo => {
@@ -818,6 +829,22 @@ export default function ProcedureDetail() {
               PAASO • Qualificação & SIPEAGRO
             </TabsTrigger>
           )}
+          {isPop02 && (
+            <TabsTrigger
+              value="pop02_limpeza_db"
+              className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg bg-blue-500/10 border border-blue-500/40"
+            >
+              Banco de Dados de Limpeza (POP 02)
+            </TabsTrigger>
+          )}
+          {isPop05 && (
+            <TabsTrigger
+              value="pop05_prevencao"
+              className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg bg-emerald-500/10 border border-emerald-500/40"
+            >
+              Prevenção da Contaminação Cruzada (6 Métodos)
+            </TabsTrigger>
+          )}
           <TabsTrigger
             value="visao_geral"
             className="text-xs font-semibold data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white rounded-lg"
@@ -1143,6 +1170,24 @@ export default function ProcedureDetail() {
         {isPop01 && (
           <TabsContent value="pop01_paaso" className="space-y-6 mt-4">
             <PaasoContainer />
+          </TabsContent>
+        )}
+
+        {/* ABA EXCLUSIVA POP 02: BANCO DE DADOS DE LIMPEZA E REGISTROS ESTRUTURADOS */}
+        {isPop02 && (
+          <TabsContent value="pop02_limpeza_db" className="space-y-6 mt-4">
+            <Pop02LimpezaBancoView
+              procedure={procedure}
+              records={records}
+              onRecordCreated={loadAll}
+            />
+          </TabsContent>
+        )}
+
+        {/* ABA EXCLUSIVA POP 05: PREVENÇÃO DA CONTAMINAÇÃO CRUZADA */}
+        {isPop05 && (
+          <TabsContent value="pop05_prevencao" className="space-y-6 mt-4">
+            <PrevencaoContaminacaoCruzadaView />
           </TabsContent>
         )}
 

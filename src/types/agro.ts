@@ -265,6 +265,10 @@ export interface MonitoringRecord {
   }
   status_assinatura?: RecordSignatureStatus
   arquivo_pdf_assinado?: string
+  // Validade e Vencimento / Revalidação
+  data_validade?: string
+  dias_lembrete_vencimento?: number
+  status_validade?: 'VIGENTE' | 'A_VENCER' | 'VENCIDO'
   // Encadeamento e fluxo obrigatório
   registro_anterior?: string // ID ou código de referência do registro pai
   registros_seguintes?: RecordChainLink[]
@@ -383,6 +387,8 @@ export interface Training {
   status?: 'Concluído' | 'Agendado'
   eficacia_verificada?: boolean
   evidencia?: string
+  pop_codigo?: string
+  procedure?: string
   created: string
   updated: string
 }
@@ -444,6 +450,7 @@ export interface PopCustomFormField {
     | 'checklist'
     | 'dynamic_table'
     | 'signature_execution'
+    | 'vencimento'
   obrigatorio?: boolean
   opcoes?: string[] // Para select ou checklist
   limite_min?: number // Limite inferior para validação conforme/não conforme
@@ -468,6 +475,9 @@ export interface PopCustomForm {
   obrigatorio_na_cadeia?: boolean
   gera_pendencia?: boolean
   is_ativo?: boolean
+  tem_vencimento?: boolean
+  dias_validade_padrao?: number
+  dias_alerta_vencimento?: number
   created: string
   updated: string
 }

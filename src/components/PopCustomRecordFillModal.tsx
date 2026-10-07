@@ -50,6 +50,16 @@ export function PopCustomRecordFillModal({
   const [dataRegistro, setDataRegistro] = useState(new Date().toISOString().split('T')[0])
   const [turno, setTurno] = useState<'Manhã' | 'Tarde' | 'Noite'>('Manhã')
   const [lote, setLote] = useState(`LOTE-${Date.now().toString().slice(-6)}`)
+  // Validade opcional
+  const initialValidade = form?.tem_vencimento
+    ? (() => {
+        const d = new Date()
+        d.setDate(d.getDate() + (form.dias_validade_padrao || 365))
+        return d.toISOString().split('T')[0]
+      })()
+    : ''
+  const [dataValidade, setDataValidade] = useState(initialValidade)
+  const [diasLembrete, setDiasLembrete] = useState<number>(form?.dias_alerta_vencimento || 60)
   const [formValues, setFormValues] = useState<Record<string, any>>({})
   const [observacoes, setObservacoes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -84,6 +94,19 @@ export function PopCustomRecordFillModal({
     e.preventDefault()
     setSaving(true)
     try {
+      let statusValidadeCalculado: 'VIGENTE' | 'A_VENCER' | 'VENCIDO' | undefined
+      if (dataValidade) {
+        const diffMs = new Date(dataValidade).getTime() - new Date().getTime()
+        const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        if (diffDias < 0) {
+          statusValidadeCalculado = 'VENCIDO'
+        } else if (diffDias <= (diasLembrete || 60)) {
+          statusValidadeCalculado = 'A_VENCER'
+        } else {
+          statusValidadeCalculado = 'VIGENTE'
+        }
+      }
+
       const recordPayload: any = {
         procedure: procedure.id,
         formulario_codigo: form.codigo,
@@ -100,6 +123,8 @@ export function PopCustomRecordFillModal({
         observacoes: observacoes,
         dados_formulario: {
           ...formValues,
+          data_validade: dataValidade || null,
+          dias_lembrete_vencimento: diasLembrete || 60,
           titulo_formulario: form.titulo,
           frequencia_formulario: form.frequencia,
           executor_nome: user?.name,
@@ -110,6 +135,12 @@ export function PopCustomRecordFillModal({
         status_assinatura: 'Pendente Assinatura',
         origem_registro: 'demanda_cliente_formulario',
         status_execucao: 'Preenchido',
+      }
+
+      if (dataValidade) {
+        recordPayload.data_validade = `${dataValidade} 00:00:00.000Z`
+        recordPayload.dias_lembrete_vencimento = diasLembrete
+        recordPayload.status_validade = statusValidadeCalculado
       }
 
       await createRecord(recordPayload)
@@ -204,6 +235,48 @@ export function PopCustomRecordFillModal({
             </div>
           </div>
 
+          {/* Bloco de Vencimento / Validade Opcional */}
+          {(form.tem_vencimento || form.campos.some((c) => c.tipo === 'vencimento')) && (
+            <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[#D9A404]" />
+                  <Label className="text-xs font-bold text-amber-950">
+                    Prazo de Validade / Revalidação (Opcional)
+                  </Label>
+                </div>
+                <span className="text-[10px] text-amber-800 italic">
+                  Não bloqueia o envio se vazio
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-stone-700">
+                    Data de Vencimento / Revalidação
+                  </Label>
+                  <Input
+                    type="date"
+                    value={dataValidade}
+                    onChange={(e) => setDataValidade(e.target.value)}
+                    className="h-9 text-xs bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-stone-700">
+                    Lembrete de Alerta Antecipado (dias)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={diasLembrete}
+                    onChange={(e) => setDiasLembrete(parseInt(e.target.value) || 60)}
+                    placeholder="60"
+                    className="h-9 text-xs bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Campos Personalizados Configurados no Construtor */}
           <div className="bg-white p-5 rounded-xl border border-[#E2DCCF] shadow-xs space-y-4">
             <h4 className="font-bold text-[#2D6A4F] text-xs uppercase tracking-wider border-b border-stone-100 pb-2">
@@ -279,7 +352,7 @@ export function PopCustomRecordFillModal({
                       </div>
                     )}
 
-                    {campo.tipo === 'date' && (
+                    {(campo.tipo === 'date' || campo.tipo === 'vencimento') && (
                       <Input
                         type="date"
                         value={val}

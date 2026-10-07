@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-07T18:14:26.557Z",
+  "generatedAt": "2026-10-07T18:38:19.443Z",
   "collections": [
     {
       "name": "users",
@@ -448,6 +448,25 @@
           "required": false,
           "system": false,
           "collectionRef": "organizations"
+        },
+        {
+          "name": "data_validade",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dias_lembrete_vencimento",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_validade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["VIGENTE", "A_VENCER", "VENCIDO"]
         }
       ],
       "indexes": [
@@ -1005,6 +1024,19 @@
           "required": false,
           "system": false,
           "collectionRef": "organizations"
+        },
+        {
+          "name": "pop_codigo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "procedure",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "procedures"
         }
       ],
       "indexes": ["CREATE INDEX `idx_trainings_org` ON `trainings` (organization)"]
@@ -2735,8 +2767,8 @@
       "type": "base",
       "apiRules": {
         "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "",
+        "create": "",
         "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
         "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
       },
@@ -2895,6 +2927,704 @@
         "CREATE INDEX idx_auto_aval_num ON auto_avaliacoes_fornecedor (numero_registro)",
         "CREATE INDEX idx_auto_aval_cnpj ON auto_avaliacoes_fornecedor (fornecedor_cnpj)",
         "CREATE INDEX idx_auto_aval_status ON auto_avaliacoes_fornecedor (avaliacao_final)"
+      ]
+    },
+    {
+      "name": "programacao_registros",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "procedure",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "procedures"
+        },
+        {
+          "name": "pop_codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "formulario_codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "periodicidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["diaria", "semanal", "mensal", "anual"]
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_fim",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "turno_preferencial",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "setor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel_cargo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dias_semana",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dia_mes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_prog_org ON programacao_registros (organization)",
+        "CREATE INDEX idx_prog_pop ON programacao_registros (pop_codigo)",
+        "CREATE INDEX idx_prog_form ON programacao_registros (formulario_codigo)"
+      ]
+    },
+    {
+      "name": "limpeza_setores",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_area",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel_setor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_limp_set_org ON limpeza_setores (organization)",
+        "CREATE INDEX idx_limp_set_cod ON limpeza_setores (codigo)"
+      ]
+    },
+    {
+      "name": "limpeza_produtos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "nome_comercial",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "principio_ativo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Detergente Alcalino",
+            "Detergente Neutro",
+            "Sanitizante",
+            "Desengraxante",
+            "Outro"
+          ]
+        },
+        {
+          "name": "concentracao_recomendada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tempo_contato_minutos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "superficies_aplicacao",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "registro_anvisa_mapa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ficha_fispq",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_limp_prod_org ON limpeza_produtos (organization)"]
+    },
+    {
+      "name": "limpeza_equipamentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "tag",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "setor_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_superficie",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metodos_limpeza_permitidos",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cuidados_especiais",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_limp_eq_org ON limpeza_equipamentos (organization)",
+        "CREATE INDEX idx_limp_eq_tag ON limpeza_equipamentos (tag)"
+      ]
+    },
+    {
+      "name": "limpeza_procedimentos_matriz",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "codigo_procedimento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "setor",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "equipamento_ou_area",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo_superficie",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_limpeza",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Limpeza a Seco / Aspiração",
+            "Lavagem Úmida Sanitizante",
+            "Flushing Mecânico",
+            "CIP (Clean-in-Place)",
+            "Desincrustação Química"
+          ]
+        },
+        {
+          "name": "produto_utilizado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dosagem_diluicao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tempo_contato",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criterio_aprovacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_limp_mat_org ON limpeza_procedimentos_matriz (organization)",
+        "CREATE INDEX idx_limp_mat_cod ON limpeza_procedimentos_matriz (codigo_procedimento)"
+      ]
+    },
+    {
+      "name": "prevencao_contaminacao_cruzada",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "tema",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "qualificacao_fornecedores",
+            "materias_primas",
+            "limpeza_materiais_utensilios",
+            "equipamentos",
+            "limpeza_linha",
+            "producao_ensaque"
+          ]
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "referencia_normativa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metodo_procedimento",
+          "type": "editor",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "parametros_criticos",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pontos_inspecao",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "acoes_corretivas_imediatas",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinaturas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_assinatura",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "versao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_pcc_org ON prevencao_contaminacao_cruzada (organization)",
+        "CREATE INDEX idx_pcc_tema ON prevencao_contaminacao_cruzada (tema)"
+      ]
+    },
+    {
+      "name": "convites_portal_fornecedor",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "token",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fornecedor_cnpj",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fornecedor_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fornecedor_email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["PENDENTE", "PREENCHIDO", "VALIDADO_INTERNO", "EXPIRADO"]
+        },
+        {
+          "name": "data_expiracao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dados_pre_cadastro",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "respostas_questionario",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "auto_avaliacao_gerada_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criado_por_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_conv_token ON convites_portal_fornecedor (token)",
+        "CREATE INDEX idx_conv_org ON convites_portal_fornecedor (organization)",
+        "CREATE INDEX idx_conv_status ON convites_portal_fornecedor (status)"
       ]
     }
   ]

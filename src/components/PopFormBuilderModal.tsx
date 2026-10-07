@@ -63,6 +63,13 @@ export function PopFormBuilderModal({
   const [obrigatorioNaCadeia, setObrigatorioNaCadeia] = useState(
     formToEdit?.obrigatorio_na_cadeia ?? true,
   )
+  const [temVencimento, setTemVencimento] = useState(formToEdit?.tem_vencimento ?? false)
+  const [diasValidadePadrao, setDiasValidadePadrao] = useState(
+    formToEdit?.dias_validade_padrao ?? 365,
+  )
+  const [diasAlertaVencimento, setDiasAlertaVencimento] = useState(
+    formToEdit?.dias_alerta_vencimento ?? 60,
+  )
   const [geraPendencia, setGeraPendencia] = useState(formToEdit?.gera_pendencia ?? true)
 
   const [campos, setCampos] = useState<PopCustomFormField[]>(
@@ -188,6 +195,9 @@ export function PopFormBuilderModal({
         obrigatorio_na_cadeia: obrigatorioNaCadeia,
         gera_pendencia: geraPendencia,
         is_ativo: true,
+        tem_vencimento: temVencimento,
+        dias_validade_padrao: diasValidadePadrao,
+        dias_alerta_vencimento: diasAlertaVencimento,
         criado_por_nome: user?.name || user?.email,
       }
 
@@ -352,6 +362,56 @@ export function PopFormBuilderModal({
                 </div>
               </label>
             </div>
+
+            {/* Configuração de Prazo de Vencimento / Revalidação */}
+            <div className="pt-2 border-t border-stone-100 space-y-2">
+              <label className="flex items-center gap-2 text-xs text-stone-700 cursor-pointer p-2 rounded bg-amber-50/50 border border-amber-200">
+                <input
+                  type="checkbox"
+                  checked={temVencimento}
+                  onChange={(e) => setTemVencimento(e.target.checked)}
+                  className="rounded text-[#D9A404] focus:ring-[#D9A404]"
+                />
+                <div>
+                  <strong className="block text-amber-950 font-bold">
+                    Habilitar Prazo de Vencimento / Revalidação no Formulário
+                  </strong>
+                  <span className="text-[10px] text-amber-800">
+                    Disponibiliza prazo de vigência, revalidação e alertas no cronograma (opcional,
+                    não obrigatório no preenchimento).
+                  </span>
+                </div>
+              </label>
+
+              {temVencimento && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6 pt-1">
+                  <div>
+                    <Label className="text-[11px] font-semibold text-stone-700">
+                      Validade Padrão Sugerida (dias)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={diasValidadePadrao}
+                      onChange={(e) => setDiasValidadePadrao(parseInt(e.target.value) || 365)}
+                      className="h-8 text-xs bg-white"
+                      placeholder="Ex: 365 (1 ano)"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[11px] font-semibold text-stone-700">
+                      Lembrete de Renovação Antecipada (dias antes)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={diasAlertaVencimento}
+                      onChange={(e) => setDiasAlertaVencimento(parseInt(e.target.value) || 60)}
+                      className="h-8 text-xs bg-white"
+                      placeholder="Ex: 60 dias antes"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Lista de Campos do Formulário */}
@@ -423,6 +483,15 @@ export function PopFormBuilderModal({
                   className="h-7 text-[10px] border-stone-300 gap-1 text-amber-800"
                 >
                   <CheckCircle2 className="h-3 w-3" /> + Checklist
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleAddField('vencimento')}
+                  className="h-7 text-[10px] border-amber-300 text-amber-900 bg-amber-50 gap-1 font-semibold"
+                >
+                  <Calendar className="h-3 w-3" /> + Vencimento / Validade
                 </Button>
                 <Button
                   type="button"
@@ -614,6 +683,14 @@ export function PopFormBuilderModal({
                       Campo de assinatura formal de execução da linha/setor. O usuário preenchedor
                       registrará sua rubrica gráfica e CPF conforme a hierarquia de operadores do
                       GIAC.
+                    </div>
+                  )}
+
+                  {campo.tipo === 'vencimento' && (
+                    <div className="p-2 bg-amber-50 rounded border border-amber-200 text-[10px] text-amber-950">
+                      Campo de prazo de vencimento/revalidação (com lembrete de renovação
+                      configurável, opcional no momento do preenchimento para não bloquear a
+                      operação).
                     </div>
                   )}
                 </div>

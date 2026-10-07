@@ -23,6 +23,8 @@ import SuperAdmin from '@/pages/SuperAdmin'
 import SubscriptionBilling from '@/pages/SubscriptionBilling'
 import AuditTrailPage from '@/pages/AuditTrailPage'
 import { Paaso } from '@/pages/Paaso'
+import ProgramacaoPage from '@/pages/ProgramacaoPage'
+import PortalFornecedorPublicoPage from '@/pages/PortalFornecedorPublicoPage'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -34,6 +36,7 @@ export default function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/portal-fornecedor/:token" element={<PortalFornecedorPublicoPage />} />
 
           {/* Protected routes wrapped in Layout */}
           <Route
@@ -46,6 +49,7 @@ export default function App() {
             <Route path="/" element={<Index />} />
             <Route path="/procedimentos" element={<Procedures />} />
             <Route path="/procedimentos/:id" element={<ProcedureDetail />} />
+            <Route path="/programacao" element={<ProgramacaoPage />} />
             <Route path="/registros" element={<Records />} />
             <Route path="/auditorias" element={<Audits />} />
             <Route path="/auditorias/:id" element={<AuditDetail />} />

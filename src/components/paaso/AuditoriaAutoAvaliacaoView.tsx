@@ -47,6 +47,11 @@ import {
 } from '@/services/autoAvaliacaoService'
 import { criarOuAtualizarFornecedor, salvarNcFornecedor } from '@/services/paasoService'
 import {
+  gerarConvitePortal,
+  getConvitesPortalList,
+  type ConvitePortalFornecedor,
+} from '@/services/portalFornecedorService'
+import {
   calcularNotaFinalAutoAvaliacao,
   avaliarAprovacaoFinal,
   type QuestionarioFornecedorDef,
@@ -122,6 +127,15 @@ export function AuditoriaAutoAvaliacaoView({
   // Lista de avaliações salvas
   const [avaliacoes, setAvaliacoes] = useState<AutoAvaliacaoFornecedorItem[]>([])
   const [loadingAvaliacoes, setLoadingAvaliacoes] = useState(true)
+
+  // Convites do Portal do Fornecedor
+  const [convitesPortal, setConvitesPortal] = useState<ConvitePortalFornecedor[]>([])
+  const [openModalConvite, setOpenModalConvite] = useState(false)
+  const [conviteCnpj, setConviteCnpj] = useState('')
+  const [conviteNome, setConviteNome] = useState('')
+  const [conviteEmail, setConviteEmail] = useState('')
+  const [linkGerado, setLinkGerado] = useState<string | null>(null)
+  const [gerandoConvite, setGerandoConvite] = useState(false)
 
   // Modal de visualização / impressão PDF
   const [avaliacaoParaImprimir, setAvaliacaoParaImprimir] =
@@ -212,8 +226,9 @@ export function AuditoriaAutoAvaliacaoView({
         setLimiarCorte(q.limiar_aprovacao)
       }
 
-      const list = await getAutoAvaliacoesList()
+      const [list, convs] = await Promise.all([getAutoAvaliacoesList(), getConvitesPortalList()])
       setAvaliacoes(list)
+      setConvitesPortal(convs)
 
       const proxNum = await gerarProximoNumeroAutoAvaliacao()
       setNumeroRegistro(proxNum)
@@ -840,6 +855,23 @@ export function AuditoriaAutoAvaliacaoView({
 
           <Button
             type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setLinkGerado(null)
+              setConviteCnpj('')
+              setConviteNome('')
+              setConviteEmail('')
+              setOpenModalConvite(true)
+            }}
+            className="border-[#2D6A4F] text-[#2D6A4F] hover:bg-emerald-50 text-xs h-9 gap-1.5 font-bold"
+          >
+            <ExternalLink className="h-4 w-4 text-[#D9A404]" />
+            Gerar Link do Portal do Fornecedor
+          </Button>
+
+          <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={carregarDadosIniciais}
@@ -850,6 +882,64 @@ export function AuditoriaAutoAvaliacaoView({
           </Button>
         </div>
       </div>
+
+      {/* Bloco de Links Gerados do Portal do Fornecedor */}
+      {convitesPortal.length > 0 && (
+        <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+              <ExternalLink className="h-4 w-4 text-[#D9A404]" />
+              Links Enviados ao Portal do Fornecedor ({convitesPortal.length})
+            </span>
+            <span className="text-[11px] text-amber-800">
+              O fornecedor externo preenche via link online; ao receber, valide os dados e aprove
+              com RT/RE + RQ.
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+            {convitesPortal.map((cv) => (
+              <div
+                key={cv.id}
+                className="p-3 rounded-xl bg-white border border-amber-200 text-xs space-y-1"
+              >
+                <div className="flex items-center justify-between">
+                  <strong className="text-stone-900 truncate max-w-[170px]">
+                    {cv.fornecedor_nome || 'Fornecedor Externo'}
+                  </strong>
+                  <Badge
+                    className={
+                      cv.status === 'PREENCHIDO'
+                        ? 'bg-emerald-700 text-white text-[9px]'
+                        : 'bg-amber-600 text-white text-[9px]'
+                    }
+                  >
+                    {cv.status}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-stone-500 font-mono">
+                  {cv.fornecedor_cnpj ? formatarCNPJ(cv.fornecedor_cnpj) : 'CNPJ a preencher'}
+                </p>
+                <div className="flex items-center justify-between pt-1 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = `${window.location.origin}/portal-fornecedor/${cv.token}`
+                      navigator.clipboard.writeText(url)
+                      toast({ title: 'Link do portal copiado para a área de transferência!' })
+                    }}
+                    className="text-[#2D6A4F] hover:underline font-bold"
+                  >
+                    Copiar Link
+                  </button>
+                  <span className="text-stone-400">
+                    {new Date(cv.created || '').toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Alerta de Estado Vazio se questionário ainda não foi importado no banco */}
       {!loadingQuestionario && (!questionario || questionario.perguntas.length === 0) && (
@@ -1830,8 +1920,138 @@ export function AuditoriaAutoAvaliacaoView({
         avaliacao={avaliacaoParaImprimir}
       />
 
+      {/* Dialog para Gerar Convite / Link do Portal do Fornecedor */}
+      <Dialog open={openModalConvite} onOpenChange={setOpenModalConvite}>
+        <DialogContent className="max-w-md bg-white border-[#E2DCCF]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-[#1B4332] flex items-center gap-2">
+              <ExternalLink className="h-5 w-5 text-[#D9A404]" />
+              Gerar Link do Portal do Fornecedor
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-600">
+              O fornecedor receberá este link copiável para preencher remotamente seu pré-cadastro
+              (CNPJ, contatos) e as seções 2, 3 e 4 do POP 01-AC01.
+            </DialogDescription>
+          </DialogHeader>
+
+          {linkGerado ? (
+            <div className="space-y-4 pt-2 text-xs">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-950 space-y-2">
+                <strong className="block">Link de acesso externo gerado:</strong>
+                <div className="p-2 bg-white rounded border border-emerald-300 font-mono text-[11px] break-all select-all">
+                  {linkGerado}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(linkGerado)
+                    toast({ title: 'Link copiado com sucesso!' })
+                  }}
+                  className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs flex-1"
+                >
+                  Copiar Link
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setOpenModalConvite(false)}
+                  className="text-xs"
+                >
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                setGerandoConvite(true)
+                try {
+                  const conv = await gerarConvitePortal({
+                    fornecedor_cnpj: conviteCnpj,
+                    fornecedor_nome: conviteNome,
+                    fornecedor_email: conviteEmail,
+                  })
+                  const url = `${window.location.origin}/portal-fornecedor/${conv.token}`
+                  setLinkGerado(url)
+                  carregarDadosIniciais()
+                  toast({ title: 'Link gerado com sucesso!' })
+                } catch (err: any) {
+                  toast({
+                    title: 'Erro ao gerar convite',
+                    description: err.message,
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setGerandoConvite(false)
+                }
+              }}
+              className="space-y-3 pt-2 text-xs"
+            >
+              <div className="space-y-1">
+                <Label>CNPJ do Fornecedor (Opcional se ainda desconhecido)</Label>
+                <Input
+                  value={conviteCnpj}
+                  onChange={(e) => setConviteCnpj(e.target.value)}
+                  placeholder="00.000.000/0000-00"
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label>Razão Social / Nome do Fornecedor (Opcional)</Label>
+                <Input
+                  value={conviteNome}
+                  onChange={(e) => setConviteNome(e.target.value)}
+                  placeholder="Ex: Indústria de Alimentos do Vale Ltda"
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label>E-mail do Fornecedor</Label>
+                <Input
+                  type="email"
+                  value={conviteEmail}
+                  onChange={(e) => setConviteEmail(e.target.value)}
+                  placeholder="qualidade@fornecedor.com.br"
+                  className="h-8 text-xs"
+                />
+              </div>
+
+              <div className="p-2.5 bg-stone-50 rounded-lg border border-stone-200 text-[11px] text-stone-600">
+                O envio do formulário online chega automaticamente como pendente de validação
+                interna nesta tela, aguardando parecer do SIPEAGRO e as assinaturas de RT/RE e RQ.
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOpenModalConvite(false)}
+                  className="text-xs"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={gerandoConvite}
+                  className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-bold"
+                >
+                  {gerandoConvite ? 'Gerando Link...' : 'Gerar Link do Portal'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog para Ação Corretiva em caso de reprovação */}
-      <Dialog open={dialogNcOpen} onOpenChange={setDialogNcOpen}>
+      <Dialog open={dialogNcOpen} onOpenChange={dialogNcOpen ? setDialogNcOpen : () => {}}>
         <DialogContent className="max-w-md bg-[#FAF7EF] border-[#E2DCCF]">
           <DialogHeader>
             <div className="flex items-center gap-2 text-red-700 font-bold font-['Sora'] text-sm">

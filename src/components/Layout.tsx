@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   ArrowLeftRight,
   Clock,
+  Calendar,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -67,20 +68,8 @@ export default function Layout() {
   const { toast } = useToast()
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [openAuditModal, setOpenAuditModal] = useState(false)
   const [openNCsCount, setOpenNCsCount] = useState<number>(0)
   const [notifications, setNotifications] = useState<any[]>([])
-
-  // Form for quick audit
-  const [auditLoading, setAuditLoading] = useState(false)
-  const [auditForm, setAuditForm] = useState({
-    data: new Date().toISOString().split('T')[0],
-    tipo: 'Interna',
-    area_processo: 'BPF e Higienização Geral',
-    auditor: user?.name || 'Hélio - Auditor Líder',
-    status: 'Programada',
-    escopo: 'Auditoria de verificação periódica conforme IN 04/2007 e TF-Autocontroles.',
-  })
 
   // Load notifications and open NC count
   const loadAlerts = async () => {
@@ -119,46 +108,10 @@ export default function Layout() {
     loadAlerts()
   })
 
-  const handleCreateAudit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setAuditLoading(true)
-    try {
-      const created = await createAudit({
-        codigo: '', // Hook will auto-generate AUD-xxx
-        data: `${auditForm.data} 00:00:00.000Z`,
-        tipo: auditForm.tipo as any,
-        area_processo: auditForm.area_processo,
-        auditor: auditForm.auditor,
-        status: auditForm.status as any,
-        escopo: auditForm.escopo,
-        checklist: {
-          planejamento: {
-            item48_programa_documentado: true,
-            item49_equipe_qualificada: true,
-          },
-          itens: {},
-        },
-      })
-      toast({
-        title: 'Auditoria criada com sucesso',
-        description: `Código ${created.codigo || 'AUD'} registrado.`,
-      })
-      setOpenAuditModal(false)
-      navigate(`/auditorias/${created.id}`)
-    } catch (err: any) {
-      toast({
-        title: 'Erro ao criar auditoria',
-        description: err.message || 'Verifique os dados.',
-        variant: 'destructive',
-      })
-    } finally {
-      setAuditLoading(false)
-    }
-  }
-
   const navItems = [
     { label: 'Visão Geral', path: '/', icon: LayoutDashboard },
     { label: 'Auto Controles', path: '/procedimentos', icon: FileCheck2 },
+    { label: 'Programação', path: '/programacao', icon: Calendar },
     { label: 'Qualificação de Fornecedores', path: '/paaso', icon: ShieldCheck },
     { label: 'Registros', path: '/registros', icon: ClipboardList },
     { label: 'Auditorias', path: '/auditorias', icon: ShieldCheck },
@@ -544,15 +497,6 @@ export default function Layout() {
                 </div>
               </PopoverContent>
             </Popover>
-
-            {/* Nova Auditoria CTA */}
-            <Button
-              onClick={() => setOpenAuditModal(true)}
-              className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold text-xs sm:text-sm shadow-sm gap-1.5 h-9"
-            >
-              <PlusCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Nova Auditoria</span>
-            </Button>
           </div>
         </header>
 
@@ -664,122 +608,6 @@ export default function Layout() {
           </footer>
         </main>
       </div>
-
-      {/* MODAL: NOVA AUDITORIA */}
-      <Dialog open={openAuditModal} onOpenChange={setOpenAuditModal}>
-        <DialogContent className="sm:max-w-[540px] bg-white border-[#E2DCCF]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#2D6A4F] font-['Sora'] flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-[#D9A404]" />
-              Agendar Nova Auditoria Interna
-            </DialogTitle>
-            <DialogDescription className="text-xs text-stone-600">
-              Iniciação de auditoria conforme o Termo de Fiscalização TF-Autocontroles (MAPA Módulo
-              I/VII).
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateAudit} className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="audit_data" className="text-xs font-semibold text-stone-700">
-                  Data Agendada
-                </Label>
-                <Input
-                  id="audit_data"
-                  type="date"
-                  value={auditForm.data}
-                  onChange={(e) => setAuditForm({ ...auditForm, data: e.target.value })}
-                  required
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="audit_tipo" className="text-xs font-semibold text-stone-700">
-                  Tipo de Auditoria
-                </Label>
-                <Select
-                  value={auditForm.tipo}
-                  onValueChange={(val) => setAuditForm({ ...auditForm, tipo: val })}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Interna">Interna (Autocontrole)</SelectItem>
-                    <SelectItem value="Externa">Externa (Oficial MAPA / Certificação)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="audit_area" className="text-xs font-semibold text-stone-700">
-                  Área / Processo
-                </Label>
-                <Input
-                  id="audit_area"
-                  value={auditForm.area_processo}
-                  onChange={(e) => setAuditForm({ ...auditForm, area_processo: e.target.value })}
-                  placeholder="Ex: Peletização e Ensaque"
-                  required
-                  className="h-9 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="audit_auditor" className="text-xs font-semibold text-stone-700">
-                  Auditor Responsável
-                </Label>
-                <Input
-                  id="audit_auditor"
-                  value={auditForm.auditor}
-                  onChange={(e) => setAuditForm({ ...auditForm, auditor: e.target.value })}
-                  placeholder="Nome do Auditor Líder"
-                  required
-                  className="h-9 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="audit_escopo" className="text-xs font-semibold text-stone-700">
-                Escopo e Objetivos
-              </Label>
-              <Textarea
-                id="audit_escopo"
-                rows={3}
-                value={auditForm.escopo}
-                onChange={(e) => setAuditForm({ ...auditForm, escopo: e.target.value })}
-                placeholder="Descreva o escopo da avaliação e setores envolvidos..."
-                className="text-xs resize-none"
-              />
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setOpenAuditModal(false)}
-                className="border-stone-300 text-stone-700"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={auditLoading}
-                size="sm"
-                className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-semibold"
-              >
-                {auditLoading ? 'Criando...' : 'Iniciar Auditoria'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

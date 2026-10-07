@@ -51,6 +51,7 @@ export default function Trainings() {
   const [formLoading, setFormLoading] = useState(false)
   const [form, setForm] = useState({
     codigo: '',
+    pop_codigo: 'POP-001',
     tema: '',
     data: new Date().toISOString().split('T')[0],
     instrutor: 'Hélio - Resp. Técnico',
@@ -83,6 +84,7 @@ export default function Trainings() {
       const nextCode = `TR-${String(trainings.length + 1).padStart(3, '0')}`
       await createTraining({
         codigo: form.codigo || nextCode,
+        pop_codigo: form.pop_codigo,
         tema: form.tema,
         data: `${form.data} 00:00:00.000Z`,
         instrutor: form.instrutor,
@@ -94,7 +96,7 @@ export default function Trainings() {
           { nome: 'João Silva', cargo: 'Operador de Peletização' },
           { nome: 'Ana Paula', cargo: 'Operadora de Ensaque' },
         ],
-      })
+      } as any)
 
       toast({
         title: 'Treinamento cadastrado',
@@ -180,7 +182,8 @@ export default function Trainings() {
             <thead>
               <tr className="agro-table-header">
                 <th className="py-3 px-4">Código</th>
-                <th className="py-3 px-4">Tema do Treinamento</th>
+                <th className="py-3 px-4">Auto Controle (POP)</th>
+                <th className="py-3 px-4">Tema / Assunto Livre</th>
                 <th className="py-3 px-4">Data Realização</th>
                 <th className="py-3 px-4">Instrutor</th>
                 <th className="py-3 px-4">Carga Horária</th>
@@ -211,6 +214,11 @@ export default function Trainings() {
                   >
                     <td className="py-3 px-4 font-bold text-[#2D6A4F] whitespace-nowrap">
                       {t.codigo || 'TR-001'}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <Badge className="bg-[#1B4332] text-white text-[10px] font-mono">
+                        {t.pop_codigo || 'POP-003'}
+                      </Badge>
                     </td>
                     <td className="py-3 px-4 font-semibold text-stone-800 max-w-[280px]">
                       {t.tema}
@@ -286,11 +294,56 @@ export default function Trainings() {
 
           <form onSubmit={handleCreateTraining} className="space-y-3.5 pt-2">
             <div className="space-y-1">
-              <Label className="text-xs font-semibold text-stone-700">Tema do Treinamento</Label>
+              <Label className="text-xs font-semibold text-stone-700">
+                Vincular a Auto Controle (POP) *
+              </Label>
+              <Select
+                value={form.pop_codigo}
+                onValueChange={(val) => setForm({ ...form, pop_codigo: val })}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="POP-001">
+                    Auto Controle 01 – Qualificação de Fornecedores e Controle de Matérias-Primas
+                  </SelectItem>
+                  <SelectItem value="POP-002">
+                    Auto Controle 02 – Limpeza e Higienização de Instalações e Equipamentos
+                  </SelectItem>
+                  <SelectItem value="POP-003">
+                    Auto Controle 03 – Higiene e Saúde do Pessoal
+                  </SelectItem>
+                  <SelectItem value="POP-004">
+                    Auto Controle 04 – Controle da Água de Abastecimento
+                  </SelectItem>
+                  <SelectItem value="POP-005">
+                    Auto Controle 05 – Prevenção de Contaminação Cruzada
+                  </SelectItem>
+                  <SelectItem value="POP-006">
+                    Auto Controle 06 – Manutenção e Calibração de Equipamentos
+                  </SelectItem>
+                  <SelectItem value="POP-007">
+                    Auto Controle 07 – Controle Integrado de Pragas
+                  </SelectItem>
+                  <SelectItem value="POP-008">
+                    Auto Controle 08 – Gestão de Resíduos e Efluentes
+                  </SelectItem>
+                  <SelectItem value="POP-009">
+                    Auto Controle 09 – Rastreabilidade e Recolhimento (Recall)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-stone-700">
+                Tema / Assunto Livre do Treinamento *
+              </Label>
               <Input
                 value={form.tema}
                 onChange={(e) => setForm({ ...form, tema: e.target.value })}
-                placeholder="Ex: Prevenção de Contaminação Cruzada e Sequenciamento"
+                placeholder="Ex: Procedimentos de Limpeza de Misturadores e Cuidados na Dosagem"
                 required
                 className="h-9 text-xs"
               />
