@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-06T21:29:43.610Z",
+  "generatedAt": "2026-10-07T15:20:07.553Z",
   "collections": [
     {
       "name": "users",
@@ -2648,6 +2648,253 @@
         "CREATE INDEX idx_pop_forms_proc ON pop_custom_forms (procedure)",
         "CREATE INDEX idx_pop_forms_org ON pop_custom_forms (organization)",
         "CREATE INDEX idx_pop_forms_cod ON pop_custom_forms (codigo)"
+      ]
+    },
+    {
+      "name": "questionarios_fornecedor",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "versao_revisao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "arquivo_origem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "perguntas",
+          "type": "json",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "limiar_aprovacao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_quest_forn_org ON questionarios_fornecedor (organization)",
+        "CREATE INDEX idx_quest_forn_codigo ON questionarios_fornecedor (codigo)"
+      ]
+    },
+    {
+      "name": "auto_avaliacoes_fornecedor",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "numero_registro",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fornecedor_cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "razao_social",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nome_fantasia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_avaliacao",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "codigo_doc",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_elaboracao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_edicao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "revisao_doc",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dados_cadastrais",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_fornecedor",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "respostas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_c",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_nc",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_na",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nota_final",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avaliacao_final",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["APROVADO", "REPROVADO", "PENDENTE"]
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinaturas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_assinatura",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "acao_corretiva_vinculada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_auto_aval_org ON auto_avaliacoes_fornecedor (organization)",
+        "CREATE INDEX idx_auto_aval_num ON auto_avaliacoes_fornecedor (numero_registro)",
+        "CREATE INDEX idx_auto_aval_cnpj ON auto_avaliacoes_fornecedor (fornecedor_cnpj)",
+        "CREATE INDEX idx_auto_aval_status ON auto_avaliacoes_fornecedor (avaliacao_final)"
       ]
     }
   ]

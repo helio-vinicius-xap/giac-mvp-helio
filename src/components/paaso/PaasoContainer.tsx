@@ -6,10 +6,13 @@ import {
   RotateCcw,
   AlertOctagon,
   BarChart3,
+  Globe2,
+  RefreshCw,
+  ExternalLink,
+  Layers,
+  ClipboardCheck,
   Sparkles,
   Trash2,
-  RefreshCw,
-  Building,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -31,7 +34,7 @@ import { NaoConformidadesView } from './NaoConformidadesView'
 import { PainelIndicadoresView } from './PainelIndicadoresView'
 import { FornecedoresValidadosView } from './FornecedoresValidadosView'
 import { AdaptaSnapshotView } from './AdaptaSnapshotView'
-import { Globe2, Layers } from 'lucide-react'
+import { AuditoriaAutoAvaliacaoView } from './AuditoriaAutoAvaliacaoView'
 import type {
   SipeagroItem,
   FornecedorItem,
@@ -185,11 +188,8 @@ export function PaasoContainer() {
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#2D6A4F] text-white tracking-wide uppercase">
-              PAASO • Iteração 1
+              PAC-01_R0001 - QUALIFICAÇÃO DE FORNECEDORES
             </span>
-            <h1 className="text-base sm:text-xl font-bold font-['Sora'] text-[#1B4332]">
-              Núcleo de Qualificação de Fornecedores & SIPEAGRO
-            </h1>
           </div>
           <p className="text-xs text-stone-600 mt-1">
             Módulo oficial para homologação de fornecedores de alimentação animal com cruzamento
@@ -245,6 +245,14 @@ export function PaasoContainer() {
           >
             <BarChart3 className="h-3.5 w-3.5" />
             Painel de Indicadores
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="auditoria"
+            className="text-xs data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white font-semibold py-2 px-3 gap-1.5 rounded-lg transition"
+          >
+            <ClipboardCheck className="h-3.5 w-3.5 text-[#D9A404]" />
+            Auditoria (POP 01-AC01)
           </TabsTrigger>
 
           <TabsTrigger
@@ -314,6 +322,18 @@ export function PaasoContainer() {
             ncs={ncs}
             validados={validados}
             onAbrirRevalidacao={handleAbrirQualificacaoFornecedor}
+          />
+        </TabsContent>
+
+        {/* Nova Aba: Auditoria (POP 01-AC01 Formulário de Auto Avaliação do Fornecedor) */}
+        <TabsContent value="auditoria" className="m-0 focus-visible:outline-none">
+          <AuditoriaAutoAvaliacaoView
+            estabelecimentosSipeagro={estabelecimentos}
+            fornecedores={fornecedores}
+            onDataChanged={carregarDados}
+            onAbrirNaoConformidade={(_cnpj, _desc) => {
+              setActiveTab('ncs')
+            }}
           />
         </TabsContent>
 
