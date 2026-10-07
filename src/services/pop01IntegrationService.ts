@@ -110,6 +110,47 @@ export async function salvarFornecedorNoAnexoII(
   })
 }
 
+// Sincroniza fornecedor homologado no formulário de Auto Avaliação (POP 01-AC01) para a lista de qualificados
+export async function sincronizarAutoAvaliacaoNoAnexoII(
+  procedureId: string,
+  autoAval: {
+    id: string
+    numero_registro: string
+    fornecedor_cnpj: string
+    razao_social: string
+    data_avaliacao: string
+    nota_final: number
+    avaliacao_final: 'APROVADO' | 'REPROVADO' | 'PENDENTE'
+    status_assinatura?: string
+  },
+  responsavelNome: string,
+): Promise<void> {
+  const isAprovado = autoAval.avaliacao_final === 'APROVADO'
+  const validade2Anos = new Date(
+    new Date(autoAval.data_avaliacao || Date.now()).setFullYear(
+      new Date(autoAval.data_avaliacao || Date.now()).getFullYear() + 2,
+    ),
+  )
+    .toISOString()
+    .split('T')[0]
+
+  await salvarFornecedorNoAnexoII(
+    procedureId,
+    {
+      razao_social: autoAval.razao_social,
+      cnpj: autoAval.fornecedor_cnpj,
+      produtos_fornecidos: `Qualificado via Auto Avaliação ${autoAval.numero_registro} (Nota ${autoAval.nota_final}%)`,
+      data_qualificacao: autoAval.data_avaliacao,
+      data_validade: validade2Anos,
+      status: isAprovado ? 'Ativo' : 'Desqualificado',
+      motivo_desqualificacao: isAprovado
+        ? undefined
+        : `Reprovado na Auto Avaliação POP 01-AC01 (${autoAval.numero_registro})`,
+    },
+    responsavelNome,
+  )
+}
+
 // Conta quantas NCs um fornecedor teve nos últimos 12 meses (para Seção 8 do Anexo VII e Alertas)
 export async function countNcsFornecedor12Meses(razaoSocial: string): Promise<number> {
   if (!razaoSocial) return 0

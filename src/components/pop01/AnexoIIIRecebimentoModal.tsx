@@ -136,6 +136,14 @@ export function AnexoIIIRecebimentoModal({
   const handleSelectFornecedor = (razao: string) => {
     const f = fornecedoresQualificados.find((x) => x.razao_social === razao)
     if (f) {
+      // Bloqueio regulatório se o fornecedor estiver Desqualificado ou Suspenso
+      if (f.status === 'Desqualificado' || f.status === 'Suspenso') {
+        toast({
+          title: 'Fornecedor não homologado / reprovado',
+          description: `O fornecedor "${f.razao_social}" está ${f.status} na Auto Avaliação / Qualificação. O recebimento é bloqueado conforme a IN 04/2007.`,
+          variant: 'destructive',
+        })
+      }
       setForm((prev) => ({
         ...prev,
         fornecedor_id: f.id,
@@ -163,7 +171,25 @@ export function AnexoIIIRecebimentoModal({
     if (!form.fornecedor_razao_social) {
       toast({
         title: 'Fornecedor qualificado é obrigatório',
-        description: 'Selecione um fornecedor da lista de qualificação (Anexo II).',
+        description:
+          'Selecione um fornecedor qualificado na Auto Avaliação (POP 01-AC01) / Lista Homologada (Anexo II).',
+        variant: 'destructive',
+      })
+      return false
+    }
+
+    // Validação estrita de vinculação à auto avaliação / homologação vigente
+    const fornSelecionado = fornecedoresQualificados.find(
+      (x) => x.razao_social === form.fornecedor_razao_social || x.cnpj === form.fornecedor_cnpj,
+    )
+    if (
+      fornSelecionado &&
+      (fornSelecionado.status === 'Desqualificado' || fornSelecionado.status === 'Suspenso')
+    ) {
+      toast({
+        title: 'Fornecedor reprovado ou desqualificado',
+        description:
+          'Exigência regulatória MAPA (POP 01): Não é permitido receber matérias-primas de fornecedores sem Auto Avaliação homologada e vigente.',
         variant: 'destructive',
       })
       return false
@@ -365,25 +391,29 @@ export function AnexoIIIRecebimentoModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">
-                  Fornecedor Qualificado (Anexo II) <span className="text-red-500">*</span>
+                  Fornecedor Qualificado na Auto Avaliação (POP 01-AC01){' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Select value={form.fornecedor_razao_social} onValueChange={handleSelectFornecedor}>
                   <SelectTrigger className="h-8 text-xs mt-1 bg-white">
-                    <SelectValue placeholder="Selecione um fornecedor qualificado..." />
+                    <SelectValue placeholder="Selecione um fornecedor com Auto Avaliação homologada..." />
                   </SelectTrigger>
                   <SelectContent>
                     {fornecedoresAtivos.map((f) => (
                       <SelectItem key={f.id || f.cnpj} value={f.razao_social}>
-                        {f.razao_social} ({f.cnpj})
+                        {f.razao_social} ({f.cnpj}) • Homologado
                       </SelectItem>
                     ))}
                     {fornecedoresAtivos.length === 0 && (
                       <SelectItem value="none" disabled>
-                        Nenhum fornecedor ativo. Cadastre no Anexo I.
+                        Nenhum fornecedor homologado. Cadastre no POP 01-AC01.
                       </SelectItem>
                     )}
                   </SelectContent>
                 </Select>
+                <span className="text-[10px] text-stone-500 mt-0.5 block">
+                  Exige homologação prévia no formulário de Auto Avaliação (POP 01-AC01).
+                </span>
               </div>
 
               <div>

@@ -9,7 +9,7 @@ routerAdd(
       const authRecord = e.get('authRecord')
       const userRole = authRecord ? authRecord.getString('role') : ''
 
-      const targetType = body.tipo_alvo // 'procedure' ou 'record'
+      const targetType = body.tipo_alvo // 'procedure', 'record' ou 'auto_avaliacao'
       const targetId = body.id_alvo
       const papel = body.papel // 'RT', 'RQ', 'RE', 'operador'
       const metodo = body.metodo // 'pfx' ou 'gov_br'
@@ -187,8 +187,124 @@ routerAdd(
           status_assinatura: novoStatus,
           assinaturas_registro: assinaturas,
         })
+      } else if (targetType === 'auto_avaliacao') {
+        const autoAval = $app.findRecordById('auto_avaliacoes_fornecedor', targetId)
+        let assinaturas = autoAval.get('assinaturas') || {}
+        if (typeof assinaturas === 'string') {
+          try {
+            assinaturas = JSON.parse(assinaturas)
+          } catch (_) {
+            assinaturas = {}
+          }
+        }
+        if (typeof assinaturas !== 'object') assinaturas = {}
+
+        // Hierarquia GIAC para Auto Avaliação (POP 01-AC01):
+        // Assinatura 1 = RT ou RE (RE substitui o RT)
+        // Assinatura 2 = RQ (verificação da qualidade)
+        // Operadores/setor assinam preenchimento / execução
+        if (papel === 'RT' || papel === 'RE') {
+          assinaturas.aprovacao = {
+            nome: responsavelNome,
+            funcao:
+              papel === 'RE' ? 'Responsável pelo Estabelecimento (RE)' : 'Responsável Técnico (RT)',
+            papel: papel,
+            usuario_id: authRecord ? authRecord.id : '',
+            user_role: userRole,
+            data_assinatura: carimboData,
+            metodo: metodo,
+            imagem_url: imagemUrl,
+            hash_documento: hashDoc,
+          }
+        } else if (papel === 'RQ') {
+          assinaturas.verificacao_rq = {
+            nome: responsavelNome,
+            funcao: 'Responsável pela Qualidade (RQ)',
+            papel: papel,
+            usuario_id: authRecord ? authRecord.id : '',
+            user_role: userRole,
+            data_assinatura: carimboData,
+            metodo: metodo,
+            imagem_url: imagemUrl,
+            hash_documento: hashDoc,
+          }
+        } else {
+          // Preenchimento / execução
+          assinaturas.preenchimento = {
+            nome: responsavelNome,
+            funcao: observacao || 'Execução do Preenchimento',
+            papel: papel,
+            usuario_id: authRecord ? authRecord.id : '',
+            user_role: userRole,
+            data_assinatura: carimboData,
+            metodo: metodo,
+            imagem_url: imagemUrl,
+            hash_documento: hashDoc,
+          }
+        }
+
+        autoAval.set('assinaturas', assinaturas)
+
+        const hasAssinatura1 = Boolean(assinaturas.aprovacao)
+        const hasAssinatura2 = Boolean(assinaturas.verificacao_rq)
+
+        let statusAssinatura = 'Pendente Assinatura'
+        if (hasAssinatura1 && hasAssinatura2) {
+          statusAssinatura = 'Homologado (RT/RE + RQ)'
+        } else if (hasAssinatura1) {
+          statusAssinatura = 'Pendente Assinatura RQ'
+        } else if (hasAssinatura2) {
+          statusAssinatura = 'Pendente Assinatura RT/RE'
+        } else if (assinaturas.preenchimento) {
+          statusAssinatura = 'Preenchido (Aguardando RT/RE + RQ)'
+        }
+
+        autoAval.set('status_assinatura', statusAssinatura)
+        $app.save(autoAval)
+
+        // Gravar no audit_logs
+        try {
+          const auditLogCol = $app.findCollectionByNameOrId('audit_logs')
+          const logRecord = new Record(auditLogCol)
+          if (authRecord) {
+            logRecord.set('user', authRecord.id)
+            logRecord.set('user_email', authRecord.getString('email'))
+            logRecord.set('user_name', responsavelNome || authRecord.getString('name'))
+            logRecord.set('user_role', userRole)
+          }
+          logRecord.set('action', 'SIGNATURE_APPLIED')
+          logRecord.set('target', 'auto_avaliacoes_fornecedor')
+          logRecord.set('target_id', targetId)
+          logRecord.set(
+            'details',
+            JSON.stringify({
+              target_type: 'auto_avaliacao',
+              target_id: targetId,
+              numero_registro: autoAval.getString('numero_registro'),
+              fornecedor_cnpj: autoAval.getString('fornecedor_cnpj'),
+              razao_social: autoAval.getString('razao_social'),
+              papel: papel,
+              metodo: metodo,
+              status_assinatura: statusAssinatura,
+              responsavel_nome: responsavelNome,
+              timestamp: carimboData,
+            }),
+          )
+          const org = autoAval.getString('organization')
+          if (org) logRecord.set('organization', org)
+          $app.save(logRecord)
+        } catch (_) {}
+
+        return e.json(200, {
+          success: true,
+          message: `Assinatura de ${papel} registrada com sucesso na auto avaliação`,
+          status_assinatura: statusAssinatura,
+          assinaturas: assinaturas,
+        })
       } else {
-        return e.json(400, { error: 'tipo_alvo inválido. Utilize "procedure" ou "record"' })
+        return e.json(400, {
+          error: 'tipo_alvo inválido. Utilize "procedure", "record" ou "auto_avaliacao"',
+        })
       }
     } catch (err) {
       return e.json(500, { error: 'Erro ao registrar assinatura: ' + err.message })

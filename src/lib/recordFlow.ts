@@ -65,8 +65,48 @@ export const POP_FLOW_DEFINITIONS: Record<string, PopFlowDefinition> = {
     popCodigo: 'POP-01',
     titulo: 'Qualificação de Fornecedores e Controle de Matérias-Primas',
     descricao:
-      'Cadeia de rastreabilidade obrigatória: Qualificação → Recebimento → Amostragem → Laudo Laboratorial → Destinação/Ação Corretiva em caso de reprovação.',
+      'Cadeia de rastreabilidade obrigatória: Auto Avaliação (POP 01-AC01) → Recebimento (FR 08) → Coleta de Amostra (FR 17 / Anexo IV) → Laudo Laboratorial (FR 19 / Anexo V) → Destinação (FR 18) / Ação Corretiva (FR 01) quando reprovado.',
     passos: {
+      // 0. Auto Avaliação do Fornecedor (POP 01-AC01) - PRIMEIRO ELO OBRIGATÓRIO DA CADEIA
+      'POP 01-AC01': {
+        codigo: 'POP 01-AC01',
+        nome: 'Auto Avaliação do Fornecedor (POP 01-AC01)',
+        descricao:
+          'Primeiro registro obrigatório da cadeia: avaliação técnica e documental prévia do fornecedor antes do recebimento',
+        etapaNumero: 0,
+        geraSeguintes: (rec, dados) => {
+          const isAprovado =
+            rec.status === 'Conforme' ||
+            dados?.avaliacao_final === 'APROVADO' ||
+            dados?.status === 'Conforme'
+
+          if (!isAprovado) {
+            return [
+              {
+                codigo: 'ANEXO VII',
+                titulo: 'Abertura de Ação Corretiva de Fornecedor (FR 01 / RNC)',
+                motivo:
+                  'Fornecedor reprovado na Auto Avaliação POP 01-AC01 (<70% ou não conformidade crítica)',
+                obrigatorio: true,
+                prazoHoras: 48,
+              },
+            ]
+          }
+
+          // Se aprovado, encadeia para o Recebimento de Matérias-Primas (FR 08 / Anexo III)
+          return [
+            {
+              codigo: 'ANEXO III',
+              titulo: 'Recebimento de Matérias-Primas (FR 08)',
+              motivo:
+                'Fornecedor qualificado na auto avaliação: liberado para emissão de recebimento de lotes',
+              obrigatorio: true,
+              prazoHoras: 72,
+            },
+          ]
+        },
+      },
+
       // 1. Qualificação (FR 16 / Anexo I)
       'ANEXO I': {
         codigo: 'ANEXO I',
@@ -350,6 +390,21 @@ export interface PendenciaItem {
  *  - selo "Comprovado" vs "Incompleto"
  *  - lista detalhada de elos e o que falta para comprovar a execução
  */
+export interface PopChainEvaluationOptions {
+  autoAvaliacoes?: Array<{
+    id?: string
+    numero_registro: string
+    fornecedor_cnpj: string
+    razao_social: string
+    data_avaliacao: string
+    nota_final: number
+    avaliacao_final: 'APROVADO' | 'REPROVADO' | 'PENDENTE'
+    status_assinatura?: string
+    created?: string
+    respostas?: any[]
+  }>
+}
+
 export function evaluatePopChain(
   procedureId: string,
   procedureCode: string,
@@ -360,6 +415,7 @@ export function evaluatePopChain(
     obrigatorio_na_cadeia?: boolean
     gera_pendencia?: boolean
   }>,
+  options?: PopChainEvaluationOptions,
 ): PopChainStatus {
   const normCode = normalizePopCode(procedureCode)
   const flowDef = POP_FLOW_DEFINITIONS[normCode]
@@ -371,6 +427,113 @@ export function evaluatePopChain(
   const cadeias: RecordChainItem[] = []
 
   const now = new Date().getTime()
+
+  // Se for POP-01, integra as Auto Avaliações como PRIMEIRO ELO OBRIGATÓRIO DA CADEIA
+  const autoAvalList = options?.autoAvaliacoes || []
+  let autoAvalHomologadaVigente = false
+
+  if (normCode === 'POP-01') {
+    for (const aa of autoAvalList) {
+      const createdDate = new Date(aa.created || aa.data_avaliacao).getTime()
+      const diffDays = Math.max(0, Math.floor((now - createdDate) / (1000 * 60 * 60 * 24)))
+      const isAprovado = aa.avaliacao_final === 'APROVADO'
+      const isHomologado =
+        Boolean(aa.status_assinatura?.includes('Homologado')) ||
+        Boolean(aa.status_assinatura?.includes('Assinado'))
+
+      if (isAprovado && isHomologado) {
+        autoAvalHomologadaVigente = true
+      }
+
+      const chainItem: RecordChainItem = {
+        id: aa.id || aa.numero_registro,
+        codigo_formulario: 'POP 01-AC01',
+        titulo: `Auto Avaliação: ${aa.razao_social} (${aa.numero_registro}) - Nota ${aa.nota_final}%`,
+        data: aa.data_avaliacao,
+        status: isAprovado ? 'Conforme' : 'Não Conforme',
+        status_execucao: isHomologado ? 'Preenchido' : 'Pendente',
+        status_assinatura: aa.status_assinatura || 'Pendente Assinatura RT/RE',
+        registro_anterior: undefined,
+        registros_seguintes: isAprovado
+          ? [
+              {
+                codigo_formulario: 'ANEXO III',
+                titulo: 'Recebimento de Matérias-Primas (FR 08)',
+                obrigatorio: true,
+                motivo_exigencia:
+                  'Fornecedor qualificado na auto avaliação: liberado para recebimento',
+              },
+            ]
+          : [
+              {
+                codigo_formulario: 'ANEXO VII',
+                titulo: 'Ação Corretiva de Fornecedor (FR 01 / RNC)',
+                obrigatorio: true,
+                motivo_exigencia: 'Fornecedor reprovado na auto avaliação requer ação corretiva',
+              },
+            ],
+        origem_registro: 'sistema_automatico',
+        lote: aa.fornecedor_cnpj,
+        responsavel: aa.status_assinatura || 'Equipe da Qualidade',
+        diasAberto: diffDays,
+        dados_formulario: aa,
+      }
+
+      cadeias.push(chainItem)
+
+      // Se a auto avaliação estiver pendente de homologação técnica (RT/RE + RQ)
+      if (!isHomologado) {
+        pendenciasAbertas.push({
+          id: `pend-autoaval-${aa.id || aa.numero_registro}`,
+          registroId: aa.id || aa.numero_registro,
+          codigoFormulario: 'POP 01-AC01',
+          titulo: `Homologação da Auto Avaliação ${aa.numero_registro} (${aa.razao_social})`,
+          motivo:
+            'A auto avaliação do fornecedor requer assinatura e homologação formal da autoridade técnica (RT ou RE + RQ)',
+          prazoEstimadoHoras: 48,
+          diasAberto: diffDays,
+          origem: 'sistema',
+          lote: aa.fornecedor_cnpj,
+          procedureId,
+        })
+      }
+
+      // Se a auto avaliação foi REPROVADA e não há Ação Corretiva vinculada
+      if (!isAprovado) {
+        pendenciasAbertas.push({
+          id: `pend-autoaval-reprov-${aa.id || aa.numero_registro}`,
+          registroId: aa.id || aa.numero_registro,
+          codigoFormulario: 'ANEXO VII',
+          titulo: `Ação Corretiva para ${aa.razao_social} (Reprovado na Auto Avaliação)`,
+          motivo:
+            'Fornecedor reprovado (< 70% ou desvio crítico). Exige abertura obrigatória de RNC/Ação Corretiva no FR 01',
+          prazoEstimadoHoras: 48,
+          diasAberto: diffDays,
+          origem: 'sistema',
+          registroAnterior: aa.numero_registro,
+          lote: aa.fornecedor_cnpj,
+          procedureId,
+        })
+      }
+    }
+
+    // Pendência automática de primeiro elo obrigatório:
+    // Se o POP 01 não possui nenhuma auto avaliação homologada vigente, gera pendência crítica bloqueante
+    if (!autoAvalHomologadaVigente) {
+      pendenciasAbertas.unshift({
+        id: `pend-autoaval-obrigatoria-${procedureId}`,
+        registroId: '',
+        codigoFormulario: 'POP 01-AC01',
+        titulo: 'Homologação Prévia de Fornecedor Obrigatória (POP 01-AC01)',
+        motivo:
+          'Primeiro elo obrigatório da cadeia do Auto Controle 01 pendente: a fábrica deve possuir pelo menos uma Auto Avaliação de Fornecedor (POP 01-AC01) cadastrada e homologada vigente antes do recebimento de matérias-primas.',
+        prazoEstimadoHoras: 24,
+        diasAberto: 0,
+        origem: 'sistema',
+        procedureId,
+      })
+    }
+  }
 
   // Mapeia registros existentes
   for (const r of procRecords) {
@@ -470,9 +633,9 @@ export function evaluatePopChain(
   }
 
   // Regra de Comprovação:
-  // Para estar "Comprovado", deve haver pelo menos 1 registro oficial realizado
+  // Para estar "Comprovado", deve haver pelo menos 1 registro oficial realizado (ou auto avaliação no POP 01)
   // E ZERO pendências abertas na cadeia.
-  const totalRegistros = procRecords.length
+  const totalRegistros = procRecords.length + (normCode === 'POP-01' ? autoAvalList.length : 0)
   const totalPendencias = pendenciasAbertas.length
 
   let isComprovado = false
@@ -480,7 +643,14 @@ export function evaluatePopChain(
 
   if (totalRegistros === 0) {
     isComprovado = false
-    motivoIncompletude = 'Nenhum registro emitido para este procedimento'
+    motivoIncompletude =
+      normCode === 'POP-01'
+        ? 'Nenhuma Auto Avaliação (POP 01-AC01) ou registro emitido para este procedimento'
+        : 'Nenhum registro emitido para este procedimento'
+  } else if (normCode === 'POP-01' && !autoAvalHomologadaVigente) {
+    isComprovado = false
+    motivoIncompletude =
+      'Cadeia incompleta: ausência de Auto Avaliação de Fornecedor (POP 01-AC01) homologada vigente'
   } else if (totalPendencias > 0) {
     isComprovado = false
     motivoIncompletude = `${totalPendencias} registro(s) pendente(s) na cadeia para comprovar execução`
@@ -544,8 +714,9 @@ export async function saveRecordWithChain(options: SaveRecordWithChainOptions): 
     prazoHoras?: number
   }> = []
 
-  if (flowDef && flowDef.passos[options.formularioCodigo]) {
-    const passo = flowDef.passos[options.formularioCodigo]
+  const stepKey = options.formularioCodigo
+  if (flowDef && flowDef.passos[stepKey]) {
+    const passo = flowDef.passos[stepKey]
     proximosExigidos = passo.geraSeguintes(
       {
         status: options.status,
@@ -554,6 +725,23 @@ export async function saveRecordWithChain(options: SaveRecordWithChainOptions): 
       },
       options.dadosFormulario,
     )
+  } else if (
+    flowDef &&
+    (stepKey.includes('POP 01-AC01') ||
+      stepKey.includes('POP-01-AC01') ||
+      stepKey.includes('PAC-01_R'))
+  ) {
+    const passo = flowDef.passos['POP 01-AC01']
+    if (passo) {
+      proximosExigidos = passo.geraSeguintes(
+        {
+          status: options.status,
+          formulario_codigo: options.formularioCodigo,
+          lote: options.lote,
+        },
+        options.dadosFormulario,
+      )
+    }
   }
 
   // Prepara estrutura de encadeamento inicial para o registro pai

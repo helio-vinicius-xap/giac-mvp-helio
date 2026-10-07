@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { getProcedures, createProcedure, getCompany, getRecords } from '@/services/agroService'
+import { getAutoAvaliacoesList } from '@/services/autoAvaliacaoService'
+import type { AutoAvaliacaoFornecedorItem } from '@/types/autoAvaliacaoFornecedor'
 import type {
   Procedure,
   ProcedureCategory,
@@ -56,6 +58,7 @@ export default function Procedures() {
 
   const [procedures, setProcedures] = useState<Procedure[]>([])
   const [allRecords, setAllRecords] = useState<MonitoringRecord[]>([])
+  const [autoAvaliacoes, setAutoAvaliacoes] = useState<AutoAvaliacaoFornecedorItem[]>([])
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState(searchParams.get('busca') || '')
@@ -100,10 +103,11 @@ export default function Procedures() {
 
   const loadData = async () => {
     try {
-      const [data, comp, recs] = await Promise.all([
+      const [data, comp, recs, autoAvals] = await Promise.all([
         getProcedures(),
         getCompany().catch(() => null),
         getRecords().catch(() => []),
+        getAutoAvaliacoesList().catch(() => []),
       ])
       data.sort((a, b) => {
         if (a.codigo === 'POP-01' || a.codigo === 'POP-001') return -1
@@ -112,6 +116,7 @@ export default function Procedures() {
       })
       setProcedures(data)
       setAllRecords(recs)
+      setAutoAvaliacoes(autoAvals)
       setCompany(comp)
 
       // Auto suggest next code
@@ -140,6 +145,10 @@ export default function Procedures() {
   })
 
   useRealtime('records', () => {
+    loadData()
+  })
+
+  useRealtime('auto_avaliacoes_fornecedor', () => {
     loadData()
   })
 
@@ -355,7 +364,10 @@ export default function Procedures() {
                 </tr>
               ) : (
                 filteredProcedures.map((p) => {
-                  const chain = evaluatePopChain(p.id, p.codigo, allRecords)
+                  const isPop01 = p.codigo === 'POP-01' || p.codigo === 'POP-001'
+                  const chain = evaluatePopChain(p.id, p.codigo, allRecords, undefined, {
+                    autoAvaliacoes: isPop01 ? autoAvaliacoes : [],
+                  })
                   const displayLabel = formatProcedureDisplayName(p)
 
                   return (

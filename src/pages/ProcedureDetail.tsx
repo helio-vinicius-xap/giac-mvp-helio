@@ -76,6 +76,9 @@ import { getPopCustomForms, deletePopCustomForm } from '@/services/agroService'
 import type { PopCustomForm } from '@/types/agro'
 import { PopDemandRecordModal } from '@/components/PopDemandRecordModal'
 import { evaluatePopChain } from '@/lib/recordFlow'
+import { getAutoAvaliacoesList } from '@/services/autoAvaliacaoService'
+import type { AutoAvaliacaoFornecedorItem } from '@/types/autoAvaliacaoFornecedor'
+import { AutoAvaliacaoPdfModal } from '@/components/paaso/AutoAvaliacaoPdfModal'
 import {
   formatProcedureCode,
   formatProcedureDisplayName,
@@ -97,6 +100,10 @@ export default function ProcedureDetail() {
 
   const [procedure, setProcedure] = useState<Procedure | null>(null)
   const [records, setRecords] = useState<MonitoringRecord[]>([])
+  const [autoAvaliacoes, setAutoAvaliacoes] = useState<AutoAvaliacaoFornecedorItem[]>([])
+  const [selectedAutoAvalForPdf, setSelectedAutoAvalForPdf] =
+    useState<AutoAvaliacaoFornecedorItem | null>(null)
+  const [openAutoAvalPdfModal, setOpenAutoAvalPdfModal] = useState(false)
   const [company, setCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -167,6 +174,13 @@ export default function ProcedureDetail() {
       const recs = await getRecords(`procedure = '${id}'`, '-data')
       setRecords(recs)
 
+      if (p.codigo === 'POP-01' || p.codigo === 'POP-001') {
+        const avals = await getAutoAvaliacoesList().catch(() => [])
+        setAutoAvaliacoes(avals)
+      } else {
+        setAutoAvaliacoes([])
+      }
+
       const cForms = (await getPopCustomForms(id).catch(() => [])) as PopCustomForm[]
       setCustomForms(cForms)
     } catch (err: any) {
@@ -189,6 +203,14 @@ export default function ProcedureDetail() {
     if (id) {
       getRecords(`procedure = '${id}'`, '-data')
         .then(setRecords)
+        .catch(() => {})
+    }
+  })
+
+  useRealtime('auto_avaliacoes_fornecedor', () => {
+    if (procedure?.codigo === 'POP-01' || procedure?.codigo === 'POP-001') {
+      getAutoAvaliacoesList()
+        .then(setAutoAvaliacoes)
         .catch(() => {})
     }
   })
@@ -730,6 +752,9 @@ export default function ProcedureDetail() {
                 procedure.codigo,
                 records,
                 customForms,
+                {
+                  autoAvaliacoes: isPop01 ? autoAvaliacoes : [],
+                },
               )
               return chainEval.totalPendencias > 0 ? (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500 text-white font-bold">
@@ -833,6 +858,11 @@ export default function ProcedureDetail() {
             procedure={procedure}
             records={records}
             customForms={customForms}
+            autoAvaliacoes={autoAvaliacoes}
+            onOpenAutoAvaliacaoPdf={(item) => {
+              setSelectedAutoAvalForPdf(item)
+              setOpenAutoAvalPdfModal(true)
+            }}
             onOpenRecord={(rec) => {
               if ('id' in rec && rec.id) {
                 const fullRec = records.find((r) => r.id === rec.id)
@@ -1999,6 +2029,17 @@ export default function ProcedureDetail() {
         company={company}
         onSignatureSaved={loadAll}
       />
+
+      {openAutoAvalPdfModal && selectedAutoAvalForPdf && (
+        <AutoAvaliacaoPdfModal
+          open={openAutoAvalPdfModal}
+          onOpenChange={(val) => {
+            setOpenAutoAvalPdfModal(val)
+            if (!val) setSelectedAutoAvalForPdf(null)
+          }}
+          avaliacao={selectedAutoAvalForPdf}
+        />
+      )}
 
       {/* POP DEMAND RECORD MODAL (CRIAÇÃO POR DEMANDA DO CLIENTE) */}
       {procedure && (

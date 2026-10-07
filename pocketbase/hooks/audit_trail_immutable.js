@@ -28,6 +28,8 @@ onRecordCreate(
       'qualificacoes',
       'devolucoes',
       'nao_conformidades_fornecedor',
+      'auto_avaliacoes_fornecedor',
+      'questionarios_fornecedor',
     ]
 
     if (trackedCollections.indexOf(colName) === -1) {
@@ -73,6 +75,8 @@ onRecordCreate(
   'qualificacoes',
   'devolucoes',
   'nao_conformidades_fornecedor',
+  'auto_avaliacoes_fornecedor',
+  'questionarios_fornecedor',
 )
 
 // 2. Hook onRecordUpdate - Bloqueio de adulteração retroativa e Trilha de Alteração
@@ -164,6 +168,8 @@ onRecordUpdate(
   'qualificacoes',
   'devolucoes',
   'nao_conformidades_fornecedor',
+  'auto_avaliacoes_fornecedor',
+  'questionarios_fornecedor',
 )
 
 // 3. Hook onRecordDelete - Bloqueio de exclusão de registros comprovados
@@ -222,4 +228,5 @@ onRecordDelete(
   'audits',
   'non_conformities',
   'pop_custom_forms',
+  'auto_avaliacoes_fornecedor',
 )

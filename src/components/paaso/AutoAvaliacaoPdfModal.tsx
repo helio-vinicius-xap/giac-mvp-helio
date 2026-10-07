@@ -346,8 +346,9 @@ export function AutoAvaliacaoPdfModal({
               </div>
             </div>
 
-            {/* BLOCO DE ASSINATURAS HIERÁRQUICAS */}
-            <div className="border-t-2 border-stone-300 pt-6 mt-8 grid grid-cols-1 sm:grid-cols-2 gap-8 text-center text-xs">
+            {/* BLOCO DE ASSINATURAS HIERÁRQUICAS GIAC: RT/RE (Assinatura 1) + RQ (Assinatura 2) + Setor (Execução) */}
+            <div className="border-t-2 border-stone-300 pt-6 mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center text-xs">
+              {/* 1. Responsável pelo Preenchimento / Execução */}
               <div className="space-y-2">
                 <div className="h-14 border-b border-stone-400 flex flex-col justify-end pb-1">
                   {ass.preenchimento?.assinatura_imagem ? (
@@ -363,20 +364,23 @@ export function AutoAvaliacaoPdfModal({
                   )}
                 </div>
                 <div>
-                  <p className="font-bold uppercase text-stone-800">
-                    Responsável pelo Preenchimento
-                  </p>
+                  <p className="font-bold uppercase text-stone-800">Execução / Preenchimento</p>
                   <p className="text-[11px] text-stone-600">
-                    {ass.preenchimento?.nome
-                      ? `${ass.preenchimento.nome}`
-                      : 'Qualquer usuário autenticado'}
+                    {ass.preenchimento?.nome || 'Operador / Setor Responsável'}
                   </p>
                   <p className="text-[10px] text-stone-500">
                     Função: {ass.preenchimento?.funcao || 'Não especificada'}
                   </p>
+                  {ass.preenchimento?.data_assinatura && (
+                    <p className="text-[9px] text-stone-400 font-mono">
+                      Data:{' '}
+                      {new Date(ass.preenchimento.data_assinatura).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
                 </div>
               </div>
 
+              {/* 2. Assinatura 1 = RT ou RE (RE substitui o RT) */}
               <div className="space-y-2">
                 <div className="h-14 border-b border-stone-400 flex flex-col justify-end pb-1">
                   {ass.aprovacao?.assinatura_imagem ? (
@@ -394,16 +398,56 @@ export function AutoAvaliacaoPdfModal({
                 <div>
                   <p className="font-bold uppercase text-stone-800 flex items-center justify-center gap-1">
                     <ShieldCheck className="h-3.5 w-3.5 text-[#2D6A4F]" />
-                    Responsável pela Aprovação
+                    Assinatura 1: RT ou RE
                   </p>
                   <p className="text-[11px] text-stone-600">
-                    {ass.aprovacao?.nome ? `${ass.aprovacao.nome}` : 'Exige perfil RT ou RE'}
+                    {ass.aprovacao?.nome ? `${ass.aprovacao.nome}` : 'Aprovação RT / RE pendente'}
                   </p>
                   <p className="text-[10px] text-stone-500">
-                    Função:{' '}
-                    {ass.aprovacao?.funcao ||
-                      'Responsável Técnico / Responsável pelo Estabelecimento'}
+                    Função: {ass.aprovacao?.funcao || 'Responsável Técnico (RT / RE)'}
                   </p>
+                  {ass.aprovacao?.data_assinatura && (
+                    <p className="text-[9px] text-stone-400 font-mono">
+                      Data: {new Date(ass.aprovacao.data_assinatura).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Assinatura 2 = RQ (Verificação da Qualidade) */}
+              <div className="space-y-2">
+                <div className="h-14 border-b border-stone-400 flex flex-col justify-end pb-1">
+                  {ass.verificacao_rq?.assinatura_imagem ? (
+                    <img
+                      src={ass.verificacao_rq.assinatura_imagem}
+                      alt="Assinatura"
+                      className="max-h-12 mx-auto object-contain"
+                    />
+                  ) : (
+                    <span className="font-mono text-stone-600 font-semibold text-[11px]">
+                      {ass.verificacao_rq?.nome || '_________________________________'}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-bold uppercase text-stone-800 flex items-center justify-center gap-1">
+                    <ShieldCheck className="h-3.5 w-3.5 text-[#D9A404]" />
+                    Assinatura 2: RQ
+                  </p>
+                  <p className="text-[11px] text-stone-600">
+                    {ass.verificacao_rq?.nome
+                      ? `${ass.verificacao_rq.nome}`
+                      : 'Verificação RQ pendente'}
+                  </p>
+                  <p className="text-[10px] text-stone-500">
+                    Função: {ass.verificacao_rq?.funcao || 'Responsável pela Qualidade (RQ)'}
+                  </p>
+                  {ass.verificacao_rq?.data_assinatura && (
+                    <p className="text-[9px] text-stone-400 font-mono">
+                      Data:{' '}
+                      {new Date(ass.verificacao_rq.data_assinatura).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

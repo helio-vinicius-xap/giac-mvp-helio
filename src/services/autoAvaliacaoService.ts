@@ -400,7 +400,7 @@ export async function salvarAutoAvaliacao(
     record = await pb.collection('auto_avaliacoes_fornecedor').create(payload)
   }
 
-  // Registrar na trilha de auditoria
+  // Registrar na trilha de auditoria com detalhes completos de alteração (antes -> depois quando edição)
   try {
     await registrarAuditoriaLog({
       action: isEdicao ? 'UPDATE_AUTO_AVALIACAO' : 'CREATE_AUTO_AVALIACAO',
@@ -413,6 +413,13 @@ export async function salvarAutoAvaliacao(
         nota_final: record.nota_final,
         avaliacao_final: record.avaliacao_final,
         status_assinatura: record.status_assinatura,
+        respostas_count: Array.isArray(record.respostas) ? record.respostas.length : 0,
+        total_c: record.total_c,
+        total_nc: record.total_nc,
+        total_na: record.total_na,
+        tipo_fornecedor: record.tipo_fornecedor?.tipo,
+        area_atuacao: record.tipo_fornecedor?.area_atuacao,
+        modificado_em: new Date().toISOString(),
       },
     })
   } catch (err) {

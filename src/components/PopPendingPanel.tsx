@@ -34,6 +34,8 @@ interface PopPendingPanelProps {
   onOpenDemandModal: () => void
   onOpenRecordPdf?: (record: MonitoringRecord) => void
   customForms?: any[]
+  autoAvaliacoes?: any[]
+  onOpenAutoAvaliacaoPdf?: (item: any) => void
 }
 
 export function PopPendingPanel({
@@ -43,15 +45,21 @@ export function PopPendingPanel({
   onOpenDemandModal,
   onOpenRecordPdf,
   customForms,
+  autoAvaliacoes = [],
+  onOpenAutoAvaliacaoPdf,
 }: PopPendingPanelProps) {
   const [filterPendingOnly, setFilterPendingOnly] = useState(false)
 
-  // Avalia a integridade da cadeia e pendências
+  // Avalia a integridade da cadeia e pendências com suporte ao primeiro elo obrigatório (Auto Avaliação)
+  const isPop01 = procedure.codigo === 'POP-01' || procedure.codigo === 'POP-001'
   const chainStatus: PopChainStatus = evaluatePopChain(
     procedure.id,
     procedure.codigo,
     records,
     customForms,
+    {
+      autoAvaliacoes: isPop01 ? autoAvaliacoes : [],
+    },
   )
 
   const displayedChain = filterPendingOnly
@@ -75,10 +83,10 @@ export function PopPendingPanel({
               </h2>
             </div>
             <p className="text-xs text-stone-600 mt-1">
-              Mapeamento do encadeamento obrigatório (Recebimento → Amostra → Laudo →
-              Destinação/Ação Corretiva). O Auto Controle só é considerado{' '}
-              <strong className="text-emerald-800">Comprovado</strong> quando todos os elos abertos
-              estão preenchidos.
+              Mapeamento do encadeamento obrigatório (Auto Avaliação POP 01-AC01 → Recebimento FR 08
+              → Amostra FR 17 → Laudo FR 19 → Destinação/Ação Corretiva). O Auto Controle só é
+              considerado <strong className="text-emerald-800">Comprovado</strong> quando todos os
+              elos abertos estão preenchidos.
             </p>
           </div>
 
@@ -446,6 +454,20 @@ export function PopPendingPanel({
                         PDF
                       </Button>
                     )}
+
+                    {onOpenAutoAvaliacaoPdf &&
+                      item.codigo_formulario === 'POP 01-AC01' &&
+                      item.dados_formulario && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onOpenAutoAvaliacaoPdf(item.dados_formulario)}
+                          className="h-8 text-xs border-stone-300 text-stone-700 hover:bg-stone-50 gap-1"
+                        >
+                          <FileText className="h-3.5 w-3.5 text-[#1B4332]" />
+                          PDF Auto Aval.
+                        </Button>
+                      )}
 
                     <Button
                       size="sm"

@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { canSignAsRT, canSignAsRE, canSignAsRQ, canManagePopForms } from '@/lib/permissions'
 import { formatarCNPJ, validarCNPJ } from '@/lib/pop01Validators'
+import { sincronizarAutoAvaliacaoNoAnexoII } from '@/services/pop01IntegrationService'
 import { normalizarCNPJ } from '@/lib/cruzamentoEngine'
 import {
   getQuestionarioAtivo,
@@ -185,15 +186,19 @@ export function AuditoriaAutoAvaliacaoView({
   // Assinaturas
   const [respPreenchimentoNome, setRespPreenchimentoNome] = useState(user?.name || '')
   const [respPreenchimentoFuncao, setRespPreenchimentoFuncao] = useState(
-    user?.cargo || 'Analista de Qualidade',
+    user?.cargo || 'Execução do Preenchimento',
   )
   const [respAprovacaoNome, setRespAprovacaoNome] = useState('')
-  const [respAprovacaoFuncao, setRespAprovacaoFuncao] = useState('Responsável Técnico (RT/RE)')
+  const [respAprovacaoFuncao, setRespAprovacaoFuncao] = useState('Responsável Técnico (RT / CRMV)')
+  const [respRqNome, setRespRqNome] = useState('')
+  const [respRqFuncao, setRespRqFuncao] = useState('Responsável pela Qualidade (RQ)')
 
   const [salvando, setSalvando] = useState(false)
 
-  // Permissões
-  const podeAprovar = canSignAsRT(user?.role) || canSignAsRE(user?.role)
+  // Permissões conforme a hierarquia GIAC
+  const podeAprovarRTouRE = canSignAsRT(user?.role) || canSignAsRE(user?.role)
+  const podeVerificarRQ = canSignAsRQ(user?.role)
+  const podeAprovar = podeAprovarRTouRE
   const podeGerenciarConfig = canManagePopForms(user?.role)
 
   // Carregar questionário e lista de avaliações
@@ -457,6 +462,9 @@ export function AuditoriaAutoAvaliacaoView({
     setSipeagroTiposConfirmados([])
     setObservacoes('')
     setRespAprovacaoNome('')
+    setRespAprovacaoFuncao('Responsável Técnico (RT / CRMV)')
+    setRespRqNome('')
+    setRespRqFuncao('Responsável pela Qualidade (RQ)')
 
     if (questionario?.perguntas) {
       const initial: { [num: number]: { resposta: RespostaConformidade; arquivo?: string } } = {}
@@ -516,9 +524,13 @@ export function AuditoriaAutoAvaliacaoView({
 
     setObservacoes(item.observacoes || '')
     setRespPreenchimentoNome(item.assinaturas?.preenchimento?.nome || user?.name || '')
-    setRespPreenchimentoFuncao(item.assinaturas?.preenchimento?.funcao || user?.cargo || '')
+    setRespPreenchimentoFuncao(
+      item.assinaturas?.preenchimento?.funcao || user?.cargo || 'Execução do Preenchimento',
+    )
     setRespAprovacaoNome(item.assinaturas?.aprovacao?.nome || '')
-    setRespAprovacaoFuncao(item.assinaturas?.aprovacao?.funcao || 'Responsável Técnico')
+    setRespAprovacaoFuncao(item.assinaturas?.aprovacao?.funcao || 'Responsável Técnico (RT / CRMV)')
+    setRespRqNome(item.assinaturas?.verificacao_rq?.nome || '')
+    setRespRqFuncao(item.assinaturas?.verificacao_rq?.funcao || 'Responsável pela Qualidade (RQ)')
 
     // Tentar localizar no SIPEAGRO
     const estab = estabelecimentosSipeagro.find(
@@ -580,22 +592,24 @@ export function AuditoriaAutoAvaliacaoView({
       // Montar assinaturas
       const assinaturasObj: any = {
         preenchimento: {
-          nome: respPreenchimentoNome.trim(),
-          funcao: respPreenchimentoFuncao.trim(),
+          nome: respPreenchimentoNome.trim() || user?.name || 'Operador',
+          funcao: respPreenchimentoFuncao.trim() || 'Execução',
           usuario_id: user?.id,
           user_role: user?.role,
           data_assinatura: new Date().toISOString(),
+          assinatura_imagem: user?.assinatura_imagem,
         },
       }
 
-      let statusAssinatura = 'Pendente Assinatura (RT/RE)'
+      let hasAssinaturaRTRE = false
+      let hasAssinaturaRQ = false
 
       if (respAprovacaoNome.trim()) {
-        if (!podeAprovar) {
+        if (!podeAprovarRTouRE) {
           toast({
             title: 'Assinatura de Aprovação requer RT ou RE',
             description:
-              'A assinatura do Responsável pela Aprovação exige perfil técnico homologado (RT ou RE). O documento será salvo como pendente de aprovação.',
+              'A hierarquia GIAC exige perfil técnico homologado (RT ou RE) para a Assinatura 1 de Aprovação.',
             variant: 'destructive',
           })
         } else {
@@ -605,9 +619,42 @@ export function AuditoriaAutoAvaliacaoView({
             usuario_id: user?.id,
             user_role: user?.role,
             data_assinatura: new Date().toISOString(),
+            assinatura_imagem: user?.assinatura_imagem,
           }
-          statusAssinatura = 'Homologado (RT/RE)'
+          hasAssinaturaRTRE = true
         }
+      }
+
+      if (respRqNome.trim()) {
+        if (!podeVerificarRQ) {
+          toast({
+            title: 'Assinatura de Verificação requer RQ',
+            description:
+              'A hierarquia GIAC exige perfil de Responsável pela Qualidade (RQ) para a Assinatura 2.',
+            variant: 'destructive',
+          })
+        } else {
+          assinaturasObj.verificacao_rq = {
+            nome: respRqNome.trim(),
+            funcao: respRqFuncao.trim(),
+            usuario_id: user?.id,
+            user_role: user?.role,
+            data_assinatura: new Date().toISOString(),
+            assinatura_imagem: user?.assinatura_imagem,
+          }
+          hasAssinaturaRQ = true
+        }
+      }
+
+      let statusAssinatura = 'Pendente Assinatura'
+      if (hasAssinaturaRTRE && hasAssinaturaRQ) {
+        statusAssinatura = 'Homologado (RT/RE + RQ)'
+      } else if (hasAssinaturaRTRE) {
+        statusAssinatura = 'Pendente Assinatura RQ'
+      } else if (hasAssinaturaRQ) {
+        statusAssinatura = 'Pendente Assinatura RT/RE'
+      } else {
+        statusAssinatura = 'Preenchido (Aguardando RT/RE + RQ)'
       }
 
       const payload: Partial<AutoAvaliacaoFornecedorItem> = {
@@ -670,6 +717,26 @@ export function AuditoriaAutoAvaliacaoView({
         uf: estado.trim().toUpperCase(),
         municipio: cidade.trim(),
       })
+
+      // Sincronizar na Lista de Fornecedores Qualificados (Anexo II / FR 14) do POP 01
+      try {
+        await sincronizarAutoAvaliacaoNoAnexoII(
+          '', // procedureId dinâmico resolvido pelo serviço
+          {
+            id: salva.id || '',
+            numero_registro: salva.numero_registro,
+            fornecedor_cnpj: salva.fornecedor_cnpj,
+            razao_social: salva.razao_social,
+            data_avaliacao: salva.data_avaliacao,
+            nota_final: salva.nota_final,
+            avaliacao_final: salva.avaliacao_final,
+            status_assinatura: salva.status_assinatura,
+          },
+          respAprovacaoNome.trim() || user?.name || 'Responsável Técnico',
+        )
+      } catch (errSync) {
+        console.warn('Sincronização com Anexo II informacional:', errSync)
+      }
 
       toast({
         title: `Auto Avaliação ${salva.numero_registro} salva!`,
@@ -1499,23 +1566,26 @@ export function AuditoriaAutoAvaliacaoView({
             />
           </div>
 
-          {/* BLOCO DE ASSINATURAS HIERÁRQUICAS */}
+          {/* BLOCO DE ASSINATURAS HIERÁRQUICAS GIAC: RT/RE (Assinatura 1) + RQ (Assinatura 2) + Setor (Execução) */}
           <div className="border-t border-[#E2DCCF] pt-4 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#1B4332] flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
-              Assinaturas Técnicas de Homologação
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#1B4332] flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-[#D9A404]" />
+                Assinaturas Hierárquicas GIAC (IN 04/2007)
+              </h4>
+              <span className="text-[10px] text-stone-500">
+                Regra: RE substitui RT • Assinatura 1 = RT/RE • Assinatura 2 = RQ • Setor = Execução
+              </span>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Responsável pelo Preenchimento */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 1. Responsável pelo Preenchimento / Execução */}
               <div className="p-4 rounded-xl border border-[#E2DCCF] bg-[#FAF7EF] space-y-2.5">
                 <div>
                   <span className="text-[11px] font-bold text-[#1B4332] uppercase block">
-                    Responsável pelo Preenchimento
+                    Execução / Preenchimento
                   </span>
-                  <span className="text-[10px] text-stone-500">
-                    Qualquer usuário autenticado ou operador de setor
-                  </span>
+                  <span className="text-[10px] text-stone-500">Usuário do setor / operador</span>
                 </div>
                 <div className="space-y-2">
                   <Input
@@ -1535,18 +1605,18 @@ export function AuditoriaAutoAvaliacaoView({
                 </div>
               </div>
 
-              {/* Responsável pela Aprovação */}
+              {/* 2. Assinatura 1 = RT ou RE (RE substitui o RT) */}
               <div className="p-4 rounded-xl border border-[#E2DCCF] bg-[#FAF7EF] space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold text-[#1B4332] uppercase block">
-                      Responsável pela Aprovação
+                      Assinatura 1: RT ou RE
                     </span>
                     <span className="text-[10px] text-stone-500">
-                      Exige perfil técnico homologado (RT ou RE)
+                      Aprovação Técnica (RE substitui RT)
                     </span>
                   </div>
-                  {podeAprovar ? (
+                  {podeAprovarRTouRE ? (
                     <Badge className="bg-emerald-700 text-white text-[9px]">Habilitado</Badge>
                   ) : (
                     <Badge variant="outline" className="border-amber-400 text-amber-700 text-[9px]">
@@ -1559,18 +1629,57 @@ export function AuditoriaAutoAvaliacaoView({
                     value={respAprovacaoNome}
                     onChange={(e) => setRespAprovacaoNome(e.target.value)}
                     placeholder={
-                      podeAprovar
+                      podeAprovarRTouRE
                         ? 'Nome do RT ou RE homologador'
-                        : 'Pendente de homologação por RT/RE'
+                        : 'Pendente de assinatura RT/RE'
                     }
-                    disabled={!podeAprovar}
+                    disabled={!podeAprovarRTouRE}
                     className="h-8 text-xs bg-white disabled:opacity-60"
                   />
                   <Input
                     value={respAprovacaoFuncao}
                     onChange={(e) => setRespAprovacaoFuncao(e.target.value)}
                     placeholder="Função: RT (CRMV) ou RE (MAPA)"
-                    disabled={!podeAprovar}
+                    disabled={!podeAprovarRTouRE}
+                    className="h-8 text-xs bg-white disabled:opacity-60"
+                  />
+                </div>
+              </div>
+
+              {/* 3. Assinatura 2 = RQ (Verificação da Qualidade) */}
+              <div className="p-4 rounded-xl border border-[#E2DCCF] bg-[#FAF7EF] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-bold text-[#1B4332] uppercase block">
+                      Assinatura 2: RQ
+                    </span>
+                    <span className="text-[10px] text-stone-500">Verificação da Qualidade</span>
+                  </div>
+                  {podeVerificarRQ ? (
+                    <Badge className="bg-emerald-700 text-white text-[9px]">Habilitado</Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-amber-400 text-amber-700 text-[9px]">
+                      Apenas RQ
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    value={respRqNome}
+                    onChange={(e) => setRespRqNome(e.target.value)}
+                    placeholder={
+                      podeVerificarRQ
+                        ? 'Nome do Responsável pela Qualidade'
+                        : 'Pendente de verificação RQ'
+                    }
+                    disabled={!podeVerificarRQ}
+                    className="h-8 text-xs bg-white disabled:opacity-60"
+                  />
+                  <Input
+                    value={respRqFuncao}
+                    onChange={(e) => setRespRqFuncao(e.target.value)}
+                    placeholder="Função: Responsável pela Qualidade (RQ)"
+                    disabled={!podeVerificarRQ}
                     className="h-8 text-xs bg-white disabled:opacity-60"
                   />
                 </div>
