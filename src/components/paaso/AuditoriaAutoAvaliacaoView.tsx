@@ -741,8 +741,8 @@ export function AuditoriaAutoAvaliacaoView({
                 Formulário de Auto Avaliação do Fornecedor (POP 01-AC01)
               </h2>
               <span className="text-xs text-stone-500">
-                Auditoria estrutural com 4 seções, validação de nota e conformidade com a IN 04/2007
-                MAPA.
+                Cadastro e Auto Avaliação do Fornecedor com 4 seções, validação de nota e
+                conformidade com a IN 04/2007 MAPA.
               </span>
             </div>
           </div>
@@ -1493,7 +1493,7 @@ export function AuditoriaAutoAvaliacaoView({
             <Textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
-              placeholder="Descreva detalhes técnicos, justificativas para respostas NA ou histórico da auditoria..."
+              placeholder="Descreva detalhes técnicos, justificativas para respostas NA ou histórico da avaliação cadastral..."
               rows={3}
               className="text-xs bg-[#FAF7EF]"
             />

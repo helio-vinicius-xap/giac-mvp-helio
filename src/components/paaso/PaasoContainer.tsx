@@ -248,11 +248,11 @@ export function PaasoContainer() {
           </TabsTrigger>
 
           <TabsTrigger
-            value="auditoria"
+            value="cadastro_fornecedor"
             className="text-xs data-[state=active]:bg-[#2D6A4F] data-[state=active]:text-white font-semibold py-2 px-3 gap-1.5 rounded-lg transition"
           >
             <ClipboardCheck className="h-3.5 w-3.5 text-[#D9A404]" />
-            Auditoria (POP 01-AC01)
+            Cadastro de Fornecedor (POP 01-AC01)
           </TabsTrigger>
 
           <TabsTrigger
@@ -325,8 +325,8 @@ export function PaasoContainer() {
           />
         </TabsContent>
 
-        {/* Nova Aba: Auditoria (POP 01-AC01 Formulário de Auto Avaliação do Fornecedor) */}
-        <TabsContent value="auditoria" className="m-0 focus-visible:outline-none">
+        {/* Aba: Cadastro de Fornecedor (POP 01-AC01 Formulário de Auto Avaliação do Fornecedor) */}
+        <TabsContent value="cadastro_fornecedor" className="m-0 focus-visible:outline-none">
           <AuditoriaAutoAvaliacaoView
             estabelecimentosSipeagro={estabelecimentos}
             fornecedores={fornecedores}
