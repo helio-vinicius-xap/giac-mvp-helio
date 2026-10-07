@@ -10,15 +10,25 @@ import {
   Building,
   RefreshCw,
   ExternalLink,
+  Trash2,
+  ShieldAlert,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { formatarCNPJ } from '@/lib/pop01Validators'
 import { parseSipeagroXlsx, fetchSipeagroOnline } from '@/lib/sipeagroParser'
-import { salvarImportacaoSipeagro } from '@/services/paasoService'
+import { salvarImportacaoSipeagro, excluirBaseSipeagroImportada } from '@/services/paasoService'
 import type { SipeagroItem, AuditoriaImportacaoItem } from '@/types/paaso'
 
 interface SipeagroBaseViewProps {
@@ -57,6 +67,11 @@ export function SipeagroBaseView({
     inativados: number
     dataArquivo: string
   } | null>(null)
+
+  // Modal de Exclusão da Base Importada
+  const [modalExcluirAberto, setModalExcluirAberto] = useState(false)
+  const [excluindoBase, setExcluindoBase] = useState(false)
+  const [confirmacaoTexto, setConfirmacaoTexto] = useState('')
 
   // Filtragem local dos estabelecimentos
   const filtrados = estabelecimentos.filter((item) => {
@@ -281,6 +296,23 @@ export function SipeagroBaseView({
                 Exportar JSON
               </Button>
             )}
+
+            {estabelecimentos.some((e) => !e.is_exemplo) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setConfirmacaoTexto('')
+                  setModalExcluirAberto(true)
+                }}
+                disabled={importando || excluindoBase}
+                className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 text-xs h-9 gap-1.5"
+                title="Excluir apenas os registros importados da organização, preservando registros de exemplo"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir base importada
+              </Button>
+            )}
           </div>
         </div>
 
@@ -298,51 +330,81 @@ export function SipeagroBaseView({
           </div>
         )}
 
-        {/* Resumo da Última Importação Realizada */}
-        {resumoUltima && (
-          <div className="p-4 bg-[#FAF7EF] rounded-xl border border-[#E2DCCF] text-xs space-y-2 animate-fade-in">
-            <div className="flex items-center gap-2 text-[#2D6A4F] font-bold">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>Resumo da Importação (Data do arquivo: {resumoUltima.dataArquivo})</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-              <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
-                <span className="text-[10px] text-stone-500 uppercase block font-medium">
-                  Total de Linhas
-                </span>
-                <span className="text-sm font-bold text-stone-800">
-                  {resumoUltima.totalLinhas.toLocaleString('pt-BR')}
-                </span>
+        {/* Resumo da Última Importação Realizada (ou da mais recente do histórico) */}
+        {(resumoUltima || (auditorias.length > 0 && auditorias[0].status === 'SUCESSO')) &&
+          (() => {
+            const dadosResumo = resumoUltima || {
+              totalLinhas: auditorias[0].total_linhas,
+              totalAtivos: auditorias[0].total_ativos,
+              novos: auditorias[0].novos_cnpj,
+              atualizados: Math.max(0, auditorias[0].total_ativos - auditorias[0].novos_cnpj),
+              inativados: auditorias[0].inativados_cnpj?.length || 0,
+              dataArquivo:
+                auditorias[0].arquivo_origem ||
+                new Date(auditorias[0].data_hora).toLocaleDateString('pt-BR'),
+            }
+
+            return (
+              <div className="p-4 bg-[#FAF7EF] rounded-xl border border-[#E2DCCF] text-xs space-y-2 animate-fade-in">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 text-[#2D6A4F] font-bold">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>
+                      {resumoUltima
+                        ? 'Resumo da Importação Recente'
+                        : 'Última Importação Concluída'}{' '}
+                      (Origem/Data: {dadosResumo.dataArquivo})
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-stone-500">
+                    Somente estabelecimentos ATIVOS foram gravados
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+                  <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
+                    <span className="text-[10px] text-stone-500 uppercase block font-medium">
+                      Total de Linhas
+                    </span>
+                    <span className="text-sm font-bold text-stone-800">
+                      {dadosResumo.totalLinhas.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
+                    <span className="text-[10px] text-stone-500 uppercase block font-medium">
+                      Ativos no Arquivo
+                    </span>
+                    <span className="text-sm font-bold text-[#2D6A4F]">
+                      {dadosResumo.totalAtivos.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
+                    <span className="text-[10px] text-stone-500 uppercase block font-medium">
+                      Novos CNPJs
+                    </span>
+                    <span className="text-sm font-bold text-emerald-700">
+                      {dadosResumo.novos.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
+                    <span className="text-[10px] text-stone-500 uppercase block font-medium">
+                      Atualizados
+                    </span>
+                    <span className="text-sm font-bold text-blue-700">
+                      {dadosResumo.atualizados.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
+                    <span className="text-[10px] text-stone-500 uppercase block font-medium">
+                      Inativados
+                    </span>
+                    <span className="text-sm font-bold text-amber-700">
+                      {dadosResumo.inativados.toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
-                <span className="text-[10px] text-stone-500 uppercase block font-medium">
-                  Ativos no Arquivo
-                </span>
-                <span className="text-sm font-bold text-[#2D6A4F]">
-                  {resumoUltima.totalAtivos.toLocaleString('pt-BR')}
-                </span>
-              </div>
-              <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
-                <span className="text-[10px] text-stone-500 uppercase block font-medium">
-                  Novos CNPJs
-                </span>
-                <span className="text-sm font-bold text-emerald-700">{resumoUltima.novos}</span>
-              </div>
-              <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
-                <span className="text-[10px] text-stone-500 uppercase block font-medium">
-                  Atualizados
-                </span>
-                <span className="text-sm font-bold text-blue-700">{resumoUltima.atualizados}</span>
-              </div>
-              <div className="bg-white p-2.5 rounded-lg border border-[#E2DCCF]">
-                <span className="text-[10px] text-stone-500 uppercase block font-medium">
-                  Inativados
-                </span>
-                <span className="text-sm font-bold text-amber-700">{resumoUltima.inativados}</span>
-              </div>
-            </div>
-          </div>
-        )}
+            )
+          })()}
 
         {/* Opção secundária: Link online e orientação */}
         <div className="pt-3 border-t border-[#E2DCCF]/60 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
@@ -538,7 +600,7 @@ export function SipeagroBaseView({
       {auditorias.length > 0 && (
         <div className="bg-white p-6 rounded-2xl border border-[#E2DCCF] shadow-xs space-y-3">
           <h3 className="text-sm font-bold font-['Sora'] text-[#1B4332]">
-            Histórico de Auditoria de Importações SIPEAGRO
+            Histórico de Auditoria de Importações SIPEAGRO ({auditorias.length})
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
@@ -554,7 +616,7 @@ export function SipeagroBaseView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {auditorias.slice(0, 5).map((aud) => (
+                {auditorias.slice(0, 10).map((aud) => (
                   <tr key={aud.id || aud.data_hora} className="hover:bg-stone-50/70">
                     <td className="py-2 px-3 font-medium text-stone-800 whitespace-nowrap">
                       {new Date(aud.data_hora).toLocaleString('pt-BR')}
@@ -590,6 +652,103 @@ export function SipeagroBaseView({
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação: Excluir Base SIPEAGRO Importada */}
+      <Dialog open={modalExcluirAberto} onOpenChange={setModalExcluirAberto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-red-600">
+              <ShieldAlert className="h-5 w-5" />
+              <DialogTitle className="font-['Sora'] text-red-900">
+                Excluir Base SIPEAGRO Importada
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-stone-600 pt-2 space-y-2">
+              <p>
+                Esta ação apagará todos os registros de estabelecimentos SIPEAGRO importados por
+                planilha para sua organização (inclusive importações parciais).
+              </p>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs">
+                <strong>O que é preservado:</strong>
+                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                  <li>Os dados de exemplo/demonstração prévios não serão afetados.</li>
+                  <li>
+                    O histórico de fornecedores locais e formulários preenchidos permanece intacto.
+                  </li>
+                </ul>
+              </div>
+              <p className="font-medium text-stone-800">
+                Para confirmar a exclusão, digite <strong>EXCLUIR</strong> abaixo:
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            <Input
+              value={confirmacaoTexto}
+              onChange={(e) => setConfirmacaoTexto(e.target.value)}
+              placeholder="Digite EXCLUIR para confirmar"
+              className="text-xs font-mono uppercase"
+              disabled={excluindoBase}
+              autoFocus
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setModalExcluirAberto(false)}
+              disabled={excluindoBase}
+              className="text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={async () => {
+                if (confirmacaoTexto.trim().toUpperCase() !== 'EXCLUIR') return
+                setExcluindoBase(true)
+                try {
+                  const res = await excluirBaseSipeagroImportada(
+                    'Exclusão manual da base SIPEAGRO importada realizada pelo usuário na tela do PAASO',
+                  )
+                  toast({
+                    title: 'Base importada excluída',
+                    description:
+                      res.message || `${res.deletedCount} registros removidos com sucesso.`,
+                  })
+                  setModalExcluirAberto(false)
+                  onDataChanged()
+                } catch (err: any) {
+                  toast({
+                    title: 'Falha ao excluir base',
+                    description: err.message,
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setExcluindoBase(false)
+                }
+              }}
+              disabled={confirmacaoTexto.trim().toUpperCase() !== 'EXCLUIR' || excluindoBase}
+              className="text-xs font-semibold gap-1.5"
+            >
+              {excluindoBase ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Confirmar Exclusão
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

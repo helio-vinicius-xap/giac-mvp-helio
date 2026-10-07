@@ -197,7 +197,7 @@ export function PaasoContainer() {
           </p>
         </div>
 
-        {/* Botões de Apoio & Seed */}
+        {/* Botões de Apoio */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
@@ -211,14 +211,15 @@ export function PaasoContainer() {
             Atualizar
           </Button>
 
+          {/* Ação de destaque solicitada: Cadastro de Fornecedor (POP 01-AC01) */}
           <Button
             size="sm"
-            onClick={handleCarregarExemplo}
-            disabled={executandoSeed || loading}
-            className="bg-[#D9A404] hover:bg-[#b88a03] text-stone-900 font-bold text-xs h-9 gap-1.5 shadow-sm"
+            onClick={() => setActiveTab('cadastro_fornecedor')}
+            className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-bold text-xs h-9 gap-1.5 shadow-sm"
+            title="Ir para o Formulário de Auto Avaliação do Fornecedor (POP 01-AC01)"
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            {executandoSeed ? seedTexto || 'Carregando...' : 'Carregar dados de exemplo'}
+            <ClipboardCheck className="h-3.5 w-3.5 text-[#D9A404]" />
+            Cadastro de Fornecedor (POP 01-AC01)
           </Button>
 
           {temExemplos && (
@@ -228,6 +229,7 @@ export function PaasoContainer() {
               onClick={handleLimparExemplo}
               disabled={executandoSeed || loading}
               className="border-red-200 text-red-700 hover:bg-red-50 text-xs h-9 gap-1.5"
+              title="Remover dados de exemplo existentes"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Limpar exemplos

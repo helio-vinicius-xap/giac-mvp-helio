@@ -103,28 +103,33 @@ export async function salvarImportacaoSipeagro(
   const orgId = getCurrentOrganizationId()
   onProgress?.(10, 'Carregando estabelecimentos pré-existentes na organização...')
 
+  // Carregar lista de CNPJs existentes na organização
   const existentes = await getSipeagroList()
   const existentesPorCnpj = new Map<string, SipeagroItem>()
   for (const ex of existentes) {
     existentesPorCnpj.set(normalizarCNPJ(ex.cnpj), ex)
   }
 
-  const novosCnpjs = new Set<string>()
   const importadosCnpjs = new Set<string>()
+  for (const item of estabelecimentos) {
+    importadosCnpjs.add(normalizarCNPJ(item.cnpj))
+  }
 
-  let atualizadosCount = 0
-  let novosCount = 0
+  let totalNovos = 0
+  let totalAtualizados = 0
 
   const total = estabelecimentos.length
-  const batchStep = Math.max(1, Math.floor(total / 20))
+  // Enviar em blocos de até 150 registros para manter o payload leve e dentro do limite de transação SQLite
+  const CHUNK_SIZE = 150
+  const totalChunks = Math.ceil(total / CHUNK_SIZE)
 
-  for (let i = 0; i < total; i++) {
-    const item = estabelecimentos[i]
-    const cnpj = normalizarCNPJ(item.cnpj)
-    importadosCnpjs.add(cnpj)
+  onProgress?.(15, `Iniciando gravação contínua em ${totalChunks} lotes (0/${total})...`)
 
-    const payload: any = {
-      cnpj,
+  for (let c = 0; c < totalChunks; c++) {
+    const start = c * CHUNK_SIZE
+    const end = Math.min(start + CHUNK_SIZE, total)
+    const chunk = estabelecimentos.slice(start, end).map((item) => ({
+      cnpj: normalizarCNPJ(item.cnpj),
       razao_social: item.razao_social,
       registro_sipeagro: item.registro_sipeagro || '',
       situacao: 'ATIVO',
@@ -133,36 +138,83 @@ export async function salvarImportacaoSipeagro(
       categoria: item.categoria || undefined,
       tipos_produto: item.tipos_produto || [],
       arquivo_origem: arquivoOrigem || item.arquivo_origem || '',
-      importado_em: new Date().toISOString(),
-      is_exemplo: false,
-    }
-    if (orgId) payload.organization = orgId
+    }))
 
-    const existente = existentesPorCnpj.get(cnpj)
-    try {
-      if (existente && existente.id) {
-        await pb.collection('sipeagro').update(existente.id, payload)
-        atualizadosCount++
-      } else {
-        await pb.collection('sipeagro').create(payload)
-        novosCount++
-        novosCnpjs.add(cnpj)
+    let chunkSucesso = false
+    let tentativas = 0
+
+    while (!chunkSucesso && tentativas < 3) {
+      try {
+        tentativas++
+        const res = await pb.send('/backend/v1/sipeagro/batch-chunk', {
+          method: 'POST',
+          body: {
+            organization_id: orgId,
+            items: chunk,
+          },
+        })
+
+        totalNovos += Number(res.inserted || 0)
+        totalAtualizados += Number(res.updated || 0)
+        chunkSucesso = true
+      } catch (chunkErr: any) {
+        console.warn(`Tentativa ${tentativas} falhou no lote ${c + 1}/${totalChunks}:`, chunkErr)
+        if (tentativas >= 3) {
+          // Fallback gracioso: tentar registro a registro dentro deste chunk com delay
+          console.warn('Executando fallback individual para o lote...')
+          for (const item of chunk) {
+            try {
+              const ex = existentesPorCnpj.get(item.cnpj)
+              if (ex && ex.id) {
+                await pb.collection('sipeagro').update(ex.id, {
+                  ...item,
+                  organization: orgId,
+                  situacao: 'ATIVO',
+                  is_exemplo: false,
+                  importado_em: new Date().toISOString(),
+                })
+                totalAtualizados++
+              } else {
+                await pb.collection('sipeagro').create({
+                  ...item,
+                  organization: orgId,
+                  situacao: 'ATIVO',
+                  is_exemplo: false,
+                  importado_em: new Date().toISOString(),
+                })
+                totalNovos++
+              }
+              await new Promise((r) => setTimeout(r, 20))
+            } catch (singleErr) {
+              console.error(`Erro ao salvar CNPJ individual ${item.cnpj}:`, singleErr)
+            }
+          }
+          chunkSucesso = true
+        } else {
+          // Aguarda 400ms antes da próxima tentativa
+          await new Promise((r) => setTimeout(r, 400))
+        }
       }
-    } catch (err) {
-      console.error(`Erro ao salvar CNPJ ${cnpj} no SIPEAGRO:`, err)
     }
 
-    if (i % batchStep === 0) {
-      const perc = 10 + Math.round((i / total) * 75)
-      onProgress?.(perc, `Gravando registro ${i + 1} de ${total}...`)
+    // Atualiza progresso contínuo (de 15% até 88%)
+    const pct = Math.round(15 + ((c + 1) / totalChunks) * 73)
+    onProgress?.(
+      pct,
+      `Gravando lote ${c + 1} de ${totalChunks} (${end.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')} registros gravados)...`,
+    )
+
+    // Pequena pausa para liberar o loop de eventos e a UI
+    if (c < totalChunks - 1) {
+      await new Promise((r) => setTimeout(r, 40))
     }
   }
 
-  // Identificar inativados: estavam na importação anterior e sumiram/não constam como ATIVO
-  onProgress?.(90, 'Identificando CNPJs inativados...')
+  // Identificar CNPJs inativados
+  onProgress?.(90, 'Identificando CNPJs inativados na base...')
   const inativadosCnpjs: string[] = []
   for (const [cnpj, ex] of existentesPorCnpj.entries()) {
-    if (!importadosCnpjs.has(cnpj) && ex.id) {
+    if (!ex.is_exemplo && !importadosCnpjs.has(cnpj) && ex.id) {
       inativadosCnpjs.push(cnpj)
       try {
         await pb.collection('sipeagro').update(ex.id, { situacao: 'INATIVO' })
@@ -172,32 +224,100 @@ export async function salvarImportacaoSipeagro(
     }
   }
 
-  // Gravar registro na auditoria_importacoes
-  onProgress?.(95, 'Registrando auditoria da importação...')
+  // Gravar registro na auditoria_importacoes e na trilha geral através do backend hook
+  onProgress?.(95, 'Registrando auditoria oficial da importação...')
   let auditId: string | undefined
   try {
-    const auditRecord = await pb.collection('auditoria_importacoes').create({
-      organization: orgId,
-      data_hora: new Date().toISOString(),
-      arquivo_origem: arquivoOrigem || 'Arquivo MAPA',
-      total_linhas: totalLinhasPlanilha,
-      total_ativos: totalAtivosPlanilha,
-      novos_cnpj: novosCount,
-      inativados_cnpj: inativadosCnpjs,
-      status: 'SUCESSO',
-      mensagem: `Importação realizada com sucesso. ${novosCount} novos, ${atualizadosCount} atualizados, ${inativadosCnpjs.length} inativados.`,
+    const finishRes = await pb.send('/backend/v1/sipeagro/finish-import', {
+      method: 'POST',
+      body: {
+        organization_id: orgId,
+        arquivo_origem: arquivoOrigem || 'Planilha Oficial MAPA',
+        total_linhas: totalLinhasPlanilha,
+        total_ativos: totalAtivosPlanilha,
+        novos_count: totalNovos,
+        atualizados_count: totalAtualizados,
+        inativados_count: inativadosCnpjs.length,
+        inativados_cnpjs: inativadosCnpjs.slice(0, 500),
+        status: 'SUCESSO',
+        mensagem: `Importação concluída com sucesso. ${totalLinhasPlanilha.toLocaleString('pt-BR')} linhas processadas, ${totalNovos} novos CNPJs, ${totalAtualizados} atualizados, ${inativadosCnpjs.length} inativados.`,
+      },
     })
-    auditId = auditRecord.id
+    auditId = finishRes?.auditoria_id
   } catch (err) {
-    console.warn('Erro ao salvar auditoria de importação:', err)
+    console.warn('Erro ao chamar /finish-import no backend, usando gravação direta:', err)
+    try {
+      const directAudit = await pb.collection('auditoria_importacoes').create({
+        organization: orgId,
+        data_hora: new Date().toISOString(),
+        arquivo_origem: arquivoOrigem || 'Arquivo MAPA',
+        total_linhas: totalLinhasPlanilha,
+        total_ativos: totalAtivosPlanilha,
+        novos_cnpj: totalNovos,
+        inativados_cnpj: inativadosCnpjs.slice(0, 500),
+        status: 'SUCESSO',
+        mensagem: `Importação realizada com sucesso. ${totalNovos} novos, ${totalAtualizados} atualizados, ${inativadosCnpjs.length} inativados.`,
+      })
+      auditId = directAudit.id
+    } catch (directErr) {
+      console.warn('Erro ao salvar auditoria de importação direta:', directErr)
+    }
   }
 
   onProgress?.(100, 'Processamento da base oficial concluído!')
   return {
-    totalNovos: novosCount,
-    totalAtualizados: atualizadosCount,
+    totalNovos,
+    totalAtualizados,
     totalInativados: inativadosCnpjs.length,
     auditoriaId: auditId,
+  }
+}
+
+/**
+ * Exclui todos os registros SIPEAGRO importados da organização
+ * preservando os registros de exemplo (is_exemplo = true)
+ */
+export async function excluirBaseSipeagroImportada(
+  motivo?: string,
+): Promise<{ success: boolean; deletedCount: number; message: string }> {
+  const orgId = getCurrentOrganizationId()
+
+  try {
+    const res = await pb.send('/backend/v1/sipeagro/purge-imported', {
+      method: 'POST',
+      body: {
+        organization_id: orgId,
+        motivo: motivo || 'Exclusão da base importada solicitada pelo usuário na aba SIPEAGRO',
+      },
+    })
+
+    return {
+      success: true,
+      deletedCount: Number(res.deleted_count || 0),
+      message: res.message || 'Base importada excluída com sucesso.',
+    }
+  } catch (err: any) {
+    console.warn('Falha no endpoint /purge-imported, executando fallback direto via SDK:', err)
+    // Fallback: buscar e deletar registros não-exemplo da organização
+    const importados = await pb.collection('sipeagro').getFullList<any>({
+      filter: 'is_exemplo != true',
+    })
+
+    let deleted = 0
+    for (const item of importados) {
+      try {
+        await pb.collection('sipeagro').delete(item.id)
+        deleted++
+      } catch (delErr) {
+        console.warn(`Erro ao excluir registro SIPEAGRO ${item.id}:`, delErr)
+      }
+    }
+
+    return {
+      success: true,
+      deletedCount: deleted,
+      message: `Base importada excluída (${deleted} registros removidos).`,
+    }
   }
 }
 
