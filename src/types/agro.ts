@@ -220,6 +220,7 @@ export type RecordOrigem =
   | 'sistema_automatico'
   | 'demanda_cliente_formulario'
   | 'demanda_cliente_anexo'
+  | 'banco_limpeza_pop02'
 export type RecordStatusExecucao = 'Pendente' | 'Em Preenchimento' | 'Preenchido' | 'Cancelado'
 
 export interface RecordChainLink {

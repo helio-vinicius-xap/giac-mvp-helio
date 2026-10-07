@@ -36,7 +36,7 @@ export interface LimpezaEquipamento {
   nome: string
   setor_nome?: string
   tipo_superficie?: string
-  metodos_limpeza_permitidos?: string[]
+  metodos_limpeza_permitidos?: string[] | string
   cuidados_especiais?: string
   is_ativo?: boolean
   created?: string

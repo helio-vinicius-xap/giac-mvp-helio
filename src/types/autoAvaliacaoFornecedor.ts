@@ -2,10 +2,12 @@
 // Conforme especificação estrutural da planilha POP 01_AC_001_Avaliacao_fornecedor_v2026
 
 export interface PerguntaQuestionarioItem {
+  id?: string | number
   numero: number
   texto: string
   grupo?: 'geral' | 'fabricante_mp' | 'todos'
   obrigatorio?: boolean
+  peso?: number
 }
 
 export interface QuestionarioFornecedorDef {
@@ -14,6 +16,7 @@ export interface QuestionarioFornecedorDef {
   codigo: string // ex: POP 01-AC01
   titulo: string
   versao_revisao?: string
+  versao?: string
   arquivo_origem?: string
   perguntas: PerguntaQuestionarioItem[]
   limiar_aprovacao?: number // padrão 70 (%)
@@ -103,6 +106,8 @@ export interface AssinaturasAutoAvaliacao {
   aprovacao?: AssinaturaAutoAvaliacaoItem
   verificacao_rq?: AssinaturaAutoAvaliacaoItem
 }
+
+export type AutoAvaliacaoFornecedorCompleta = AutoAvaliacaoFornecedorItem
 
 export interface AutoAvaliacaoFornecedorItem {
   id?: string

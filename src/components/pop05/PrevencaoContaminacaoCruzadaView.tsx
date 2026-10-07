@@ -95,10 +95,10 @@ export function PrevencaoContaminacaoCruzadaView() {
   const [salvando, setSalvando] = useState(false)
 
   // Permissões
-  const isRT = canSignAsRT(user)
-  const isRE = canSignAsRE(user)
-  const isRQ = canSignAsRQ(user)
-  const podeEditar = canEditPopStructure(user)
+  const isRT = canSignAsRT(user?.role)
+  const isRE = canSignAsRE(user?.role)
+  const isRQ = canSignAsRQ(user?.role)
+  const podeEditar = canEditPopStructure(user?.role)
 
   const loadData = async () => {
     setLoading(true)

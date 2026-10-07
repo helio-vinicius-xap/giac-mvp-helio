@@ -181,33 +181,29 @@ export async function submeterPreCadastroPortal(options: {
     const questionarioDef = await getQuestionarioAtivo()
     const numeroAutoAval = `EXT-${convite.token.slice(-6).toUpperCase()}`
 
-    const autoAvalPayload: Partial<AutoAvaliacaoFornecedorCompleta> = {
+    const autoAvalPayload: any = {
       organization: convite.organization,
-      numero_auto_avaliacao: numeroAutoAval,
-      status: 'Pendente',
+      numero_registro: numeroAutoAval,
+      avaliacao_final: 'PENDENTE',
       data_avaliacao: new Date().toISOString().split('T')[0],
       fornecedor_cnpj: options.dados_pre_cadastro.cnpj,
-      fornecedor_razao_social: options.dados_pre_cadastro.razao_social,
-      questionario_versao: questionarioDef.versao,
-      questionario_id: questionarioDef.id,
+      razao_social: options.dados_pre_cadastro.razao_social,
+      nome_fantasia: options.dados_pre_cadastro.nome_fantasia || '',
+      revisao_doc: questionarioDef?.versao_revisao || questionarioDef?.versao || 'Rev.01',
       dados_cadastrais: {
         razao_social: options.dados_pre_cadastro.razao_social,
         nome_fantasia: options.dados_pre_cadastro.nome_fantasia || '',
         cnpj: options.dados_pre_cadastro.cnpj,
-        contato_responsavel: options.dados_pre_cadastro.contato_nome,
+        contato: options.dados_pre_cadastro.contato_nome,
         telefone: options.dados_pre_cadastro.telefone,
         email: options.dados_pre_cadastro.email,
-        cargo_responsavel: options.dados_pre_cadastro.cargo_contato || 'Representante Legal',
-        origem_dados: 'declarado_pelo_fornecedor',
-        validado_sipeagro: false,
-      } as any,
-      tipo_fornecedor: options.respostas_questionario.secao2_tipo_fornecedor,
-      programas_qualidade: options.respostas_questionario.secao3_programas_qualidade,
-      respostas_questionario: options.respostas_questionario.secao4_respostas,
+        data_avaliacao: new Date().toISOString().split('T')[0],
+      },
+      tipo_fornecedor: options.respostas_questionario.secao2_tipo_fornecedor || {},
+      respostas: options.respostas_questionario.secao4_respostas || [],
       nota_final: options.respostas_questionario.nota_final_calculada || 0,
-      resultado_qualificacao: 'Em Análise',
-      status_assinaturas: 'Pendente de Validação Interna',
-      observacoes_gerais: `Pré-cadastro online submetido pelo fornecedor via Portal do Fornecedor GIAC (Token: ${convite.token}). Aguardando validação de RT/RE e RQ.`,
+      status_assinatura: 'Pendente de Validação Interna',
+      observacoes: `Pré-cadastro online submetido pelo fornecedor via Portal do Fornecedor GIAC (Token: ${convite.token}). Aguardando validação de RT/RE e RQ.`,
     }
 
     const createdAutoAval = await pb

@@ -81,9 +81,12 @@ export default function PortalFornecedorPublicoPage() {
 
         // Inicializar respostas padrão (Conforme)
         const initialResps: Record<string, string> = {}
-        q.perguntas.forEach((p) => {
-          initialResps[p.id] = 'C'
-        })
+        if (q && Array.isArray(q.perguntas)) {
+          q.perguntas.forEach((p) => {
+            const key = String(p.id ?? p.numero)
+            initialResps[key] = 'C'
+          })
+        }
         setRespostas(initialResps)
       } catch (e) {
         console.error(e)
@@ -136,11 +139,13 @@ export default function PortalFornecedorPublicoPage() {
       // Calcular nota preliminar das respostas da seção 4
       let pontos = 0
       let totalMax = 0
-      questionario?.perguntas.forEach((p) => {
-        totalMax += p.peso
-        const r = respostas[p.id]
-        if (r === 'C') pontos += p.peso
-        else if (r === 'PARC') pontos += p.peso * 0.5
+      questionario?.perguntas?.forEach((p) => {
+        const peso = p.peso ?? 1
+        const key = String(p.id ?? p.numero)
+        totalMax += peso
+        const r = respostas[key]
+        if (r === 'C') pontos += peso
+        else if (r === 'PARC') pontos += peso * 0.5
       })
       const notaFinal = totalMax > 0 ? Math.round((pontos / totalMax) * 100) : 100
 
@@ -530,56 +535,60 @@ export default function PortalFornecedorPublicoPage() {
             </div>
 
             <div className="space-y-3 divide-y divide-stone-100">
-              {questionario?.perguntas.map((p, idx) => (
-                <div key={p.id} className="pt-3 space-y-2">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-xs font-bold text-stone-900">
-                      Item {idx + 1}: {p.texto}
-                    </span>
-                    <Badge className="bg-stone-100 text-stone-600 text-[9px] shrink-0">
-                      Peso {p.peso}
-                    </Badge>
+              {questionario?.perguntas.map((p, idx) => {
+                const itemKey = String(p.id ?? p.numero)
+                const peso = p.peso ?? 1
+                return (
+                  <div key={itemKey} className="pt-3 space-y-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs font-bold text-stone-900">
+                        Item {idx + 1}: {p.texto}
+                      </span>
+                      <Badge className="bg-stone-100 text-stone-600 text-[9px] shrink-0">
+                        Peso {peso}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`resp_${itemKey}`}
+                          value="C"
+                          checked={respostas[itemKey] === 'C'}
+                          onChange={() => setRespostas({ ...respostas, [itemKey]: 'C' })}
+                          className="text-emerald-600"
+                        />
+                        <span className="text-emerald-800 font-semibold">Conforme (Sim)</span>
+                      </label>
+
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`resp_${itemKey}`}
+                          value="PARC"
+                          checked={respostas[itemKey] === 'PARC'}
+                          onChange={() => setRespostas({ ...respostas, [itemKey]: 'PARC' })}
+                          className="text-amber-600"
+                        />
+                        <span className="text-amber-800 font-semibold">Parcial</span>
+                      </label>
+
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`resp_${itemKey}`}
+                          value="NC"
+                          checked={respostas[itemKey] === 'NC'}
+                          onChange={() => setRespostas({ ...respostas, [itemKey]: 'NC' })}
+                          className="text-red-600"
+                        />
+                        <span className="text-red-800 font-semibold">Não Conforme (Não)</span>
+                      </label>
+                    </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`resp_${p.id}`}
-                        value="C"
-                        checked={respostas[p.id] === 'C'}
-                        onChange={() => setRespostas({ ...respostas, [p.id]: 'C' })}
-                        className="text-emerald-600"
-                      />
-                      <span className="text-emerald-800 font-semibold">Conforme (Sim)</span>
-                    </label>
-
-                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`resp_${p.id}`}
-                        value="PARC"
-                        checked={respostas[p.id] === 'PARC'}
-                        onChange={() => setRespostas({ ...respostas, [p.id]: 'PARC' })}
-                        className="text-amber-600"
-                      />
-                      <span className="text-amber-800 font-semibold">Parcial</span>
-                    </label>
-
-                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`resp_${p.id}`}
-                        value="NC"
-                        checked={respostas[p.id] === 'NC'}
-                        onChange={() => setRespostas({ ...respostas, [p.id]: 'NC' })}
-                        className="text-red-600"
-                      />
-                      <span className="text-red-800 font-semibold">Não Conforme (Não)</span>
-                    </label>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

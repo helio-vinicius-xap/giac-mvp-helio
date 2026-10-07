@@ -1016,7 +1016,16 @@ export function Pop02LimpezaBancoView({
                 size="sm"
                 onClick={async () => {
                   if (!formEquip.tag || !formEquip.nome) return
-                  await createLimpezaEquipamento(formEquip)
+                  const metodosArray = formEquip.metodos_limpeza_permitidos
+                    ? formEquip.metodos_limpeza_permitidos
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                    : []
+                  await createLimpezaEquipamento({
+                    ...formEquip,
+                    metodos_limpeza_permitidos: metodosArray,
+                  })
                   setOpenModalEquipamento(false)
                   loadBanco()
                 }}
