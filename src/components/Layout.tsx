@@ -110,9 +110,9 @@ export default function Layout() {
 
   const navItems = [
     { label: 'Visão Geral', path: '/', icon: LayoutDashboard },
-    { label: 'Auto Controles', path: '/procedimentos', icon: FileCheck2 },
-    { label: 'Programação', path: '/programacao', icon: Calendar },
     { label: 'Qualificação de Fornecedores', path: '/paaso', icon: ShieldCheck },
+    { label: 'Auto Controles (Pops)', path: '/procedimentos', icon: FileCheck2 },
+    { label: 'Rotinas e Programação', path: '/programacao', icon: Calendar },
     { label: 'Registros', path: '/registros', icon: ClipboardList },
     { label: 'Auditorias', path: '/auditorias', icon: ShieldCheck },
     { label: 'Rastreabilidade', path: '/rastreabilidade', icon: GitFork },
