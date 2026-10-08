@@ -390,9 +390,10 @@ export const getProcedureRevisions = async (procedureId: string) => {
 }
 
 // Formulários Customizados por POP
-export const getPopCustomForms = async (procedureId: string) => {
+export const getPopCustomForms = async (procedureId?: string) => {
+  const filter = procedureId ? `procedure = "${procedureId}"` : undefined
   return await pb.collection('pop_custom_forms').getFullList({
-    filter: `procedure = "${procedureId}"`,
+    filter,
     sort: 'codigo',
   })
 }
@@ -407,4 +408,27 @@ export const updatePopCustomForm = async (id: string, payload: any) => {
 
 export const deletePopCustomForm = async (id: string) => {
   return await pb.collection('pop_custom_forms').delete(id)
+}
+
+// Master / Super Admin: Zeragem Total de Dados de Teste
+export const executeMasterResetAllData = async (confirmacao: string) => {
+  return await pb.send('/backend/v1/master/reset-all-data', {
+    method: 'POST',
+    body: { confirmacao },
+  })
+}
+
+// Master / Super Admin: Criar Organização de Teste com Hierarquia Completa
+export interface CreateTestOrgPayload {
+  nome_fantasia?: string
+  segmento?: string
+  cnpj?: string
+  senha_padrao?: string
+}
+
+export const createTestOrganizationHierarchy = async (payload: CreateTestOrgPayload) => {
+  return await pb.send('/backend/v1/master/create-test-organization', {
+    method: 'POST',
+    body: payload,
+  })
 }

@@ -68,6 +68,8 @@ import {
   createBillingInvoice,
   getAuditLogs,
   purgeOrganizationData,
+  executeMasterResetAllData,
+  createTestOrganizationHierarchy,
 } from '@/services/agroService'
 import { useToast } from '@/hooks/use-toast'
 
@@ -114,6 +116,20 @@ export default function SuperAdmin() {
   const [purgeCnpjInput, setPurgeCnpjInput] = useState('')
   const [purgeKeywordInput, setPurgeKeywordInput] = useState('')
   const [purging, setPurging] = useState(false)
+
+  // Frente 2: Zeragem Total de Dados de Teste (Master Reset All)
+  const [openMasterResetModal, setOpenMasterResetModal] = useState(false)
+  const [masterResetConfirmInput, setMasterResetConfirmInput] = useState('')
+  const [masterResetting, setMasterResetting] = useState(false)
+  const [masterResetResult, setMasterResetResult] = useState<any>(null)
+
+  // Frente 2: Criar Empresa de Teste com Hierarquia (RE > RT > RQ > Produção > Limpeza)
+  const [openCreateTestOrgModal, setOpenCreateTestOrgModal] = useState(false)
+  const [testOrgNome, setTestOrgNome] = useState('NutriAgro Rações Teste')
+  const [testOrgSegmento, setTestOrgSegmento] = useState('Fábrica de Rações e Premix')
+  const [testOrgSenha, setTestOrgSenha] = useState('Teste@123')
+  const [creatingTestOrg, setCreatingTestOrg] = useState(false)
+  const [createdTestOrgResult, setCreatedTestOrgResult] = useState<any>(null)
 
   // Forms
   const [orgForm, setOrgForm] = useState({
@@ -339,7 +355,36 @@ export default function SuperAdmin() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setMasterResetConfirmInput('')
+                setMasterResetResult(null)
+                setOpenMasterResetModal(true)
+              }}
+              className="bg-red-950/80 hover:bg-red-900 text-red-200 border-red-500/80 font-bold text-xs gap-1.5 h-10 shadow-md"
+              title="Zerar todos os dados fictícios e de teste de todas as organizações"
+            >
+              <RotateCcw className="h-4 w-4 text-red-400" />
+              Zerar Dados Fictícios (Master)
+            </Button>
+
+            <Button
+              onClick={() => {
+                setTestOrgNome(`NutriAgro Teste ${Math.floor(100 + Math.random() * 900)}`)
+                setTestOrgSegmento('Fábrica de Rações e Suplementos Minerais')
+                setTestOrgSenha('Teste@123')
+                setCreatedTestOrgResult(null)
+                setOpenCreateTestOrgModal(true)
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-md h-10"
+              title="Criar empresa limpa com usuários por hierarquia (RE, RT, RQ, Produção, Limpeza)"
+            >
+              <Users className="h-4 w-4" />
+              Criar Empresa de Teste (Hierarquia)
+            </Button>
+
             <Button
               onClick={() => setOpenNewOrgModal(true)}
               className="bg-[#D9A404] hover:bg-[#B8860B] text-[#1B4332] font-bold text-xs gap-1.5 shadow-md h-10"
@@ -1551,6 +1596,370 @@ export default function SuperAdmin() {
                 </div>
               )}
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL FRENTE 2: ZERAGEM TOTAL MASTER DE DADOS DE TESTE E FICTÍCIOS */}
+      <Dialog open={openMasterResetModal} onOpenChange={setOpenMasterResetModal}>
+        <DialogContent className="sm:max-w-[560px] bg-white border-red-300">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+              <DialogTitle className="text-base font-bold text-red-900 font-['Sora']">
+                Zeragem Total de Dados Fictícios & Teste (Ação Master)
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-stone-700 pt-1">
+              Esta ação limpa{' '}
+              <strong>
+                todos os registros transacionais, não conformidades, treinamentos e dados fictícios
+              </strong>{' '}
+              de todas as empresas para iniciar o sistema em estado limpo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-1">
+            {/* Bloco de Garantias e Preservações */}
+            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-950 space-y-1">
+              <strong className="block text-emerald-900 font-bold flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-700" />
+                O que fica PRESERVADO 100% INTACTO:
+              </strong>
+              <ul className="list-disc pl-5 text-[11px] text-emerald-900 space-y-0.5 mt-1">
+                <li>Cadastros das Organizações e Contas de Usuários</li>
+                <li>Estrutura completa dos 9 Auto Controles (POP-001 a POP-009)</li>
+                <li>Fichas e definições de formulários dos Auto Controles</li>
+                <li>Editor Normativo e revisões oficiais com histórico</li>
+                <li>
+                  <strong>Base SIPEAGRO REAL do MAPA (5.721 estabelecimentos)</strong> — intocada
+                </li>
+                <li>
+                  <strong>Trilha de Auditoria (audit_logs)</strong> — IMUTÁVEL (registra a zeragem)
+                </li>
+                <li>Planos de assinatura e faturas cadastradas</li>
+              </ul>
+            </div>
+
+            {/* Bloco do que será removido */}
+            <div className="p-3 bg-red-50 rounded-lg border border-red-200 text-xs text-red-950 space-y-1">
+              <strong className="block text-red-900 font-bold flex items-center gap-1.5">
+                <Trash2 className="h-4 w-4 text-red-700" />
+                O que será ZERADO em todas as organizações:
+              </strong>
+              <p className="text-[11px] text-red-900">
+                Registros de monitoramento preenchidos, dados de exemplo do PAASO (fornecedores de
+                exemplo e avaliações de teste), estabelecimentos SIPEAGRO fictícios (marcados como{' '}
+                <code>is_exemplo</code>), não conformidades de teste, treinamentos e simulações de
+                auditoria.
+              </p>
+            </div>
+
+            {/* Resumo pós-zeragem se concluído */}
+            {masterResetResult && (
+              <div className="p-3 bg-stone-100 rounded-lg border border-stone-300 text-xs space-y-2">
+                <span className="font-bold text-[#1B4332] block">
+                  ✓ Resumo dos Registros Removidos:
+                </span>
+                <div className="grid grid-cols-2 gap-1.5 text-[11px] text-stone-700">
+                  {Object.entries(masterResetResult.deleted_counts || {}).map(([key, count]) => (
+                    <div
+                      key={key}
+                      className="flex justify-between border-b border-stone-200 pb-0.5"
+                    >
+                      <span className="font-mono">{key}:</span>
+                      <strong>{String(count)}</strong>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-right font-bold text-xs text-[#1B4332] pt-1">
+                  Total de itens excluídos: {masterResetResult.total_deleted}
+                </p>
+              </div>
+            )}
+
+            {!masterResetResult && (
+              <div className="space-y-2 p-3 bg-amber-50 rounded-lg border border-amber-300">
+                <Label className="text-xs font-bold text-amber-950">
+                  Confirmação Obrigatória Master:
+                </Label>
+                <p className="text-[11px] text-amber-900">
+                  Para autorizar a zeragem de todas as organizações, digite exatamente{' '}
+                  <strong className="font-mono text-red-700">MASTER-ZERAR</strong> em letras
+                  maiúsculas:
+                </p>
+                <Input
+                  value={masterResetConfirmInput}
+                  onChange={(e) => setMasterResetConfirmInput(e.target.value)}
+                  placeholder="MASTER-ZERAR"
+                  className="h-9 text-xs font-mono font-bold tracking-widest uppercase border-amber-400 bg-white"
+                />
+              </div>
+            )}
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setOpenMasterResetModal(false)}
+                className="text-xs"
+              >
+                {masterResetResult ? 'Concluído / Fechar' : 'Cancelar'}
+              </Button>
+
+              {!masterResetResult && (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={
+                    masterResetting ||
+                    masterResetConfirmInput.trim().toUpperCase() !== 'MASTER-ZERAR'
+                  }
+                  onClick={async () => {
+                    setMasterResetting(true)
+                    try {
+                      const res: any = await executeMasterResetAllData(
+                        masterResetConfirmInput.trim().toUpperCase(),
+                      )
+                      setMasterResetResult(res)
+                      toast({
+                        title: 'Zeragem Total Realizada com Sucesso',
+                        description: `Foram excluídos ${res.total_deleted || 0} registros fictícios/de teste. A base agora está limpa.`,
+                      })
+                      loadAllData()
+                    } catch (err: any) {
+                      toast({
+                        title: 'Erro na Zeragem Master',
+                        description: err.message || 'Falha ao executar zeragem.',
+                        variant: 'destructive',
+                      })
+                    } finally {
+                      setMasterResetting(false)
+                    }
+                  }}
+                  className="bg-red-700 hover:bg-red-800 text-white text-xs font-bold gap-1.5"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  {masterResetting ? 'Zerando base...' : 'Confirmar e Zerar Dados Fictícios'}
+                </Button>
+              )}
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL FRENTE 2: CRIAR EMPRESA DE TESTE COM HIERARQUIA COMPLETA DE USUÁRIOS */}
+      <Dialog open={openCreateTestOrgModal} onOpenChange={setOpenCreateTestOrgModal}>
+        <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto bg-white border-[#E2DCCF]">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-[#2D6A4F]">
+              <Users className="h-5 w-5 text-[#D9A404]" />
+              <DialogTitle className="text-base font-bold text-[#1B4332] font-['Sora']">
+                Criar Empresa de Teste com Hierarquia de Usuários
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-stone-600">
+              Gera uma organização limpa já com os 9 Auto Controles e contas de acesso criadas para
+              cada nível hierárquico (<strong>RE &gt; RT &gt; RQ &gt; Operadores de Setor</strong>).
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Resultado de Criação (Credenciais na tela para copiar) */}
+          {createdTestOrgResult ? (
+            <div className="space-y-4 pt-2">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                <span className="text-xs font-bold text-emerald-900 block flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  Empresa criada: {createdTestOrgResult.organization?.nome_fantasia}
+                </span>
+                <p className="text-[11px] text-emerald-800 mt-0.5 font-mono">
+                  CNPJ: {createdTestOrgResult.organization?.cnpj} • Status: Ativa
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#1B4332] uppercase tracking-wide">
+                    Usuários e Senhas Gerados (Hierarquia Aplicada):
+                  </span>
+                  <Badge className="bg-[#D9A404] text-[#1B4332] text-[10px] font-mono">
+                    Senha Padrão: {createdTestOrgResult.senha_padrao}
+                  </Badge>
+                </div>
+
+                <div className="divide-y divide-stone-200 border border-stone-200 rounded-xl overflow-hidden text-xs bg-stone-50">
+                  {(createdTestOrgResult.usuarios || []).map((u: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-white space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            className={
+                              u.role === 're'
+                                ? 'bg-purple-700 text-white text-[10px]'
+                                : u.role === 'rt'
+                                  ? 'bg-[#1B4332] text-white text-[10px]'
+                                  : u.role === 'rq'
+                                    ? 'bg-[#2D6A4F] text-white text-[10px]'
+                                    : 'bg-stone-200 text-stone-800 text-[10px]'
+                            }
+                          >
+                            {u.role.toUpperCase()}
+                          </Badge>
+                          <strong className="text-stone-900">{u.nome}</strong>
+                        </div>
+                        <span className="text-[11px] text-stone-500">{u.cargo}</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                        <div className="font-mono text-stone-700 bg-stone-50 px-2 py-1 rounded border border-stone-200 select-all">
+                          Login: <strong>{u.email}</strong>
+                        </div>
+                        <div className="font-mono text-stone-700 bg-stone-50 px-2 py-1 rounded border border-stone-200 select-all">
+                          Senha: <strong>{u.senha}</strong>
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] text-stone-500 italic pt-0.5">
+                        Permissões: {u.papel_label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setOpenCreateTestOrgModal(false)
+                    setCreatedTestOrgResult(null)
+                  }}
+                  className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white text-xs font-semibold"
+                >
+                  Concluir e Voltar ao Painel
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                setCreatingTestOrg(true)
+                try {
+                  const res: any = await createTestOrganizationHierarchy({
+                    nome_fantasia: testOrgNome,
+                    segmento: testOrgSegmento,
+                    senha_padrao: testOrgSenha,
+                  })
+                  setCreatedTestOrgResult(res)
+                  toast({
+                    title: 'Empresa de Teste Criada',
+                    description: `Empresa ${testOrgNome} criada com 5 usuários na hierarquia.`,
+                  })
+                  loadAllData()
+                } catch (err: any) {
+                  toast({
+                    title: 'Erro ao criar empresa de teste',
+                    description: err.message || 'Falha na criação da organização.',
+                    variant: 'destructive',
+                  })
+                } finally {
+                  setCreatingTestOrg(false)
+                }
+              }}
+              className="space-y-3.5 pt-2 text-xs"
+            >
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Nome da Empresa de Teste *
+                </Label>
+                <Input
+                  value={testOrgNome}
+                  onChange={(e) => setTestOrgNome(e.target.value)}
+                  placeholder="Ex: AgroNutri Testes LTDA"
+                  required
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Segmento Agroindustrial
+                </Label>
+                <Input
+                  value={testOrgSegmento}
+                  onChange={(e) => setTestOrgSegmento(e.target.value)}
+                  placeholder="Ex: Fábrica de Rações e Premix"
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Senha Padrão para os Usuários de Teste *
+                </Label>
+                <Input
+                  value={testOrgSenha}
+                  onChange={(e) => setTestOrgSenha(e.target.value)}
+                  placeholder="Teste@123"
+                  required
+                  className="h-9 text-xs font-mono font-bold"
+                />
+                <span className="text-[10px] text-stone-500">
+                  Esta senha será atribuída para todos os 5 usuários criados (RE, RT, RQ, Produção,
+                  Limpeza).
+                </span>
+              </div>
+
+              <div className="p-3 bg-stone-50 rounded-lg border border-stone-200 space-y-1.5 text-[11px] text-stone-700">
+                <span className="font-bold text-[#1B4332] block">
+                  Usuários criados automaticamente na hierarquia:
+                </span>
+                <div className="space-y-1 text-stone-600">
+                  <div>
+                    • <strong>RE (Responsável Empresa):</strong> Edita estrutura, assina documentos
+                    e gerencia clientes.
+                  </div>
+                  <div>
+                    • <strong>RT (Responsável Técnico):</strong> Assina todos os procedimentos e
+                    registros operacionais.
+                  </div>
+                  <div>
+                    • <strong>RQ (Responsável Qualidade):</strong> Verifica e valida as
+                    conformidades do dia a dia.
+                  </div>
+                  <div>
+                    • <strong>Operador Produção:</strong> Executa e preenche registros de rotina.
+                  </div>
+                  <div>
+                    • <strong>Operador Limpeza:</strong> Preenche checklists de sanitização e BPF.
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOpenCreateTestOrgModal(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={creatingTestOrg}
+                  size="sm"
+                  className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold text-xs gap-1.5"
+                >
+                  <Users className="h-4 w-4" />
+                  {creatingTestOrg
+                    ? 'Gerando empresa e usuários...'
+                    : 'Gerar Empresa & Acessos de Teste'}
+                </Button>
+              </DialogFooter>
+            </form>
           )}
         </DialogContent>
       </Dialog>

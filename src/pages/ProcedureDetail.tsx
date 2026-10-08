@@ -92,6 +92,7 @@ import {
   type POPFormDefinition,
   type POPExecutionCustomFields,
 } from '@/types/popFormsCatalog'
+import { AutoControleTreeView } from '@/components/AutoControleTreeView'
 import { FileCheck, ShieldAlert, KeyRound, Award, Sliders, Layers, Trash2 } from 'lucide-react'
 
 export default function ProcedureDetail() {
@@ -138,6 +139,7 @@ export default function ProcedureDetail() {
   // Campos editáveis de Execução (Como deve ser executado)
   const [camposExec, setCamposExec] = useState<POPExecutionCustomFields>({})
   const [savingExec, setSavingExec] = useState(false)
+  const [isEditingExecution, setIsEditingExecution] = useState(false)
 
   // Modal: Novo Registro com suporte ao formulário do Item 07
   const [openNewRecordModal, setOpenNewRecordModal] = useState(false)
@@ -751,7 +753,16 @@ export default function ProcedureDetail() {
       {/* 2. Tabs */}
       <Tabs defaultValue={isPop01 ? 'pop_cadeia_pendencias' : 'visao_geral'} className="w-full">
         <TabsList className="bg-[#FAF7EF] p-1 border border-[#E2DCCF] rounded-xl no-print flex-wrap">
-          {/* Nova Aba de Cadeia de Registros & Painel de Pendências */}
+          {/* Nova Aba de Árvore Raiz do Auto Controle & Registros Anexados */}
+          <TabsTrigger
+            value="arvore_raiz"
+            className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg gap-1.5"
+          >
+            <Layers className="h-3.5 w-3.5 text-[#D9A404]" />
+            <span className="font-bold">Árvore Raiz & Registros</span>
+          </TabsTrigger>
+
+          {/* Aba de Cadeia de Registros & Painel de Pendências */}
           <TabsTrigger
             value="pop_cadeia_pendencias"
             className="text-xs font-semibold data-[state=active]:bg-[#1B4332] data-[state=active]:text-white rounded-lg gap-1.5"
@@ -878,6 +889,41 @@ export default function ProcedureDetail() {
             Anexos e Evidências
           </TabsTrigger>
         </TabsList>
+
+        {/* ABA: ÁRVORE RAIZ DO AUTO CONTROLE & REGISTROS ANEXADOS */}
+        <TabsContent value="arvore_raiz" className="space-y-6 mt-4">
+          <AutoControleTreeView
+            procedures={[procedure]}
+            allRecords={records}
+            allCustomForms={customForms}
+            autoAvaliacoes={autoAvaliacoes}
+            company={company}
+            onOpenFillCustomForm={(_p, form) => {
+              setSelectedCustomFormToFill(form)
+              setOpenFillCustomRecordModal(true)
+            }}
+            onOpenFillSystemForm={(_p, formDef) => {
+              setSelectedFormDef(formDef)
+              setDynamicFormValues({})
+              setOpenNewRecordModal(true)
+            }}
+            onOpenEditCustomForm={(_p, form) => {
+              setFormToEdit(form)
+              setOpenBuilderModal(true)
+            }}
+            onOpenEditExecucao={() => {
+              setIsEditingExecution(true)
+            }}
+            onOpenRecordPdf={(rec) => {
+              setSelectedRecordForPdf(rec)
+              setOpenRecordPdfModal(true)
+            }}
+            onOpenNewCustomForm={() => {
+              setFormToEdit(null)
+              setOpenBuilderModal(true)
+            }}
+          />
+        </TabsContent>
 
         {/* ABA: PAINEL DE PENDÊNCIAS & CADEIA COMPLETA DE REGISTROS */}
         <TabsContent value="pop_cadeia_pendencias" className="space-y-6 mt-4">

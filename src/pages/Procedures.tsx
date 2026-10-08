@@ -33,7 +33,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { getProcedures, createProcedure, getCompany, getRecords } from '@/services/agroService'
+import {
+  getProcedures,
+  createProcedure,
+  getCompany,
+  getRecords,
+  getPopCustomForms,
+} from '@/services/agroService'
 import { getAutoAvaliacoesList } from '@/services/autoAvaliacaoService'
 import type { AutoAvaliacaoFornecedorItem } from '@/types/autoAvaliacaoFornecedor'
 import type {
@@ -43,13 +49,18 @@ import type {
   ProcedureStatus,
   Company,
   MonitoringRecord,
+  PopCustomForm,
 } from '@/types/agro'
+import { AutoControleTreeView } from '@/components/AutoControleTreeView'
+import { PopFormBuilderModal } from '@/components/PopFormBuilderModal'
+import { PopCustomRecordFillModal } from '@/components/PopCustomRecordFillModal'
+import { RecordDocumentPdfModal } from '@/components/RecordDocumentPdfModal'
 import { evaluatePopChain } from '@/lib/recordFlow'
 import { formatProcedureCode, formatProcedureDisplayName } from '@/lib/procedureNaming'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { PopDocumentPdfModal } from '@/components/PopDocumentPdfModal'
-import { Printer } from 'lucide-react'
+import { Printer, Layers, Table as TableIcon } from 'lucide-react'
 
 export default function Procedures() {
   const navigate = useNavigate()
@@ -71,6 +82,25 @@ export default function Procedures() {
   const [openAppccModal, setOpenAppccModal] = useState(false)
   const [openPdfModal, setOpenPdfModal] = useState(false)
   const [selectedPopForPdf, setSelectedPopForPdf] = useState<Procedure | null>(null)
+  const [viewMode, setViewMode] = useState<'tabela' | 'arvore'>(
+    (searchParams.get('modo') as any) || 'arvore',
+  )
+  const [allCustomForms, setAllCustomForms] = useState<PopCustomForm[]>([])
+
+  // Modal de formulário customizado da árvore (builder)
+  const [builderOpen, setBuilderOpen] = useState(false)
+  const [builderTargetProcedure, setBuilderTargetProcedure] = useState<Procedure | null>(null)
+  const [formToEdit, setFormToEdit] = useState<PopCustomForm | null>(null)
+
+  // Modal de preenchimento de registro customizado
+  const [fillCustomOpen, setFillCustomOpen] = useState(false)
+  const [fillCustomTargetForm, setFillCustomTargetForm] = useState<PopCustomForm | null>(null)
+  const [fillCustomTargetProc, setFillCustomTargetProc] = useState<Procedure | null>(null)
+
+  // Modal de visualização de registro/PDF assinado
+  const [openRecordPdfModal, setOpenRecordPdfModal] = useState(false)
+  const [selectedRecordForPdf, setSelectedRecordForPdf] = useState<MonitoringRecord | null>(null)
+  const [selectedRecordProc, setSelectedRecordProc] = useState<Procedure | null>(null)
 
   // New procedure form
   const [formLoading, setFormLoading] = useState(false)
@@ -103,11 +133,12 @@ export default function Procedures() {
 
   const loadData = async () => {
     try {
-      const [data, comp, recs, autoAvals] = await Promise.all([
+      const [data, comp, recs, autoAvals, cForms] = await Promise.all([
         getProcedures(),
         getCompany().catch(() => null),
         getRecords().catch(() => []),
         getAutoAvaliacoesList().catch(() => []),
+        getPopCustomForms().catch(() => []),
       ])
       data.sort((a, b) => {
         if (a.codigo === 'POP-01' || a.codigo === 'POP-001') return -1
@@ -118,6 +149,7 @@ export default function Procedures() {
       setAllRecords(recs)
       setAutoAvaliacoes(autoAvals)
       setCompany(comp)
+      setAllCustomForms(cForms || [])
 
       // Auto suggest next code
       let maxNum = 0
@@ -276,7 +308,35 @@ export default function Procedures() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Alternador de visualização: Árvore Raiz vs Tabela */}
+          <div className="flex items-center rounded-lg border border-[#E2DCCF] p-0.5 bg-stone-100/70">
+            <button
+              type="button"
+              onClick={() => setViewMode('arvore')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                viewMode === 'arvore'
+                  ? 'bg-white text-[#1B4332] shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <Layers className="h-3.5 w-3.5 text-[#2D6A4F]" />
+              Árvore Raiz (Auto Controles)
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('tabela')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                viewMode === 'tabela'
+                  ? 'bg-white text-[#1B4332] shadow-xs font-bold'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <TableIcon className="h-3.5 w-3.5 text-[#2D6A4F]" />
+              Tabela Resumo
+            </button>
+          </div>
+
           <Button
             variant="outline"
             onClick={() => setOpenAppccModal(true)}
@@ -332,178 +392,259 @@ export default function Procedures() {
         </div>
       </div>
 
-      {/* 3. Procedures Table */}
-      <div className="agro-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="agro-table-header">
-                <th className="py-3 px-4">Procedimento / Auto Controle</th>
-                <th className="py-3 px-4">Nome Completo</th>
-                <th className="py-3 px-4">Categoria</th>
-                <th className="py-3 px-4">Registros do Auto Controle</th>
-                <th className="py-3 px-4">Assinatura RT / RE</th>
-                <th className="py-3 px-4">Responsável</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Última Revisão</th>
-                <th className="py-3 px-4 text-right">Ações / PDF</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E2DCCF]">
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="py-8 text-center text-stone-500">
-                    Carregando procedimentos cadastrados...
-                  </td>
+      {/* 3. VISUALIZAÇÃO: ÁRVORE RAIZ vs TABELA */}
+      {viewMode === 'arvore' ? (
+        <AutoControleTreeView
+          procedures={filteredProcedures}
+          allRecords={allRecords}
+          allCustomForms={allCustomForms}
+          autoAvaliacoes={autoAvaliacoes}
+          company={company}
+          onNavigateDetail={(procId) => navigate(`/procedimentos/${procId}`)}
+          onOpenFillCustomForm={(proc, form) => {
+            setFillCustomTargetProc(proc)
+            setFillCustomTargetForm(form)
+            setFillCustomOpen(true)
+          }}
+          onOpenFillSystemForm={(proc) => {
+            navigate(`/procedimentos/${proc.id}?aba=formularios`)
+          }}
+          onOpenEditCustomForm={(proc, form) => {
+            setBuilderTargetProcedure(proc)
+            setFormToEdit(form)
+            setBuilderOpen(true)
+          }}
+          onOpenEditExecucao={(proc) => {
+            navigate(`/procedimentos/${proc.id}?aba=como-executar`)
+          }}
+          onOpenRecordPdf={(record) => {
+            const proc = procedures.find((p) => p.id === record.procedure) || null
+            setSelectedRecordProc(proc)
+            setSelectedRecordForPdf(record)
+            setOpenRecordPdfModal(true)
+          }}
+          onOpenNewCustomForm={(proc) => {
+            setBuilderTargetProcedure(proc)
+            setFormToEdit(null)
+            setBuilderOpen(true)
+          }}
+        />
+      ) : (
+        <div className="agro-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="agro-table-header">
+                  <th className="py-3 px-4">Procedimento / Auto Controle</th>
+                  <th className="py-3 px-4">Nome Completo</th>
+                  <th className="py-3 px-4">Categoria</th>
+                  <th className="py-3 px-4">Registros do Auto Controle</th>
+                  <th className="py-3 px-4">Assinatura RT / RE</th>
+                  <th className="py-3 px-4">Responsável</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Última Revisão</th>
+                  <th className="py-3 px-4 text-right">Ações / PDF</th>
                 </tr>
-              ) : filteredProcedures.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-8 text-center text-stone-500">
-                    Nenhum procedimento encontrado para o filtro selecionado.
-                  </td>
-                </tr>
-              ) : (
-                filteredProcedures.map((p) => {
-                  const isPop01 = p.codigo === 'POP-01' || p.codigo === 'POP-001'
-                  const chain = evaluatePopChain(p.id, p.codigo, allRecords, undefined, {
-                    autoAvaliacoes: isPop01 ? autoAvaliacoes : [],
-                  })
-                  const displayLabel = formatProcedureDisplayName(p)
+              </thead>
+              <tbody className="divide-y divide-[#E2DCCF]">
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="py-8 text-center text-stone-500">
+                      Carregando procedimentos cadastrados...
+                    </td>
+                  </tr>
+                ) : filteredProcedures.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="py-8 text-center text-stone-500">
+                      Nenhum procedimento encontrado para o filtro selecionado.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProcedures.map((p) => {
+                    const isPop01 = p.codigo === 'POP-01' || p.codigo === 'POP-001'
+                    const chain = evaluatePopChain(p.id, p.codigo, allRecords, undefined, {
+                      autoAvaliacoes: isPop01 ? autoAvaliacoes : [],
+                    })
+                    const displayLabel = formatProcedureDisplayName(p)
 
-                  return (
-                    <tr
-                      key={p.id}
-                      onClick={() => navigate(`/procedimentos/${p.id}`)}
-                      className="hover:bg-[#FAF7EF] cursor-pointer transition"
-                    >
-                      <td className="py-3 px-4 font-bold text-[#2D6A4F] whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-[#1B4332]">{displayLabel}</span>
-                          <span className="text-[10px] font-mono text-stone-400 font-normal">
-                            Código: {p.codigo}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 font-medium text-stone-900 max-w-[280px]">
-                        {p.nome}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge
-                          variant="secondary"
-                          className="bg-emerald-50 text-[#2D6A4F] border border-emerald-200 font-semibold"
-                        >
-                          {p.categoria}
-                        </Badge>
-                      </td>
-
-                      {/* COLUNA: Registros do Auto Controle (Status da cadeia de registros) */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1 items-start">
-                          <div className="flex items-center gap-1.5">
-                            {chain.isComprovado ? (
-                              <Badge className="bg-[#1B4332] text-white text-[10px] font-bold px-2 py-0.5 gap-1">
-                                <CheckCircle2 className="h-3 w-3 text-[#D9A404]" />
-                                Comprovado
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-[#D9A404] text-[#1B4332] text-[10px] font-bold px-2 py-0.5 gap-1">
-                                <AlertCircle className="h-3 w-3" />
-                                Incompleto
-                              </Badge>
-                            )}
-                            <span className="text-[11px] font-mono text-stone-700">
-                              {chain.totalRegistros} {chain.totalRegistros === 1 ? 'reg.' : 'regs.'}
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={() => navigate(`/procedimentos/${p.id}`)}
+                        className="hover:bg-[#FAF7EF] cursor-pointer transition"
+                      >
+                        <td className="py-3 px-4 font-bold text-[#2D6A4F] whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-[#1B4332]">{displayLabel}</span>
+                            <span className="text-[10px] font-mono text-stone-400 font-normal">
+                              Código: {p.codigo}
                             </span>
                           </div>
-                          {chain.totalPendencias > 0 ? (
-                            <span className="text-[10px] text-red-600 font-semibold flex items-center gap-0.5">
-                              <Clock className="h-2.5 w-2.5" />
-                              {chain.totalPendencias}{' '}
-                              {chain.totalPendencias === 1
-                                ? 'pendência aberta'
-                                : 'pendências abertas'}
-                            </span>
-                          ) : chain.totalRegistros === 0 ? (
-                            <span className="text-[10px] text-stone-400">Sem registros</span>
-                          ) : (
-                            <span className="text-[10px] text-emerald-700">
-                              Cadeia 100% resolvida
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {p.assinaturas_pop?.rt && p.assinaturas_pop?.re ? (
-                          <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> Assinado RT & RE
-                          </Badge>
-                        ) : (
+                        </td>
+                        <td className="py-3 px-4 font-medium text-stone-900 max-w-[280px]">
+                          {p.nome}
+                        </td>
+                        <td className="py-3 px-4">
                           <Badge
                             variant="secondary"
-                            className="bg-amber-100 text-amber-800 text-[10px] gap-1"
+                            className="bg-emerald-50 text-[#2D6A4F] border border-emerald-200 font-semibold"
                           >
-                            <Clock className="h-3 w-3" />
-                            {p.assinaturas_pop?.rt
-                              ? 'Falta RE'
-                              : p.assinaturas_pop?.re
-                                ? 'Falta RT'
-                                : 'Pendente RT/RE'}
+                            {p.categoria}
                           </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-stone-700 max-w-[160px] truncate">
-                        {p.responsavel || 'Hélio - RT'}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <Badge
-                          className={
-                            p.status === 'Ativo'
-                              ? 'bg-[#2E8B57] text-white'
-                              : p.status === 'Revisão'
-                                ? 'bg-[#D9A404] text-[#1B4332]'
-                                : 'bg-stone-300 text-stone-700'
-                          }
-                        >
-                          {p.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-stone-500 whitespace-nowrap">
-                        {p.data_revisao
-                          ? new Date(p.data_revisao).toLocaleDateString('pt-BR')
-                          : 'Recente'}
-                      </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedPopForPdf(p)
-                              setOpenPdfModal(true)
-                            }}
-                            className="text-[#2D6A4F] border-[#2D6A4F]/40 hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold gap-1"
+                        </td>
+
+                        {/* COLUNA: Registros do Auto Controle (Status da cadeia de registros) */}
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-1 items-start">
+                            <div className="flex items-center gap-1.5">
+                              {chain.isComprovado ? (
+                                <Badge className="bg-[#1B4332] text-white text-[10px] font-bold px-2 py-0.5 gap-1">
+                                  <CheckCircle2 className="h-3 w-3 text-[#D9A404]" />
+                                  Comprovado
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-[#D9A404] text-[#1B4332] text-[10px] font-bold px-2 py-0.5 gap-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  Incompleto
+                                </Badge>
+                              )}
+                              <span className="text-[11px] font-mono text-stone-700">
+                                {chain.totalRegistros}{' '}
+                                {chain.totalRegistros === 1 ? 'reg.' : 'regs.'}
+                              </span>
+                            </div>
+                            {chain.totalPendencias > 0 ? (
+                              <span className="text-[10px] text-red-600 font-semibold flex items-center gap-0.5">
+                                <Clock className="h-2.5 w-2.5" />
+                                {chain.totalPendencias}{' '}
+                                {chain.totalPendencias === 1
+                                  ? 'pendência aberta'
+                                  : 'pendências abertas'}
+                              </span>
+                            ) : chain.totalRegistros === 0 ? (
+                              <span className="text-[10px] text-stone-400">Sem registros</span>
+                            ) : (
+                              <span className="text-[10px] text-emerald-700">
+                                Cadeia 100% resolvida
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {p.assinaturas_pop?.rt && p.assinaturas_pop?.re ? (
+                            <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> Assinado RT & RE
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="bg-amber-100 text-amber-800 text-[10px] gap-1"
+                            >
+                              <Clock className="h-3 w-3" />
+                              {p.assinaturas_pop?.rt
+                                ? 'Falta RE'
+                                : p.assinaturas_pop?.re
+                                  ? 'Falta RT'
+                                  : 'Pendente RT/RE'}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-stone-700 max-w-[160px] truncate">
+                          {p.responsavel || 'Hélio - RT'}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <Badge
+                            className={
+                              p.status === 'Ativo'
+                                ? 'bg-[#2E8B57] text-white'
+                                : p.status === 'Revisão'
+                                  ? 'bg-[#D9A404] text-[#1B4332]'
+                                  : 'bg-stone-300 text-stone-700'
+                            }
                           >
-                            <Printer className="h-3.5 w-3.5" /> PDF / Assinar
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-[#2D6A4F] hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold"
-                          >
-                            Detalhe <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
+                            {p.status}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-stone-500 whitespace-nowrap">
+                          {p.data_revisao
+                            ? new Date(p.data_revisao).toLocaleDateString('pt-BR')
+                            : 'Recente'}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedPopForPdf(p)
+                                setOpenPdfModal(true)
+                              }}
+                              className="text-[#2D6A4F] border-[#2D6A4F]/40 hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold gap-1"
+                            >
+                              <Printer className="h-3.5 w-3.5" /> PDF / Assinar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[#2D6A4F] hover:bg-[#2D6A4F]/10 h-8 px-2 text-xs font-semibold"
+                            >
+                              Detalhe <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* MODAL: CONSTRUTOR DE FORMULÁRIO / EDIÇÃO DE CAMPOS E DESCRITIVOS MÍNIMOS */}
+      {builderTargetProcedure && (
+        <PopFormBuilderModal
+          open={builderOpen}
+          onOpenChange={setBuilderOpen}
+          procedure={builderTargetProcedure}
+          formToEdit={formToEdit}
+          onFormSaved={() => {
+            loadData()
+            setBuilderOpen(false)
+            setFormToEdit(null)
+          }}
+        />
+      )}
+
+      {/* MODAL: PREENCHER REGISTRO CUSTOMIZADO ANEXADO */}
+      {fillCustomTargetProc && fillCustomTargetForm && (
+        <PopCustomRecordFillModal
+          open={fillCustomOpen}
+          onOpenChange={setFillCustomOpen}
+          procedure={fillCustomTargetProc}
+          form={fillCustomTargetForm}
+          company={company}
+          onRecordCreated={() => {
+            loadData()
+            setFillCustomOpen(false)
+          }}
+        />
+      )}
+
+      {/* MODAL: VISUALIZAR E ASSINAR REGISTRO INDIVIDUAL */}
+      {selectedRecordForPdf && selectedRecordProc && (
+        <RecordDocumentPdfModal
+          open={openRecordPdfModal}
+          onOpenChange={setOpenRecordPdfModal}
+          record={selectedRecordForPdf}
+          procedure={selectedRecordProc}
+          company={company}
+          onSignatureSaved={loadData}
+        />
+      )}
 
       {/* POP DOCUMENT PDF & ASSINATURA MODAL */}
       {selectedPopForPdf && (
