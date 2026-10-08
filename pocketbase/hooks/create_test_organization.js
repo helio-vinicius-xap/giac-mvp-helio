@@ -24,7 +24,7 @@ routerAdd(
       return c.json(401, { error: 'Não autorizado. Faça login como Super Admin Master.' })
     }
 
-    const role = authRecord.getString('role')
+    const role = authRecord.getString ? authRecord.getString('role') : authRecord.role
     if (role !== 'super_admin') {
       return c.json(403, {
         error:
@@ -34,8 +34,14 @@ routerAdd(
 
     let body = {}
     try {
-      body =
-        (c.requestInfo && c.requestInfo().body) || c.get('body') || $apis.requestInfo(c).data || {}
+      if (typeof c.requestInfo === 'function') {
+        const info = c.requestInfo()
+        body = (info && info.body) || {}
+      } else if (c.get && c.get('body')) {
+        body = c.get('body') || {}
+      } else if (typeof $apis !== 'undefined' && typeof $apis.requestInfo === 'function') {
+        body = $apis.requestInfo(c).data || {}
+      }
     } catch (_) {
       body = {}
     }
