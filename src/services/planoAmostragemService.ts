@@ -145,6 +145,8 @@ export async function registrarLaudo(colheita: any, laudo: LaudoAvaliacao): Prom
       origem: 'pa_colheitas',
       colheita: colheita.id,
     })
+    // Bloqueio automático do lote reprovado (visível na Rastreabilidade)
+    await bloquearLoteReprovado(colheita, laudo)
   }
   return atualizarPA('pa_colheitas', colheita.id, {
     laudo,
@@ -213,12 +215,61 @@ export async function listarPlanos(): Promise<PlanoAmostragemItem[]> {
   return await pb.collection('pa_planos').getFullList<PlanoAmostragemItem>({ sort: '-created' })
 }
 
+/** Mapeia a frequência do plano para a periodicidade aceita em programacao_registros */
+function periodicidadeCronograma(freq?: FrequenciaPlano): 'diaria' | 'semanal' | 'mensal' {
+  if (freq === 'semanal') return 'semanal'
+  if (freq === 'mensal') return 'mensal'
+  return 'diaria' // por_lote e diária entram como diária na agenda (coleta a cada batida/lote)
+}
+
+/**
+ * Integração com o cronograma (Rotinas e Programação): cada plano de amostragem
+ * gera/mantém um item em programacao_registros (pop_codigo PA-01) para que as
+ * colheitas programadas apareçam na agenda geral da organização.
+ */
+export async function sincronizarPlanoNoCronograma(plano: PlanoAmostragemItem): Promise<void> {
+  if (!plano?.codigo) return
+  try {
+    const org = orgId()
+    const formularioCodigo = `PA-COLHEITA-${plano.codigo}`
+    const filtro = org
+      ? `organization = '${org}' && formulario_codigo = '${formularioCodigo}'`
+      : `formulario_codigo = '${formularioCodigo}'`
+    const existentes = await pb
+      .collection('programacao_registros')
+      .getList(1, 1, { filter: filtro })
+    const payload = {
+      organization: org,
+      pop_codigo: 'PA-01',
+      formulario_codigo: formularioCodigo,
+      titulo: `Colheita de Amostra: ${plano.nome} (${plano.codigo})`,
+      periodicidade: periodicidadeCronograma(plano.frequencia),
+      data_inicio: new Date().toISOString().split('T')[0],
+      responsavel_cargo: 'Controle de Qualidade',
+      setor: 'Plano de Amostragem',
+      is_ativo: plano.is_ativo !== false,
+      observacoes: `Origem: plano de amostragem ${plano.codigo} — ${plano.frequencia === 'por_lote' ? 'por lote' : ROTULO_FREQUENCIA[plano.frequencia]}`,
+    }
+    if (existentes.totalItems > 0) {
+      await pb.collection('programacao_registros').update((existentes.items[0] as any).id, payload)
+    } else {
+      await pb.collection('programacao_registros').create(payload)
+    }
+  } catch (e) {
+    console.warn('Erro ao sincronizar plano no cronograma:', e)
+  }
+}
+
 export async function criarPlano(data: Partial<PlanoAmostragemItem>): Promise<any> {
-  return criarPA('pa_planos', { ...data, is_ativo: data.is_ativo ?? true })
+  const rec = await criarPA('pa_planos', { ...data, is_ativo: data.is_ativo ?? true })
+  await sincronizarPlanoNoCronograma(rec as PlanoAmostragemItem)
+  return rec
 }
 
 export async function atualizarPlano(id: string, data: Partial<PlanoAmostragemItem>): Promise<any> {
-  return atualizarPA('pa_planos', id, data)
+  const rec = await atualizarPA('pa_planos', id, data)
+  await sincronizarPlanoNoCronograma({ ...data, id, ...rec } as PlanoAmostragemItem)
+  return rec
 }
 
 export async function excluirPlano(id: string): Promise<boolean> {
@@ -262,6 +313,55 @@ export async function listarColheitas(planoId?: string): Promise<any[]> {
   })
 }
 
+export interface ResumoDashboardPA {
+  planosAtivos: number
+  colheitasExecutadas: number
+  laudosAvaliados: number
+  conformes: number
+  desviosAbertos: number
+  desviosConcluidos: number
+  lotesBloqueados: number
+  aderencia: number
+  conformidadeMatriz: number
+}
+
+/** Indicadores do módulo (Anexo IV): aderência executadas/programadas, conformidade e desvios */
+export async function obterResumoDashboard(): Promise<ResumoDashboardPA> {
+  const [planos, colheitas] = await Promise.all([listarPlanos(), listarColheitas()])
+  const planosAtivos = planos.filter((p) => p.is_ativo !== false).length
+  const laudosAvaliados = colheitas.filter((c) => c.status === 'Laudo avaliado' || c.laudo)
+  const conformes = laudosAvaliados.filter((c) => c.laudo?.conclusao === 'Conforme')
+  const desviosAbertos = laudosAvaliados.filter(
+    (c) => c.laudo?.conclusao === 'Não conforme' && !c.desvio_concluido,
+  ).length
+  const desviosConcluidos = laudosAvaliados.filter((c) => c.desvio_concluido === true).length
+  const lotesBloqueados = colheitas.filter((c) => c.lote_bloqueado === true).length
+
+  // Aderência: colheitas executadas nos últimos 30 dias sobre programação esperada
+  // (por_lote/diária = 1 colheita/dia útil; semanal = 4; mensal = 1)
+  const agora = Date.now()
+  const limite30d = agora - 30 * 24 * 60 * 60 * 1000
+  const executadas = colheitas.filter(
+    (c) => new Date(c.created || c.data || 0).getTime() >= limite30d,
+  ).length
+  const esperado = planosAtivos * 4 // aproximação conservadora mensal
+  const aderencia = esperado > 0 ? Math.min(100, Math.round((executadas / esperado) * 100)) : 100
+  const conformidadeMatriz =
+    laudosAvaliados.length > 0 ? Math.round((conformes.length / laudosAvaliados.length) * 100) : 100
+
+  return {
+    planosAtivos,
+    colheitasExecutadas: executadas,
+    laudosAvaliados: laudosAvaliados.length,
+    conformes: conformes.length,
+    desviosAbertos,
+    desviosConcluidos,
+    lotesBloqueados,
+    aderencia,
+    conformidadeMatriz,
+  }
+}
+
 export async function criarColheita(data: Record<string, unknown>): Promise<any> {
   return criarPA('pa_colheitas', { status: 'Colhida', ...data })
 }
@@ -289,14 +389,29 @@ export async function bloquearLoteReprovado(colheita: any, laudo: LaudoAvaliacao
   }
 }
 
+/** Libera o lote (laudo reavaliado como conforme) */
+export async function liberarLote(colheitaId: string): Promise<void> {
+  await atualizarPA('pa_colheitas', colheitaId, { lote_bloqueado: false })
+  await registrarAuditoria('liberacao_lote', 'pa_colheitas', colheitaId, {})
+}
+
 /** Laudos reprovados com lote — usado pela Rastreabilidade para saber quais lotes estão bloqueados */
-export async function listarLotesBloqueados(): Promise<string[]> {
+export async function listarLotesBloqueados(): Promise<
+  Array<{ lote: string; motivo: string; produto: string; numero: string }>
+> {
   const colheitas = await pb.collection('pa_colheitas').getFullList<any>({
     filter: 'lote_bloqueado = true',
   })
-  return Array.from(
-    new Set(
-      colheitas.map((c) => (c.lote_interno || c.lote_fornecedor || '').trim()).filter(Boolean),
-    ),
-  )
+  return colheitas
+    .map((c) => {
+      const lote = (c.lote_interno || c.lote_fornecedor || '').trim()
+      const laudo = c.laudo || {}
+      return {
+        lote,
+        motivo: `Laudo ${laudo.numero_laudo || '—'} reprovado — parâmetro ${laudo.parametro || '—'}: ${laudo.resultado || 'fora do limite'} (limite ${laudo.limite || '—'})`,
+        produto: c.produto || '',
+        numero: c.numero || '',
+      }
+    })
+    .filter((b) => Boolean(b.lote))
 }

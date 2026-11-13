@@ -236,7 +236,8 @@ export const POP_FLOW_DEFINITIONS: Record<string, PopFlowDefinition> = {
       'ANEXO IV': {
         codigo: 'ANEXO IV',
         nome: 'Coleta de Amostra em Triplicata',
-        descricao: 'Amostragem representativa com contraprova e lacre numerado',
+        descricao:
+          'Amostragem representativa com contraprova e lacre numerado — integrada ao Plano de Amostragem: cada coleta registra a ficha de colheita (pa_colheitas) e entra no histórico de amostras do lote (ver getHistoricoAmostrasLote)',
         etapaNumero: 3,
         geraSeguintes: () => [
           {
@@ -320,6 +321,16 @@ export const POP_FLOW_DEFINITIONS: Record<string, PopFlowDefinition> = {
       },
     },
   },
+}
+
+/** Histórico de amostras do Plano de Amostragem vinculadas a um lote (cadeia do POP 01) */
+export async function getHistoricoAmostrasLote(lote: string): Promise<any[]> {
+  if (!lote?.trim()) return []
+  const seguro = lote.trim().replace(/'/g, '')
+  return await pb.collection('pa_colheitas').getFullList<any>({
+    filter: `(lote_interno ~ '${seguro}' || lote_fornecedor ~ '${seguro}')`,
+    sort: '-created',
+  })
 }
 
 // Normaliza o código do POP para compatibilidade (ex: "POP-001" -> "POP-01")

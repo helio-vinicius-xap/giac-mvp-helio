@@ -24,6 +24,7 @@ import SubscriptionBilling from '@/pages/SubscriptionBilling'
 import AuditTrailPage from '@/pages/AuditTrailPage'
 import { Paaso } from '@/pages/Paaso'
 import ProgramacaoPage from '@/pages/ProgramacaoPage'
+import PlanoAmostragemPage from '@/pages/PlanoAmostragemPage'
 import PortalFornecedorPublicoPage from '@/pages/PortalFornecedorPublicoPage'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/toaster'
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="/trilha-auditoria" element={<AuditTrailPage />} />
             <Route path="/admin" element={<SuperAdmin />} />
             <Route path="/paaso" element={<Paaso />} />
+            <Route path="/plano-amostragem" element={<PlanoAmostragemPage />} />
           </Route>
 
           {/* 404 */}

@@ -43,6 +43,7 @@ import {
   getRecords,
   getNonConformities,
 } from '@/services/agroService'
+import { listarLotesBloqueados } from '@/services/planoAmostragemService'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Traceability() {
@@ -54,6 +55,9 @@ export default function Traceability() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [notFound, setNotFound] = useState(false)
+  const [bloqueiosPA, setBloqueiosPA] = useState<
+    Array<{ lote: string; motivo: string; produto: string; numero: string }>
+  >([])
 
   // Simulado de Recall Modal
   const [openRecallModal, setOpenRecallModal] = useState(false)
@@ -71,6 +75,16 @@ export default function Traceability() {
     setNotFound(false)
     setSearchedLote(lote.trim())
     setSearchParams({ lote: lote.trim() })
+
+    // Bloqueios ativos do Plano de Amostragem para este lote
+    let bloqueios: Array<{ lote: string; motivo: string; produto: string; numero: string }> = []
+    try {
+      const lista = await listarLotesBloqueados()
+      bloqueios = lista.filter((b) => b.lote === lote.trim())
+    } catch (_) {
+      bloqueios = []
+    }
+    setBloqueiosPA(bloqueios)
 
     try {
       // 1. Try server-side custom route
@@ -316,6 +330,28 @@ export default function Traceability() {
               Verifique o número informado. Caso tenha sido produzido recentemente, confirme se o
               registro de batelada já foi consolidado na área de Registros.
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Bloqueio de lote vindo do Plano de Amostragem (laudo não conforme) */}
+      {result && bloqueiosPA.length > 0 && (
+        <div className="p-4 bg-red-100 border-2 border-red-400 rounded-xl text-xs text-red-900 flex items-start gap-3 shadow-sm">
+          <AlertCircle className="h-6 w-6 text-red-700 shrink-0 mt-0.5" />
+          <div>
+            <strong className="font-bold block text-sm">
+              ⛔ LOTE BLOQUEADO — Plano de Amostragem
+            </strong>
+            {bloqueiosPA.map((b, i) => (
+              <p key={i} className="mt-1">
+                <strong>Ficha:</strong> {b.numero} • <strong>Produto:</strong> {b.produto} •{' '}
+                <strong>Motivo:</strong> {b.motivo}
+              </p>
+            ))}
+            <p className="mt-1 text-[11px]">
+              Lote retido por resultado analítico fora do limite (Decreto nº 12.031/2024, art. 68 a
+              76). Vedada a expedição até liberação formal pelo Controle de Qualidade.
+            </p>
           </div>
         </div>
       )}

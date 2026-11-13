@@ -5,6 +5,7 @@ routerAdd('GET', '/backend/v1/rastreabilidade/{lote}', (e) => {
     return e.json(400, { error: 'Parâmetro lote é obrigatório' })
   }
 
+  const loteSeguro = lote.replace(/'/g, '')
   try {
     // 1. Records with this lote
     const records = $app.findRecordsByFilter(
@@ -76,6 +77,54 @@ routerAdd('GET', '/backend/v1/rastreabilidade/{lote}', (e) => {
       })
     }
 
+    // 4. Amostras colhidas / laudos do Plano de Amostragem (pa_colheitas)
+    const colheitas = $app.findRecordsByFilter(
+      'pa_colheitas',
+      "(lote_interno ~ '" + loteSeguro + "' || lote_fornecedor ~ '" + loteSeguro + "')",
+      '-created',
+      50,
+      0,
+    )
+
+    const colheitasData = []
+    for (let i = 0; i < colheitas.length; i++) {
+      const c = colheitas[i]
+      colheitasData.push({
+        id: c.id,
+        numero: c.getString('numero'),
+        produto: c.getString('produto'),
+        lote_interno: c.getString('lote_interno'),
+        lote_fornecedor: c.getString('lote_fornecedor'),
+        data: c.getString('data'),
+        ponto_colheita: c.getString('ponto_colheita'),
+        tipo_amostra: c.getString('tipo_amostra'),
+        parametros: c.getString('parametros'),
+        laboratorio: c.getString('laboratorio'),
+        status: c.getString('status'),
+        lote_bloqueado: c.getBool('lote_bloqueado'),
+        nc_id: c.getString('nc_id'),
+        laudo: c.get('laudo'),
+      })
+    }
+
+    // Bloqueio de lote: colheita reprovada com laudo não conforme
+    let bloqueio = null
+    for (let i = 0; i < colheitas.length; i++) {
+      const c = colheitas[i]
+      if (c.getBool('lote_bloqueado')) {
+        bloqueio = {
+          bloqueado: true,
+          motivo:
+            'Lote bloqueado por laudo não conforme no Plano de Amostragem (ficha ' +
+            c.getString('numero') +
+            ')',
+          ficha: c.getString('numero'),
+          nc_id: c.getString('nc_id'),
+        }
+        break
+      }
+    }
+
     const testsData = []
     for (let i = 0; i < tests.length; i++) {
       const t = tests[i]
@@ -93,10 +142,16 @@ routerAdd('GET', '/backend/v1/rastreabilidade/{lote}', (e) => {
 
     return e.json(200, {
       lote: lote,
-      found: recordsData.length > 0 || ncsData.length > 0 || testsData.length > 0,
+      found:
+        recordsData.length > 0 ||
+        ncsData.length > 0 ||
+        testsData.length > 0 ||
+        colheitasData.length > 0,
       records: recordsData,
       non_conformities: ncsData,
       tests: testsData,
+      amostras: colheitasData,
+      bloqueio: bloqueio,
     })
   } catch (err) {
     return e.json(500, { error: 'Erro ao consultar rastreabilidade: ' + err.message })
