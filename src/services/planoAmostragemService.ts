@@ -10,6 +10,8 @@ export type ColecaoPA =
   | 'pa_grade_sensibilidade'
   | 'pa_sequenciamentos'
   | 'pa_colheitas'
+  | 'pa_planos'
+  | 'pa_parametros'
 
 function orgId(): string {
   return (pb.authStore.record as any)?.organization ?? ''
@@ -152,3 +154,149 @@ export async function registrarLaudo(colheita: any, laudo: LaudoAvaliacao): Prom
 }
 
 export type { ClasseRisco, Nivel }
+
+// =========================================================================
+// Planos de amostragem por produto/insumo (Anexo II do desenho validado)
+// =========================================================================
+
+export type FrequenciaPlano = 'por_lote' | 'diaria' | 'semanal' | 'mensal'
+
+export interface PlanoAmostragemItem {
+  id?: string
+  codigo: string
+  nome: string
+  vinculo_tipo: 'MateriaPrima' | 'Produto'
+  produto_nome?: string
+  materia_prima_nome?: string
+  fornecedor_id?: string
+  fornecedor_nome?: string
+  frequencia: FrequenciaPlano
+  tamanho_amostra?: number
+  regra_coleta?: string
+  ponto_coleta?: string
+  tipo_amostra?: 'Simples' | 'Composta' | 'Testemunha'
+  conservacao?: string
+  prazo_analise?: string
+  observacoes?: string
+  is_ativo?: boolean
+  created?: string
+  updated?: string
+}
+
+export interface ParametroPlanoItem {
+  id?: string
+  plano_id: string
+  nome: string
+  unidade?: string
+  limite_min?: string
+  limite_max?: string
+  limite_texto?: string
+  metodo_analise?: string
+  norma_referencia?: string
+  ordem?: number
+}
+
+export const ROTULO_FREQUENCIA: Record<FrequenciaPlano, string> = {
+  por_lote: 'Por lote',
+  diaria: 'Diária',
+  semanal: 'Semanal',
+  mensal: 'Mensal',
+}
+
+/** Regra raiz quadrada de N (Anexo II do Manual TF: amostragem em sacos/granel) */
+export function calcularRegraRaizQuadrada(totalSacos: number): number {
+  if (!totalSacos || totalSacos <= 0) return 0
+  return Math.max(1, Math.ceil(Math.sqrt(totalSacos)))
+}
+
+export async function listarPlanos(): Promise<PlanoAmostragemItem[]> {
+  return await pb.collection('pa_planos').getFullList<PlanoAmostragemItem>({ sort: '-created' })
+}
+
+export async function criarPlano(data: Partial<PlanoAmostragemItem>): Promise<any> {
+  return criarPA('pa_planos', { ...data, is_ativo: data.is_ativo ?? true })
+}
+
+export async function atualizarPlano(id: string, data: Partial<PlanoAmostragemItem>): Promise<any> {
+  return atualizarPA('pa_planos', id, data)
+}
+
+export async function excluirPlano(id: string): Promise<boolean> {
+  await pb.collection('pa_planos').delete(id)
+  await registrarAuditoria('delete', 'pa_planos', id, {})
+  return true
+}
+
+export async function listarParametros(planoId: string): Promise<ParametroPlanoItem[]> {
+  return await pb
+    .collection('pa_parametros')
+    .getFullList<ParametroPlanoItem>({ filter: `plano_id = '${planoId}'`, sort: 'ordem,created' })
+}
+
+export async function criarParametro(data: Partial<ParametroPlanoItem>): Promise<any> {
+  return criarPA('pa_parametros', data)
+}
+
+export async function atualizarParametro(
+  id: string,
+  data: Partial<ParametroPlanoItem>,
+): Promise<any> {
+  return atualizarPA('pa_parametros', id, data)
+}
+
+export async function excluirParametro(id: string): Promise<boolean> {
+  await pb.collection('pa_parametros').delete(id)
+  await registrarAuditoria('delete', 'pa_parametros', id, {})
+  return true
+}
+
+// =========================================================================
+// Colheitas vinculadas a um plano + bloqueio de lote
+// =========================================================================
+
+export async function listarColheitas(planoId?: string): Promise<any[]> {
+  const filter = planoId ? `plano_id = '${planoId}'` : ''
+  return await pb.collection('pa_colheitas').getFullList<any>({
+    filter,
+    sort: '-created',
+  })
+}
+
+export async function criarColheita(data: Record<string, unknown>): Promise<any> {
+  return criarPA('pa_colheitas', { status: 'Colhida', ...data })
+}
+
+export async function excluirColheita(id: string): Promise<boolean> {
+  await pb.collection('pa_colheitas').delete(id)
+  await registrarAuditoria('delete', 'pa_colheitas', id, {})
+  return true
+}
+
+/**
+ * Bloqueia o lote na Rastreabilidade: o lote da colheita reprovada é marcado em
+ * pa_colheitas.lote_bloqueado e uma NC de bloqueio é registrada em traceability_tests-like
+ * channel (non_conformities já cobre a consulta do hook traceability_lookup).
+ */
+export async function bloquearLoteReprovado(colheita: any, laudo: LaudoAvaliacao): Promise<void> {
+  await atualizarPA('pa_colheitas', colheita.id, { lote_bloqueado: true })
+  const lote = colheita.lote_interno || colheita.lote_fornecedor || ''
+  if (lote) {
+    await registrarAuditoria('bloqueio_lote', 'pa_colheitas', colheita.id, {
+      lote,
+      motivo: `Laudo ${laudo.numero_laudo} reprovado — parâmetro ${laudo.parametro}`,
+      produto: colheita.produto,
+    })
+  }
+}
+
+/** Laudos reprovados com lote — usado pela Rastreabilidade para saber quais lotes estão bloqueados */
+export async function listarLotesBloqueados(): Promise<string[]> {
+  const colheitas = await pb.collection('pa_colheitas').getFullList<any>({
+    filter: 'lote_bloqueado = true',
+  })
+  return Array.from(
+    new Set(
+      colheitas.map((c) => (c.lote_interno || c.lote_fornecedor || '').trim()).filter(Boolean),
+    ),
+  )
+}
