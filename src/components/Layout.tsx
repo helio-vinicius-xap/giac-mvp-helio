@@ -25,6 +25,7 @@ import {
   ArrowLeftRight,
   Clock,
   Calendar,
+  FlaskConical,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -111,6 +112,7 @@ export default function Layout() {
   const navItems = [
     { label: 'Visão Geral', path: '/', icon: LayoutDashboard },
     { label: 'Qualificação de Fornecedores', path: '/paaso', icon: ShieldCheck },
+    { label: 'Plano de Amostragem', path: '/plano-amostragem', icon: FlaskConical },
     { label: 'Auto Controles (Pops)', path: '/procedimentos', icon: FileCheck2 },
     { label: 'Rotinas e Programação', path: '/programacao', icon: Calendar },
     { label: 'Registros', path: '/registros', icon: ClipboardList },
@@ -178,6 +180,7 @@ export default function Layout() {
     if (p.startsWith('/documentos')) return 'Repositório de Documentos'
     if (p.startsWith('/trilha-auditoria')) return 'Trilha de Auditoria & Integridade'
     if (p.startsWith('/paaso')) return 'Qualificação de Fornecedores'
+    if (p.startsWith('/plano-amostragem')) return 'Plano de Amostragem (IN 04/2007)'
     if (p.startsWith('/empresa')) return 'Cadastro da Empresa Fabricante (SIPEAGRO/MAPA)'
     if (p.startsWith('/assinatura')) return 'Gestão da Assinatura e Faturamento (Asaas)'
     if (p.startsWith('/admin')) return 'Painel Super Admin Master'

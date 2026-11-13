@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-13T13:54:14.596Z",
+  "generatedAt": "2026-11-13T17:48:28.590Z",
   "collections": [
     {
       "name": "users",
@@ -3621,12 +3621,819 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-
       "indexes": [
         "CREATE UNIQUE INDEX idx_conv_token ON convites_portal_fornecedor (token)",
         "CREATE INDEX idx_conv_org ON convites_portal_fornecedor (organization)",
         "CREATE INDEX idx_conv_status ON convites_portal_fornecedor (status)"
       ]
+    },
+    {
+      "name": "pa_secoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "conteudo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "pa_matriz_risco",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "etapa",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "perigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "significativo",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["S", "N"]
+        },
+        {
+          "name": "medida_preventiva",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ponto_amostragem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "parametro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "frequencia_controle",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "registro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "acao_desvio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "severidade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ALTA", "MEDIA", "BAIXA"]
+        },
+        {
+          "name": "probabilidade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ALTA", "MEDIA", "BAIXA"]
+        },
+        {
+          "name": "pontuacao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "classe",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ALTO", "MEDIO", "BAIXO"]
+        },
+        {
+          "name": "frequencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "justificativa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_revisao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "pa_frequencias",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "grupo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "parametro",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "frequencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "classe",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ALTO", "MEDIO", "BAIXO"]
+        },
+        {
+          "name": "responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "registro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "meses",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "pa_grade_sensibilidade",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "delete": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "perigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "especie_sensivel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "motivo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criterio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "acao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "base_legal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "pa_sequenciamentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "(@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)) && status != 'Comprovado'",
+        "delete": "(@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)) && status != 'Comprovado'"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora_inicio",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora_fim",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ordem_producao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "produto",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "especie_destino",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contem_perigo_restritivo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "produto_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "atende_grade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["C", "NC"]
+        },
+        {
+          "name": "houve_limpeza_linha",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "material_quantidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conferente",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Pendente", "Assinado", "Comprovado"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "pa_limpezas_linha",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "(@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)) && status != 'Comprovado'",
+        "delete": "(@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)) && status != 'Comprovado'"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "linha",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "produto_anterior",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "produto_seguinte",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metodo",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Arraste", "Flushing", "Outro"]
+        },
+        {
+          "name": "material",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quantidade_utilizada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quantidade_validada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "verificacao_analitica",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "laudo_verificacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "destino_material",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "criterio_reprocesso",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conferente",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Pendente", "Assinado", "Comprovado"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "pa_colheitas",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
+        "update": "(@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)) && status != 'Comprovado'",
+        "delete": "(@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)) && status != 'Comprovado'"
+      },
+      "fields": [
+        {
+          "name": "organization",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "numero",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "plano_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "plano_codigo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "matriz",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "produto",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fornecedor_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fornecedor_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fornecedor_situacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nota_fiscal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lote_interno",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lote_fornecedor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ponto_colheita",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_amostra",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Monitoramento", "Verificação", "Retenção", "Contraprova"]
+        },
+        {
+          "name": "parametros",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "laboratorio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "incrementos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "massa_amostra",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conservacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prazo_envio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cadeia_custodia",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel_colheita",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conferente",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "laudo",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nc_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lote_bloqueado",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Colhida", "Laudo avaliado", "Comprovado"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
     },
     {
       "name": "pa_planos",
@@ -3653,38 +4460,32 @@
           "system": false
         },
         {
-          "name": "versao",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "titulo",
+          "name": "nome",
           "type": "text",
           "required": true,
           "system": false
         },
         {
-          "name": "objeto",
+          "name": "vinculo_tipo",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["materia_prima", "produto_acabado"]
+          "selectValues": ["MateriaPrima", "Produto"]
         },
         {
-          "name": "materia_prima",
+          "name": "produto_nome",
           "type": "text",
           "required": false,
           "system": false
         },
         {
-          "name": "produto",
+          "name": "materia_prima_nome",
           "type": "text",
           "required": false,
           "system": false
         },
         {
-          "name": "fornecedor_cnpj",
+          "name": "fornecedor_id",
           "type": "text",
           "required": false,
           "system": false
@@ -3696,45 +4497,11 @@
           "system": false
         },
         {
-          "name": "fornecedor_validado_id",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "fornecedor_ac01_id",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "classe_risco",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["ALTO", "MEDIO", "BAIXO"]
-        },
-        {
           "name": "frequencia",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "por_lote",
-            "diaria",
-            "semanal",
-            "mensal",
-            "trimestral",
-            "semestral",
-            "anual"
-          ]
-        },
-        {
-          "name": "regra_coleta",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": ["fixo", "raiz_quadrada_n"]
+          "selectValues": ["por_lote", "diaria", "semanal", "mensal"]
         },
         {
           "name": "tamanho_amostra",
@@ -3743,19 +4510,13 @@
           "system": false
         },
         {
-          "name": "tamanho_lote_referencia",
+          "name": "total_sacos",
           "type": "number",
           "required": false,
           "system": false
         },
         {
-          "name": "incrementos_minimos",
-          "type": "number",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "unidade",
+          "name": "regra_coleta",
           "type": "text",
           "required": false,
           "system": false
@@ -3771,7 +4532,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["simples", "composta", "testemunha"]
+          "selectValues": ["Simples", "Composta", "Testemunha"]
         },
         {
           "name": "conservacao",
@@ -3780,21 +4541,20 @@
           "system": false
         },
         {
-          "name": "prazo_analise_dias",
-          "type": "number",
+          "name": "prazo_analise",
+          "type": "text",
           "required": false,
           "system": false
         },
         {
-          "name": "status",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Ativo", "Inativo"]
-        },
-        {
           "name": "observacoes",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ativo",
+          "type": "bool",
           "required": false,
           "system": false
         },
@@ -3813,10 +4573,7 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_pa_planos_org ON pa_planos (organization)",
-        "CREATE UNIQUE INDEX idx_pa_planos_org_codigo ON pa_planos (organization, codigo)"
-      ]
+      "indexes": []
     },
     {
       "name": "pa_parametros",
@@ -3837,23 +4594,15 @@
           "collectionRef": "organizations"
         },
         {
-          "name": "plano",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "pa_planos",
-          "cascadeDelete": true
-        },
-        {
-          "name": "nome",
+          "name": "plano_id",
           "type": "text",
           "required": true,
           "system": false
         },
         {
-          "name": "metodo",
+          "name": "nome",
           "type": "text",
-          "required": false,
+          "required": true,
           "system": false
         },
         {
@@ -3864,208 +4613,46 @@
         },
         {
           "name": "limite_min",
-          "type": "number",
+          "type": "text",
           "required": false,
           "system": false
         },
         {
           "name": "limite_max",
-          "type": "number",
+          "type": "text",
           "required": false,
           "system": false
         },
         {
-          "name": "critico",
-          "type": "bool",
+          "name": "limite_texto",
+          "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "metodo_analise",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "norma_referencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "classe_risco",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["ALTO", "MEDIO", "BAIXO"]
         },
         {
           "name": "ordem",
           "type": "number",
           "required": false,
           "system": false
-        }
-      ],
-      "indexes": [
-        "CREATE INDEX idx_pa_param_org ON pa_parametros (organization)",
-        "CREATE INDEX idx_pa_param_plano ON pa_parametros (plano)"
-      ]
-    },
-    {
-      "name": "pa_coletas",
-      "type": "base",
-      "apiRules": {
-        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "delete": "(status_assinatura != 'Comprovado' || status_assinatura = '') && (@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization))"
-      },
-      "fields": [
-        {
-          "name": "organization",
-          "type": "relation",
-          "required": false,
-          "system": false,
-          "collectionRef": "organizations"
-        },
-        {
-          "name": "plano",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "pa_planos",
-          "cascadeDelete": true
-        },
-        {
-          "name": "codigo",
-          "type": "text",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "data",
-          "type": "date",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "hora",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "lote",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "tamanho_lote",
-          "type": "number",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "qtd_amostras",
-          "type": "number",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "incrementos",
-          "type": "number",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "tipo_amostra",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "ponto_coleta",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "conservacao",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "prazo_analise",
-          "type": "date",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "responsavel",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "responsavel_user",
-          "type": "relation",
-          "required": false,
-          "system": false,
-          "collectionRef": "users"
-        },
-        {
-          "name": "observacoes",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "anexos",
-          "type": "file",
-          "required": false,
-          "system": false,
-          "maxSelect": 5,
-          "maxSize": 10485760
-        },
-        {
-          "name": "status",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Coletada", "Aguardando laudo", "Conforme", "Não conforme", "Cancelada"]
-        },
-        {
-          "name": "resultado",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Aprovado", "Reprovado", "Pendente"]
-        },
-        {
-          "name": "lote_bloqueado",
-          "type": "bool",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "nc_id",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "resultados",
-          "type": "json",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "assinaturas",
-          "type": "json",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "status_assinatura",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": [
-            "Pendente Assinatura",
-            "Assinado Parcial (RQ)",
-            "Assinado Parcial (RE)",
-            "Comprovado (Assinado RQ/RE)"
-          ]
-        },
-        {
-          "name": "programacao_id",
-          "type": "text",
-          "required": false,
-          "system": false
         },
         {
           "name": "created",
@@ -4082,170 +4669,7 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_pa_coletas_org ON pa_coletas (organization)",
-        "CREATE INDEX idx_pa_coletas_plano ON pa_coletas (plano)",
-        "CREATE INDEX idx_pa_coletas_lote ON pa_coletas (lote)",
-        "CREATE INDEX idx_pa_coletas_status ON pa_coletas (status)"
-      ]
-    },
-    {
-      "name": "pa_laudos",
-      "type": "base",
-      "apiRules": {
-        "list": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "view": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "create": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "update": "@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization)",
-        "delete": "(status_assinatura != 'Comprovado' || status_assinatura = '') && (@request.auth.role = 'super_admin' || (@request.auth.organization != '' && organization = @request.auth.organization))"
-      },
-      "fields": [
-        {
-          "name": "organization",
-          "type": "relation",
-          "required": false,
-          "system": false,
-          "collectionRef": "organizations"
-        },
-        {
-          "name": "coleta",
-          "type": "relation",
-          "required": true,
-          "system": false,
-          "collectionRef": "pa_coletas",
-          "cascadeDelete": true
-        },
-        {
-          "name": "numero_laudo",
-          "type": "text",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "laboratorio",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "data_laudo",
-          "type": "date",
-          "required": true,
-          "system": false
-        },
-        {
-          "name": "parametro",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "metodo",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "valor",
-          "type": "number",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "limite_descrito",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "conclusao",
-          "type": "select",
-          "required": true,
-          "system": false,
-          "selectValues": ["Conforme", "Não conforme"]
-        },
-        {
-          "name": "classificacao_desvio",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Crítico", "Maior", "Menor"]
-        },
-        {
-          "name": "acao_produto",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "acao_processo",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "medida_preventiva",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "prazo",
-          "type": "date",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "responsavel_avaliacao",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "anexo_file",
-          "type": "file",
-          "required": false,
-          "system": false,
-          "maxSelect": 1,
-          "maxSize": 10485760
-        },
-        {
-          "name": "assinaturas",
-          "type": "json",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "status_assinatura",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": [
-            "Pendente Assinatura",
-            "Assinado Parcial (RQ)",
-            "Assinado Parcial (RE)",
-            "Comprovado (Assinado RQ/RE)"
-          ]
-        },
-        {
-          "name": "created",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": ["onCreate"]
-        },
-        {
-          "name": "updated",
-          "type": "autodate",
-          "required": false,
-          "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
-        }
-      ],
-      "indexes": [
-        "CREATE INDEX idx_pa_laudos_org ON pa_laudos (organization)",
-        "CREATE INDEX idx_pa_laudos_coleta ON pa_laudos (coleta)"
-      ]
+      "indexes": []
     }
   ]
 }
