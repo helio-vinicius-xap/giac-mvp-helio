@@ -77,7 +77,10 @@ export async function listarFornecedoresAC01(): Promise<any[]> {
 export async function garantirSeed(): Promise<void> {
   if (!orgId()) return
   const seeds: [ColecaoPA, Record<string, unknown>[]][] = [
-    ['pa_secoes', SECOES_SEED.map((s, i) => ({ ordem: i + 1, titulo: s.titulo, conteudo: s.conteudo }))],
+    [
+      'pa_secoes',
+      SECOES_SEED.map((s, i) => ({ ordem: i + 1, titulo: s.titulo, conteudo: s.conteudo })),
+    ],
     ['pa_matriz_risco', MATRIZ_SEED.map((m, i) => ({ ...m, ordem: i + 1 }))],
     ['pa_grade_sensibilidade', GRADE_SEED.map((g) => ({ ...g }))],
   ]
@@ -136,7 +139,10 @@ export async function registrarLaudo(colheita: any, laudo: LaudoAvaliacao): Prom
       organization: orgId(),
     })
     ncId = nc.id
-    await registrarAuditoria('create', 'non_conformities', nc.id, { origem: 'pa_colheitas', colheita: colheita.id })
+    await registrarAuditoria('create', 'non_conformities', nc.id, {
+      origem: 'pa_colheitas',
+      colheita: colheita.id,
+    })
   }
   return atualizarPA('pa_colheitas', colheita.id, {
     laudo,

@@ -10,7 +10,8 @@ const PONTOS: Record<Nivel, number> = { ALTA: 3, MEDIA: 2, BAIXA: 1 }
 export const FREQUENCIA_POR_CLASSE: Record<ClasseRisco, string> = {
   ALTO: 'Verificação por lote ou, no mínimo, mensal por família de produto ou ingrediente; monitoramento em 100% dos eventos críticos',
   MEDIO: 'Verificação trimestral; monitoramento documental em 100% dos recebimentos',
-  BAIXO: 'Verificação semestral ou anual, ou controle documental por certificado do fornecedor com verificação amostral',
+  BAIXO:
+    'Verificação semestral ou anual, ou controle documental por certificado do fornecedor com verificação amostral',
 }
 
 /**
